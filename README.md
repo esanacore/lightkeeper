@@ -140,7 +140,7 @@ lightkeeper/
 - Security model, data classification, and threat model: `docs/SECURITY_MODEL.md`
 - Every display state, pictured: `docs/DISPLAY_STATES.md`
 - Setup for Nightscout, Trio, and this repo: `docs/SETUP.md`
-- Roadmap: `TODO.md` and `docs/MVP_BACKLOG.md`
+- Roadmap and how the project grows: `docs/ROADMAP.md`, `docs/MVP_BACKLOG.md`, `TODO.md`
 - Changelog: `CHANGELOG.md`
 - Architecture and decisions: `docs/ARCHITECTURE.md`, `docs/adr/README.md`
 - Product requirements and traceability: `docs/PRODUCT_REQUIREMENTS.md`, `docs/REQUIREMENTS_TRACEABILITY.md`

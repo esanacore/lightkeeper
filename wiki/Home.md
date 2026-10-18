@@ -18,4 +18,4 @@ Old data is never shown as current. A reading older than 15 minutes, or dated in
 
 ## Project status
 
-Version 0.1.0 has the Python display tool with full test coverage and the safety rules ported to C++ for an Xteink pocket e-ink display. Next up: a self-hosted Nightscout, Trio on Kaitlin's iPhone in open loop, and the first real e-ink hardware. The roadmap is `docs/MVP_BACKLOG.md`.
+Version 0.1.0 has the Python display tool with full test coverage and the safety rules ported to C++ for an Xteink pocket e-ink display. Next up: a self-hosted Nightscout, Trio on Kaitlin's iPhone in open loop, and the first real e-ink hardware. The roadmap, including the planned companion app, is `docs/ROADMAP.md`.

@@ -32,7 +32,22 @@ The phased rollout of the whole stack. Phases gate on evidence, not dates. `TODO
 
 ## Phase 4: Our Hardware Layer
 
+See `docs/ROADMAP.md` for how phases relate and what gates each one.
+
 - [ ] Raspberry Pi e-paper bedside display (FR-007), side by side with the primary app for one full sensor session.
 - [ ] Home Assistant sensor and alerts (FR-008).
 - [x] ESP32 safety rules in C++ with shared-vector parity tests (ADR-0006).
 - [ ] Xteink X4/X3 device build and side-by-side validation (FR-010).
+
+## Phase 5: Companion App (ADR-0008)
+
+- [ ] Read-only iOS app: glucose, trend, age, IOB, recent treatments, widgets, watch complication; same staleness rules as the displays.
+- [ ] Study LoopFollow's Trio Remote Control implementation; build a fake Trio endpoint for tests.
+- [ ] Hazard analysis for the bolus request screen in `docs/SAFETY.md`.
+- [ ] Bolus request screen, gated behind the promotion criteria in ADR-0008.
+
+## Phase 6: Community
+
+- [ ] Publish the demo page and a PyPI release.
+- [ ] Contributor guide for other CGM and controller setups.
+- [ ] First outside tester runs a display beside their primary app and reports back.

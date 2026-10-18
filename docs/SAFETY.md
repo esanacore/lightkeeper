@@ -4,7 +4,7 @@ This project touches type 1 diabetes care for a real person. This document sets 
 
 ## The Boundary
 
-1. **No insulin delivery code lives here.** This repository never sends commands to a pump, never calculates a dose, and never changes therapy settings. Dosing is done only by Trio, an established community project with its own review and testing culture. Improvements to dosing go upstream to Trio, through its process, not into this repo.
+1. **No insulin delivery code lives here.** This repository never sends commands to a pump, never calculates a dose, and never changes therapy settings. Dosing is done only by Trio, an established community project with its own review and testing culture. Improvements to dosing go upstream to Trio, through its process, not into this repo. The one planned exception is narrow and gated: the companion app may *request* a bolus through Trio's own remote protocol, where Trio applies its limits and decides (ADR-0008, not yet accepted).
 2. **No custom insulin delivery hardware.** We do not build pumps, pump controllers, or radio bridges that talk to pumps.
 3. **No sensor communication.** We do not talk to the Dexcom G7 directly. The sensor stays paired to the Dexcom G7 app and Trio on Kaitlin's iPhone.
 4. **Read-only, secondary displays only.** Everything we build reads from Nightscout and shows data. Every display says, or is documented to mean, "confirm on the primary device."
@@ -26,6 +26,7 @@ Severity: how bad the outcome could be. Likelihood: before mitigation. Each miti
 | HAZ-006 | Misconfigured thresholds hide a low | Typo in env vars, inverted ranges | Serious | Possible | Thresholds validated at startup, invalid config stops the program | NFR-002, `test_nfr002_invalid_thresholds_are_rejected` |
 | HAZ-007 | Health data or Nightscout credentials exposed | Plain HTTP, token in logs or errors | Moderate | Possible | HTTPS required; read-only token only; token redacted from all errors | NFR-001, `test_nfr001_network_errors_redact_the_token` |
 | HAZ-008 | Someone trusts the secondary display over the primary app | Display looks authoritative | Serious | Possible | Disclaimer in CLI help and README; STALE and NO DATA states tell the user to confirm on the primary device | FR-004, manual review |
+| HAZ-010 | Companion app bolus request delivers the wrong amount or delivers twice (planned feature) | Typo, double tap, retry after timeout, stale glucose shown at request time | Critical | Possible | Request-only design: Trio enforces max bolus, max IOB, and a 10-minute duplicate guard and rejects stale or future-dated requests; app requires an explicit confirm step, shows a pending state until Trio answers, never marks anything delivered on its own, and disables the screen when its own glucose display is STALE | ADR-0008 promotion criteria; tests against a fake Trio (not yet written) |
 | HAZ-009 | Trio misconfiguration causes over or under delivery | Wrong therapy settings, pump driver bug (Omnipod 5 support is new, released September 2026) | Critical | Possible | Outside this codebase. Open loop first, closed loop only after settings are validated with her endo; keep the official Omnipod 5 app as fallback; report bugs upstream with logs | Process, see `docs/SETUP.md` phases |
 
 ## Review Triggers

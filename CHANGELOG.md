@@ -19,6 +19,8 @@ This project follows semantic versioning.
 - `.env.example` listing every setting, checked against `docs/ENV_VARS.md` in CI.
 - Docs: safety boundary and hazard log, security model (data classification, retention, STRIDE threat model), ADRs 0001 to 0007 with an index, product requirements, traceability matrix, test plan, OTS inventory, phased backlog, and a real wiki.
 - Offline `demo.html` showing every display state.
+- `docs/ROADMAP.md` and ADR-0008 (proposed): a companion iOS app, read-only first, with bolus requests only through Trio's remote protocol.
+- `spec_version` field in `spec/display_vectors.json`.
 
 ### Changed
 
