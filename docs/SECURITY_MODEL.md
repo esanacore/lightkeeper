@@ -7,7 +7,7 @@ Data classification, retention, and the threat model for Lightkeeper, following 
 | Data | Level | Where it lives | Notes |
 | --- | --- | --- | --- |
 | Glucose readings, trend, and timestamps | Restricted | Nightscout (source of truth); `lightkeeper` process memory (latest reading only); the panel; the optional `--svg` file | Personal health data. Never in logs, test fixtures, docs, or bug reports; all of those use synthetic values. |
-| Nightscout readable token | Confidential | Environment (`NIGHTSCOUT_TOKEN`) or an ignored `.env` file | Read-only scope. Redacted from every error. |
+| Nightscout readable token | Confidential | Environment (`NIGHTSCOUT_TOKEN`), typically from `/etc/lightkeeper.env` under systemd; there is no `.env` loader | Read-only scope. Redacted from every error. |
 | Nightscout API_SECRET | Restricted | Nightscout server only | Grants write access to treatments. Never given to Lightkeeper. |
 | Thresholds and stale limit | Internal | Environment (`LK_*`) | Display settings, not therapy settings. |
 | Display vectors, gallery images, demo | Public | This repository | Synthetic data only. |

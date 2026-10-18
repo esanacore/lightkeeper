@@ -8,7 +8,7 @@ Nothing here is a medical device. These are secondary displays; the primary CGM 
 
 ### 1. Bedside e-ink display: Raspberry Pi Zero 2 W + 2.9" e-paper HAT
 
-Runs the Python code as it is, so all 139 tests already cover it. This is the first display a household can rely on.
+Runs the Python code as it is, so the whole Python suite already covers it. This is the first display a household can rely on.
 
 | Part | Exact name to search | Approx. price | Where |
 | --- | --- | --- | --- |

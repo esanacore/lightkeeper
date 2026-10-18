@@ -96,7 +96,7 @@ pre-commit install && pre-commit install --hook-type pre-push
 ```bash
 python -m lightkeeper --demo                 # IN RANGE with canned data
 python -m lightkeeper --demo --demo-minutes-ago 40   # the STALE screen
-python -m pytest --cov                       # 139 tests
+python -m pytest --cov                       # full suite, 100% coverage
 make -C firmware/xteink test                 # firmware rules under sanitizers
 ```
 

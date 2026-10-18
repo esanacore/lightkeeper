@@ -2,7 +2,7 @@
 
 Current version: 0.1.0
 
-Lightkeeper is an open source type 1 diabetes project, built by Eric and Kaitlin alongside the #WeAreNotWaiting community. It sits beside Nightscout and Trio and turns glucose data that Nightscout already has into calm, glanceable screens: a bedside e-ink panel, a pocket e-ink reader, an iOS companion app, and Home Assistant alerts. Everything in this repository is read-only. It never commands a pump, never talks to a sensor, and never writes to Nightscout. Insulin dosing stays in Trio, a mature community project, configured with Kaitlin's care team.
+Lightkeeper is an open source type 1 diabetes project, built by Eric for a household with T1D alongside the #WeAreNotWaiting community. It sits beside Nightscout and Trio and turns glucose data that Nightscout already has into calm, glanceable screens: a bedside e-ink panel, a pocket e-ink reader, an iOS companion app, and Home Assistant alerts. Everything in this repository is read-only. It never commands a pump, never talks to a sensor, and never writes to Nightscout. Insulin dosing stays in Trio, a mature community project, configured by the person with diabetes and their care team.
 
 Repository: https://github.com/esanacore/lightkeeper (Apache-2.0).
 
@@ -10,13 +10,13 @@ Repository: https://github.com/esanacore/lightkeeper (Apache-2.0).
 
 Lightkeeper is a secondary display and not a medical device. Always confirm on the primary CGM app before acting.
 
-Inside the code, that rule has a concrete form: old data is never shown as current. A reading older than 15 minutes, or dated more than 2 minutes in the future, shows **STALE - DO NOT TRUST**, even when the number would otherwise look alarming or reassuring. Staleness is checked before any range check, in every implementation, and a shared set of test vectors proves it. [[Safety]] explains the boundary and the hazard log behind it.
+Inside the code, that rule has a concrete form: old data is never shown as current. A reading older than 15 minutes, or dated more than 2 minutes in the future, shows **STALE - DO NOT TRUST**, even when the number would otherwise look alarming or reassuring. Staleness is checked before any range check, in every implementation, and a shared set of test vectors proves it. [[Safety]] explains the boundary, the intended use, and the hazard log behind it.
 
 ## Where to go, by who you are
 
-**If you live with T1D, or care for someone who does**, and you want to know whether a Lightkeeper screen can be trusted and what each state means:
+**If you live with T1D, or care for someone who does**, and want to know whether a Lightkeeper screen can be trusted and what each state means:
 
-- [[Safety]]: what Lightkeeper will never do, and the hazards it guards against.
+- [[Safety]]: what Lightkeeper will never do, its limitations, and the hazards it guards against.
 - [[Display States]]: a picture of every screen it can show, and the rules that produce them.
 - [[Getting Started]]: install it, run the offline demo, point it at your Nightscout.
 - [[Hardware]]: what to buy for a bedside or pocket display, and what to avoid.
@@ -33,18 +33,18 @@ Inside the code, that rule has a concrete form: old data is never shown as curre
 
 **If you are auditing the project** for quality or security practice:
 
-- [[Safety]] and [[Security and Privacy]]: hazard log, data classification, STRIDE model, token handling.
+- [[Safety]] and [[Security and Privacy]]: classification rationale, hazard log, data classification, STRIDE model, token handling.
 - [[Testing and Quality]]: requirements traceability, coverage targets, the constitution CI checks.
 - [[Architecture Decisions]]: status and promotion criteria for every decision.
 - [[Roadmap]]: the phases, their exit evidence, and who owns each gate.
 
-[[Glossary]] defines the terms used throughout, and [[Brand]] covers the mark, palette, and voice. [[Community Research]] records what people with T1D, partners, and parents said about existing displays and what Lightkeeper takes from it.
+[[Glossary]] defines the terms used throughout, [[Brand]] covers the mark, palette, and voice, and [[Community Research]] records what people with T1D, partners, and parents said about existing displays and what Lightkeeper takes from it.
 
 ## Project status
 
-Version 0.1.0 is Phase 0, the foundation. The Python display tool (`lightkeeper`) is complete for its first release: strict parsing, configurable thresholds, staleness and future-timestamp protection, four-line e-ink rendering, safe degradation when Nightscout fails, a CLI with demo mode, and an SVG panel renderer. The suite is 139 tests at 100% line and branch coverage against a 90% floor. The same rules exist in C++17 for the Xteink pocket display and in Swift for the iOS app, and all three implementations pass the 22 shared vectors in `spec/display_vectors.json`.
+Version 0.1.0 is Phase 0, the foundation, and has not yet been tagged. The Python display tool (`lightkeeper`) is complete for its first release: strict parsing, configurable thresholds, staleness and future-timestamp protection, four-line e-ink rendering, safe degradation when Nightscout fails, a CLI with demo mode, and an SVG panel renderer. The suite is 158 tests at 100% line and branch coverage against a 90% floor. The same rules exist in C++17 for the Xteink pocket display and in Swift for the iOS app, and all three implementations pass the 23 shared vectors in `spec/display_vectors.json` and assert its `spec_version`.
 
-What is not done yet: Nightscout is not deployed (Phase 1), Trio is not running on Kaitlin's phone (Phases 2 and 3), no physical e-paper panel has been driven (Phase 4), and the companion app has shipped only its read-only layer in CI, not to TestFlight (Phase 5). Three requirements (FR-007, FR-008, FR-010) are reserved for that work. The full plan is in [[Roadmap]], and the open items are in `TODO.md` and `docs/MVP_BACKLOG.md` in the repository.
+Not done yet: Nightscout is not deployed (Phase 1), Trio is not running on the primary phone (Phases 2 and 3), no physical e-paper panel has been driven (Phase 4), and the companion app has shipped only its read-only layer in CI, not to TestFlight (Phase 5). Requirements FR-007, FR-008, FR-010, FR-013, FR-014, and FR-015 are reserved for that work. The full plan is in [[Roadmap]], and the open items are in `TODO.md` and `docs/MVP_BACKLOG.md` in the repository.
 
 ## How this wiki is maintained
 

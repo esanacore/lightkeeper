@@ -17,7 +17,7 @@ Related documents: `constitution/SECURITY.md`, `docs/TEST_PLAN.md`, `docs/SAFETY
 
 | Component ID | Name | Version | Supplier / Maintainer | Purpose | License | Risk | Verification | Anomaly Review | Update Policy | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| OTS-001 | pytest | >=8 | pytest-dev | Test runner | MIT | Low | Mature upstream suite; runs our 133 tests in CI | github.com/pytest-dev/pytest/issues, last reviewed 2026-10-17 | Range, Dependabot-managed | Active |
+| OTS-001 | pytest | >=8 | pytest-dev | Test runner | MIT | Low | Mature upstream suite; runs our Python suite in CI | github.com/pytest-dev/pytest/issues, last reviewed 2026-10-17 | Range, Dependabot-managed | Active |
 | OTS-002 | pytest-cov | >=5 | pytest-dev | Coverage measurement and floor | MIT | Low | Mature upstream suite; floor enforced via `fail_under` | github.com/pytest-dev/pytest-cov/issues, last reviewed 2026-10-17 | Range, Dependabot-managed | Active |
 | OTS-003 | ruff | >=0.6 | Astral | Lint (incl. bandit security rules) and format | MIT | Low | Runs on every commit and in CI; findings reviewed by hand when first enabled | github.com/astral-sh/ruff/issues, last reviewed 2026-10-18 | Range, Dependabot-managed; pre-commit pin v0.16.8 | Active |
 | OTS-004 | mypy | >=1.11 | Python typing community | Strict static type checking of `src/` | MIT | Low | Runs in the declared suite and pre-commit | github.com/python/mypy/issues, last reviewed 2026-10-18 | Range, Dependabot-managed | Active |

@@ -18,7 +18,7 @@
 
 namespace lk {
 
-// Dexcom and Libre sensors report 40-400 mg/dL; 39 and 401 are the
+// Dexcom sensors report 40-400 mg/dL; 39 and 401 are the
 // Nightscout sentinels for below and above range.
 constexpr int kSensorMinMgdl = 39;
 constexpr int kSensorMaxMgdl = 401;

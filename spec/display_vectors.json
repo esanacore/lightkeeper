@@ -1,6 +1,6 @@
 {
   "spec_version": 1,
-  "description": "Shared golden test vectors for every lightkeeper implementation (Python and ESP32 firmware). Each case is one raw Nightscout entry (or none), the minutes since that entry when the display updates, an optional fetch error, and the exact expected level and display lines. Both test suites must pass every case, which keeps the implementations in lockstep. Default thresholds: 55 / 70 / 180 / 250 mg/dL, stale after 15 minutes. spec_version increments whenever an existing case changes; adding a case does not bump it.",
+  "description": "Shared golden test vectors for every lightkeeper implementation (Python, ESP32 firmware, and Swift). Each case is one raw Nightscout entry (or none), the minutes since that entry when the display updates, an optional fetch error, and the exact expected level and display lines. All three test suites must pass every case, which keeps the implementations in lockstep. Default thresholds: 55 / 70 / 180 / 250 mg/dL, stale after 15 minutes. spec_version increments whenever an existing case changes; adding a case does not bump it.",
   "cases": [
     {
       "name": "in_range_flat",

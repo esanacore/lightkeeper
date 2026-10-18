@@ -104,12 +104,12 @@ def build(out_root: Path) -> list[Path]:
         "",
         'Every screen Lightkeeper can show, drawn at the size of a 2.9" e-paper panel. '
         "These images are generated from `spec/display_vectors.json` by "
-        "`tools/gen_display_gallery.py`, the same cases the Python and firmware tests run, "
-        "so they always match real behavior. Regenerate them after changing a vector.",
+        "`tools/gen_display_gallery.py`, the same cases the Python, firmware, and Swift "
+        "tests run, so they always match real behavior. Regenerate them after changing a vector.",
         "",
-        "Rules worth noticing: anything older than 15 minutes or dated in the future shows "
-        "STALE, even when the number would be alarming; sensor out-of-range values show as "
-        "words, not numbers; and the screen never uses more than four lines.",
+        "Rules worth noticing: anything older than 15 minutes, or more than 2 minutes in the "
+        "future, shows STALE, even when the number would be alarming; sensor out-of-range "
+        "values show as words, not numbers; and the screen never uses more than four lines.",
         "",
     ]
     for heading, names in GROUPS:

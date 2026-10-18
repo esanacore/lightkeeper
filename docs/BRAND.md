@@ -22,7 +22,7 @@ Rules: keep clear space of at least the lamp's diameter around the mark; the swe
 
 ## Color
 
-Two neutrals families and one accent. Status colors are separate from the accent and always travel with a word.
+Two neutral families and one accent. Status colors are separate from the accent and always travel with a word.
 
 | Token | Light theme | Dark theme | Role |
 | --- | --- | --- | --- |
