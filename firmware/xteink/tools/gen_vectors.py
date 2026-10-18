@@ -9,6 +9,7 @@ import sys
 
 
 def c_str(value):
+    """Return `value` as a C++ string literal, or nullptr for None."""
     if value is None:
         return "nullptr"
     escaped = value.replace("\\", "\\\\").replace('"', '\\"')
@@ -16,7 +17,9 @@ def c_str(value):
 
 
 def main(src, dst):
-    cases = json.load(open(src, encoding="utf-8"))["cases"]
+    """Write one C++ Vector initializer per case in `src` to `dst`."""
+    with open(src, encoding="utf-8") as fh:
+        cases = json.load(fh)["cases"]
     out = ["// Generated from spec/display_vectors.json by tools/gen_vectors.py. Do not edit."]
     for case in cases:
         entry = case["entry"]
@@ -27,11 +30,11 @@ def main(src, dst):
         lines = case["lines"] + [None] * (4 - len(case["lines"]))
         out.append(
             "{"
-            f'{c_str(case["name"])}, {has_entry}, {c_str(entry.get("type"))}, '
-            f'{"true" if has_sgv else "false"}, {float(sgv) if has_sgv else 0.0}, '
-            f'{c_str(entry.get("direction"))}, {case["minutes_ago"]}, '
-            f'{"true" if case["error"] else "false"}, {c_str(case["level"])}, '
-            f'{len(case["lines"])}, {{{", ".join(c_str(x) for x in lines)}}}'
+            f"{c_str(case['name'])}, {has_entry}, {c_str(entry.get('type'))}, "
+            f"{'true' if has_sgv else 'false'}, {float(sgv) if has_sgv else 0.0}, "
+            f"{c_str(entry.get('direction'))}, {case['minutes_ago']}, "
+            f"{'true' if case['error'] else 'false'}, {c_str(case['level'])}, "
+            f"{len(case['lines'])}, {{{', '.join(c_str(x) for x in lines)}}}"
             "},"
         )
     with open(dst, "w", encoding="utf-8", newline="\n") as fh:

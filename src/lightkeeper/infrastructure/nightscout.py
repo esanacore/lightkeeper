@@ -15,7 +15,8 @@ import json
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Callable
+from collections.abc import Callable
+from typing import Any
 
 DEFAULT_TIMEOUT_SECONDS = 10
 
@@ -29,9 +30,15 @@ class NightscoutError(RuntimeError):
 
 
 def _default_fetcher(url: str, timeout: float) -> bytes:
-    request = urllib.request.Request(url, headers={"Accept": "application/json"})
-    with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310 (https enforced below)
-        return response.read()
+    """GET `url` and return the raw body.
+
+    NightscoutClient.__init__ only accepts https (or explicitly allowed http
+    for localhost tests), so file:// and custom schemes never reach urlopen.
+    """
+    request = urllib.request.Request(url, headers={"Accept": "application/json"})  # noqa: S310
+    with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310
+        body: bytes = response.read()
+        return body
 
 
 class NightscoutClient:
@@ -45,12 +52,19 @@ class NightscoutClient:
         timeout: float = DEFAULT_TIMEOUT_SECONDS,
         allow_http: bool = False,
     ) -> None:
+        """Configure a read-only client for one Nightscout site.
+
+        `token` must have the readable role only. `fetcher` is injectable for
+        tests, and `allow_http` exists only for localhost testing.
+        """
         parsed = urllib.parse.urlparse(base_url)
         if parsed.scheme not in ("https", "http") or not parsed.netloc:
             raise ValueError("base_url must be a full URL like https://my-nightscout.example")
         if parsed.scheme == "http" and not allow_http:
             # Glucose data is health data; plain HTTP is only for local testing.
-            raise ValueError("base_url must use https (pass allow_http=True for local testing only)")
+            raise ValueError(
+                "base_url must use https (pass allow_http=True for local testing only)"
+            )
         self._base_url = base_url.rstrip("/")
         self._token = token
         self._fetcher = fetcher or _default_fetcher
@@ -68,7 +82,7 @@ class NightscoutClient:
             text = text.replace(urllib.parse.quote(self._token, safe=""), "***")
         return text
 
-    def fetch_entries(self, count: int = 12) -> list:
+    def fetch_entries(self, count: int = 12) -> list[Any]:
         """Return the newest `count` raw entries as a list of dicts."""
         if not 1 <= count <= 288:
             raise ValueError("count must be between 1 and 288 (24 hours of 5-minute readings)")

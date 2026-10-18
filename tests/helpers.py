@@ -1,13 +1,18 @@
 """Shared test helpers: build Nightscout-shaped entries at a fixed clock."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
-NOW = datetime(2026, 10, 18, 12, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 10, 18, 12, 0, tzinfo=UTC)
 
 
 def entry(mgdl=120, minutes_ago=0, direction="Flat", **extra):
     when = NOW - timedelta(minutes=minutes_ago)
-    data = {"type": "sgv", "sgv": mgdl, "date": int(when.timestamp() * 1000), "direction": direction}
+    data = {
+        "type": "sgv",
+        "sgv": mgdl,
+        "date": int(when.timestamp() * 1000),
+        "direction": direction,
+    }
     data.update(extra)
     return data
 

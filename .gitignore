@@ -6,12 +6,15 @@ __pycache__/
 build/
 dist/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 .coverage
 htmlcov/
 
 # Secrets: Nightscout tokens and keys never get committed
 .env
 .env.*
+!.env.example
 *.pem
 *.key
 *.p12

@@ -8,7 +8,7 @@ closes GAP-003; a test against a real Nightscout deployment is still open.
 import json
 import threading
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
@@ -62,7 +62,7 @@ class FakeNightscout(BaseHTTPRequestHandler):
 def server():
     FakeNightscout.mode = "ok"
     FakeNightscout.requests = []
-    now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+    now_ms = int(datetime.now(UTC).timestamp() * 1000)
     FakeNightscout.entries = [
         {"type": "sgv", "sgv": 98, "date": now_ms - 60_000, "direction": "FortyFiveDown"},
         {"type": "sgv", "sgv": 104, "date": now_ms - 360_000, "direction": "Flat"},
@@ -80,7 +80,7 @@ def client(url, token=TOKEN, timeout=5):
 
 
 def test_fr005_end_to_end_reading_over_http(server):
-    status, error = current_status(client(server), datetime.now(timezone.utc), Thresholds())
+    status, error = current_status(client(server), datetime.now(UTC), Thresholds())
     assert error is None
     assert status.level is Level.IN_RANGE
     lines = render_lines(status)
@@ -90,7 +90,9 @@ def test_fr005_end_to_end_reading_over_http(server):
 
 def test_nfr003_only_get_requests_reach_the_server(server):
     client(server).fetch_entries(count=3)
-    assert FakeNightscout.requests == [("GET", "/api/v1/entries/sgv.json", {"count": ["3"], "token": [TOKEN]})]
+    assert FakeNightscout.requests == [
+        ("GET", "/api/v1/entries/sgv.json", {"count": ["3"], "token": [TOKEN]})
+    ]
 
 
 def test_nfr001_wrong_token_is_an_error_and_not_echoed(server):
@@ -115,6 +117,6 @@ def test_fr005_server_gone_degrades_to_no_data(server):
     url = server
     # Point at a port nothing listens on.
     dead = url.rsplit(":", 1)[0] + ":1"
-    status, error = current_status(client(dead), datetime.now(timezone.utc), Thresholds())
+    status, error = current_status(client(dead), datetime.now(UTC), Thresholds())
     assert status.level is Level.NO_DATA
     assert error and TOKEN not in error

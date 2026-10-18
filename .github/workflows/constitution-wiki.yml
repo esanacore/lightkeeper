@@ -40,7 +40,7 @@ on:
     branches: [main, master]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   freshness:
@@ -101,6 +101,10 @@ jobs:
   publish:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    # Only this job writes, and only to the wiki (constitution/SECURITY.md,
+    # "CI/CD Supply Chain": least privilege per job).
+    permissions:
+      contents: write
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

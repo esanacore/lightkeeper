@@ -15,7 +15,9 @@ from lightkeeper.domain.glucose import InvalidReadingError, parse_entry
 from lightkeeper.domain.status import Thresholds, classify
 from tests.helpers import NOW
 
-VECTORS = json.loads((Path(__file__).parent.parent / "spec" / "display_vectors.json").read_text())["cases"]
+VECTORS = json.loads((Path(__file__).parent.parent / "spec" / "display_vectors.json").read_text())[
+    "cases"
+]
 
 
 def run_case(case):

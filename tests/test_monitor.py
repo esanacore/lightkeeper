@@ -75,9 +75,16 @@ def test_fr005_fetch_error_reuses_last_good_and_ages_it_into_stale():
 
 def test_fr004_stale_while_unreachable_stays_four_lines():
     good, _ = current_status(FakeSource([entry(120, 2)]), NOW, T)
-    later, error = current_status(FakeSource(error=RuntimeError("down")), NOW + timedelta(minutes=30), T, good)
+    later, error = current_status(
+        FakeSource(error=RuntimeError("down")), NOW + timedelta(minutes=30), T, good
+    )
     lines = render_lines(later, error)
-    assert lines == ["STALE - DO NOT TRUST", "last: 120 mg/dL ->", "32 min ago", "Nightscout unreachable"]
+    assert lines == [
+        "STALE - DO NOT TRUST",
+        "last: 120 mg/dL ->",
+        "32 min ago",
+        "Nightscout unreachable",
+    ]
 
 
 def test_fr004_render_output_is_ascii_and_short():

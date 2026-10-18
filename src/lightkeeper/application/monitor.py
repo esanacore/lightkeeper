@@ -9,7 +9,7 @@ because a display that silently freezes on its last value is a hazard.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Protocol
+from typing import Any, Protocol
 
 from lightkeeper.domain.glucose import parse_entries
 from lightkeeper.domain.status import Level, Status, Thresholds, classify
@@ -21,7 +21,9 @@ MAX_LINES = 4
 class EntrySource(Protocol):
     """Anything that can hand back raw Nightscout entries."""
 
-    def fetch_entries(self, count: int = 12) -> list: ...
+    def fetch_entries(self, count: int = 12) -> list[Any]:
+        """Return the newest `count` raw entries, newest first or in any order."""
+        ...
 
 
 def current_status(
@@ -64,7 +66,12 @@ def render_lines(status: Status, error: str | None = None) -> list[str]:
         if status.level is Level.STALE:
             if minutes is not None and minutes < 0:
                 age_text = "time is in the future"
-            lines = ["STALE - DO NOT TRUST", f"last: {value}", age_text, "Confirm on primary device"]
+            lines = [
+                "STALE - DO NOT TRUST",
+                f"last: {value}",
+                age_text,
+                "Confirm on primary device",
+            ]
         else:
             lines = [status.level.value, value, age_text]
 

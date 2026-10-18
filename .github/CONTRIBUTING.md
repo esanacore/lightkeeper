@@ -1,14 +1,16 @@
 # Contributing to this Project
 
-Thank you for contributing! This project follows [Eric's Engineering Constitution](constitution/CONSTITUTION.md).
+Thank you for contributing! This project follows [Eric's Engineering Constitution](../constitution/CONSTITUTION.md).
 
 ## For Humans
 
 Please follow the standard Git Flow:
 1. Fork the repository.
 2. Create a feature branch.
-3. Commit your changes with clear, descriptive messages.
-4. Submit a Pull Request.
+3. Commit with [Conventional Commits](https://www.conventionalcommits.org/) messages (`feat:`, `fix:`, `docs:`, `test:`, `ci:`, `chore:`), which the release tooling reads to suggest version bumps.
+4. Run the full suite from `docs/TEST_PLAN.md` and install the pre-commit hooks (`pre-commit install && pre-commit install --hook-type pre-push`).
+5. Read `docs/SAFETY.md` first if your change touches parsing, classification, rendering, the Nightscout client, or the firmware rules. Those changes need a hazard review.
+6. Submit a Pull Request.
 
 ## For AI Agents
 
@@ -33,4 +35,4 @@ Before starting, you MUST read:
 
 ## Getting Help
 
-If you are stuck, refer to `HELP.md` or `docs/TROUBLESHOOTING.md`.
+If you are stuck, refer to `docs/HELP.md` or `docs/TROUBLESHOOTING.md`.

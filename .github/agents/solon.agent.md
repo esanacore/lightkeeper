@@ -24,7 +24,7 @@ advising, and cite them when you flag an issue:
 - `constitution/RELEASES.md` — release and changelog discipline
 - `README.md`, `TODO.md`, `CHANGELOG.md` — current state of this project (TODO: open items only; CHANGELOG: `Unreleased` + latest release)
 
-Project-specific rules in `AGENTS.md` and `.github/copilot-instructions.md` take
+Project-specific rules in `AGENTS.md` (and `.github/copilot-instructions.md`, if present) take
 precedence over the constitution defaults. When guidance conflicts or a file is
 missing, say so plainly rather than guessing.
 

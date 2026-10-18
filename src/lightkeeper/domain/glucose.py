@@ -11,8 +11,9 @@ Showing a wrong number is worse than showing no number.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
+from typing import Any
 
 # Dexcom sensors report 40-400 mg/dL. Nightscout stores out-of-range values
 # as 39 ("LOW") and 401 ("HIGH") sentinels, so those are valid inputs too.
@@ -73,7 +74,7 @@ class GlucoseReading:
         return self.mgdl >= SENSOR_MAX_MGDL
 
 
-def parse_entry(entry: dict) -> GlucoseReading:
+def parse_entry(entry: object) -> GlucoseReading:
     """Turn one Nightscout `/api/v1/entries` record into a GlucoseReading.
 
     Raises InvalidReadingError for anything we can't trust.
@@ -97,7 +98,7 @@ def parse_entry(entry: dict) -> GlucoseReading:
     date_ms = entry.get("date")
     if isinstance(date_ms, bool) or not isinstance(date_ms, (int, float)) or date_ms <= 0:
         raise InvalidReadingError(f"date missing or invalid: {date_ms!r}")
-    timestamp = datetime.fromtimestamp(date_ms / 1000, tz=timezone.utc)
+    timestamp = datetime.fromtimestamp(date_ms / 1000, tz=UTC)
 
     try:
         trend = Trend(entry.get("direction", "Unknown"))
@@ -108,7 +109,7 @@ def parse_entry(entry: dict) -> GlucoseReading:
     return GlucoseReading(mgdl=mgdl, timestamp=timestamp, trend=trend)
 
 
-def parse_entries(entries: list) -> list[GlucoseReading]:
+def parse_entries(entries: list[Any] | None) -> list[GlucoseReading]:
     """Parse a list of entries, skipping bad ones, newest first."""
     readings = []
     for entry in entries or []:

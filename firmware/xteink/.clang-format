@@ -1,0 +1,4 @@
+BasedOnStyle: Google
+ColumnLimit: 100
+# Naming mirrors the Python implementation on purpose (snake_case functions,
+# CamelCase enum values) so the two read side by side. See ADR-0007.

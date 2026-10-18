@@ -51,6 +51,7 @@ class Thresholds:
     stale_after: timedelta = timedelta(minutes=15)
 
     def __post_init__(self) -> None:
+        """Reject threshold sets that could hide a low or high."""
         if not 40 <= self.urgent_low < self.low < self.high < self.urgent_high <= 400:
             raise ValueError(
                 "thresholds must satisfy 40 <= urgent_low < low < high < urgent_high <= 400"
@@ -69,6 +70,7 @@ class Status:
 
     @property
     def age_minutes(self) -> int | None:
+        """Whole minutes since the reading (floored), or None with no reading."""
         if self.age is None:
             return None
         return int(self.age.total_seconds() // 60)

@@ -7,8 +7,15 @@ from lightkeeper import cli
 
 @pytest.fixture(autouse=True)
 def clean_env(monkeypatch):
-    for name in ["NIGHTSCOUT_URL", "NIGHTSCOUT_TOKEN", "LK_URGENT_LOW", "LK_LOW", "LK_HIGH",
-                 "LK_URGENT_HIGH", "LK_STALE_MINUTES"]:
+    for name in [
+        "NIGHTSCOUT_URL",
+        "NIGHTSCOUT_TOKEN",
+        "LK_URGENT_LOW",
+        "LK_LOW",
+        "LK_HIGH",
+        "LK_URGENT_HIGH",
+        "LK_STALE_MINUTES",
+    ]:
         monkeypatch.delenv(name, raising=False)
 
 

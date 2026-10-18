@@ -70,7 +70,9 @@ def test_fr001_whole_float_value_is_accepted():
 
 
 def test_fr001_parse_entries_skips_bad_and_sorts_newest_first():
-    readings = parse_entries([entry(100, 10), entry(mgdl=999), entry(110, 0), "junk", entry(105, 5)])
+    readings = parse_entries(
+        [entry(100, 10), entry(mgdl=999), entry(110, 0), "junk", entry(105, 5)]
+    )
     assert [r.mgdl for r in readings] == [110, 105, 100]
 
 

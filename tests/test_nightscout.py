@@ -50,7 +50,9 @@ def test_nfr003_no_token_means_no_token_param():
     assert "token=" not in fetcher.urls[0][0]
 
 
-@pytest.mark.parametrize("url", ["http://ns.example.com", "ftp://ns.example.com", "ns.example.com", ""])
+@pytest.mark.parametrize(
+    "url", ["http://ns.example.com", "ftp://ns.example.com", "ns.example.com", ""]
+)
 def test_nfr001_rejects_non_https_urls(url):
     with pytest.raises(ValueError):
         NightscoutClient(url)

@@ -15,10 +15,10 @@ struct TrendName {
 
 // Nightscout direction strings and their plain-ASCII arrows.
 const TrendName kTrends[] = {
-    {"DoubleUp", Trend::DoubleUp, "^^"},         {"SingleUp", Trend::SingleUp, "^"},
-    {"FortyFiveUp", Trend::FortyFiveUp, "/"},    {"Flat", Trend::Flat, "->"},
+    {"DoubleUp", Trend::DoubleUp, "^^"},           {"SingleUp", Trend::SingleUp, "^"},
+    {"FortyFiveUp", Trend::FortyFiveUp, "/"},      {"Flat", Trend::Flat, "->"},
     {"FortyFiveDown", Trend::FortyFiveDown, "\\"}, {"SingleDown", Trend::SingleDown, "v"},
-    {"DoubleDown", Trend::DoubleDown, "vv"},     {"Unknown", Trend::Unknown, "?"},
+    {"DoubleDown", Trend::DoubleDown, "vv"},       {"Unknown", Trend::Unknown, "?"},
 };
 
 void set_line(Lines* out, const char* text) {
@@ -37,8 +37,8 @@ int64_t floor_div(int64_t a, int64_t b) {
 }  // namespace
 
 bool Thresholds::valid() const {
-  return 40 <= urgent_low && urgent_low < low && low < high && high < urgent_high && urgent_high <= 400 &&
-         stale_after_ms > 0;
+  return 40 <= urgent_low && urgent_low < low && low < high && high < urgent_high &&
+         urgent_high <= 400 && stale_after_ms > 0;
 }
 
 Trend trend_from_string(const char* direction) {
@@ -59,13 +59,20 @@ const char* trend_arrow(Trend trend) {
 
 const char* level_name(Level level) {
   switch (level) {
-    case Level::NoData: return "NO DATA";
-    case Level::Stale: return "STALE";
-    case Level::UrgentLow: return "URGENT LOW";
-    case Level::Low: return "LOW";
-    case Level::InRange: return "IN RANGE";
-    case Level::High: return "HIGH";
-    case Level::UrgentHigh: return "URGENT HIGH";
+    case Level::NoData:
+      return "NO DATA";
+    case Level::Stale:
+      return "STALE";
+    case Level::UrgentLow:
+      return "URGENT LOW";
+    case Level::Low:
+      return "LOW";
+    case Level::InRange:
+      return "IN RANGE";
+    case Level::High:
+      return "HIGH";
+    case Level::UrgentHigh:
+      return "URGENT HIGH";
   }
   return "NO DATA";
 }

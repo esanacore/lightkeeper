@@ -20,8 +20,25 @@ repos:
       - id: check-merge-conflict
       - id: detect-private-key
       - id: check-added-large-files
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.8
+    hooks:
+      - id: ruff
+      - id: ruff-format
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v18.1.8
+    hooks:
+      - id: clang-format
+        files: ^firmware/
+        types_or: [c, c++]
   - repo: local
     hooks:
+      - id: mypy
+        name: mypy (strict, src only)
+        entry: python -m mypy
+        language: system
+        pass_filenames: false
+        files: ^src/.*\.py$
       - id: constitution-secrets-sweep
         name: Constitution secrets sweep
         description: Sweep the project for secrets that should be gitignored before pushing (constitution/scripts/check_secrets.sh).

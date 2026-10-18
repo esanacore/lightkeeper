@@ -29,7 +29,16 @@ constexpr int64_t kMaxFutureSkewMs = 2LL * 60 * 1000;
 constexpr int kMaxLines = 4;
 constexpr int kLineChars = 32;  // buffer size per line, including the null
 
-enum class Trend { DoubleUp, SingleUp, FortyFiveUp, Flat, FortyFiveDown, SingleDown, DoubleDown, Unknown };
+enum class Trend {
+  DoubleUp,
+  SingleUp,
+  FortyFiveUp,
+  Flat,
+  FortyFiveDown,
+  SingleDown,
+  DoubleDown,
+  Unknown
+};
 
 enum class Level { NoData, Stale, UrgentLow, Low, InRange, High, UrgentHigh };
 
@@ -47,7 +56,7 @@ struct Thresholds {
 // Fields pulled out of one Nightscout entry by the JSON layer. A field that
 // is missing or not a number sets its has_ flag to false.
 struct RawEntry {
-  const char* type = nullptr;       // nullptr means "not present" (treated as "sgv")
+  const char* type = nullptr;  // nullptr means "not present" (treated as "sgv")
   bool has_sgv = false;
   double sgv = 0;
   bool has_date = false;

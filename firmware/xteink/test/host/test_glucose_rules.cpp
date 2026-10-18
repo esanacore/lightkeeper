@@ -17,13 +17,13 @@ namespace {
 int g_failures = 0;
 int g_checks = 0;
 
-#define CHECK(cond, msg)                                                  \
-  do {                                                                    \
-    g_checks++;                                                           \
-    if (!(cond)) {                                                        \
-      g_failures++;                                                       \
-      printf("FAIL %s:%d %s (%s)\n", __FILE__, __LINE__, msg, #cond);     \
-    }                                                                     \
+#define CHECK(cond, msg)                                              \
+  do {                                                                \
+    g_checks++;                                                       \
+    if (!(cond)) {                                                    \
+      g_failures++;                                                   \
+      printf("FAIL %s:%d %s (%s)\n", __FILE__, __LINE__, msg, #cond); \
+    }                                                                 \
   } while (0)
 
 const int64_t kNowMs = 1792324800000LL;  // 2026-10-18T12:00:00Z
@@ -157,7 +157,8 @@ void test_render_limits() {
     CHECK(strlen(lines.text[i]) <= 26, "every line fits the panel width");
   }
   lk::render(lk::Status(), false, nullptr);  // must not crash
-  CHECK(lk::needs_attention(lk::Level::Stale) && !lk::needs_attention(lk::Level::InRange), "attention rule");
+  CHECK(lk::needs_attention(lk::Level::Stale) && !lk::needs_attention(lk::Level::InRange),
+        "attention rule");
   CHECK(strcmp(lk::trend_arrow(lk::trend_from_string("DoubleDown")), "vv") == 0, "arrow lookup");
 }
 
