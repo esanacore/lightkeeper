@@ -24,9 +24,8 @@ Related documents:
 | FR-005 | MUST | Degrade safely when Nightscout fails | FR-005-AC-1, AC-2 | `tests/test_monitor.py`, `tests/test_nightscout.py`, `tests/test_cli.py`, `tests/test_http_integration.py` (`-k fr005`) | Verified |
 | FR-006 | MUST | CLI with demo mode and exit codes | FR-006-AC-1 to AC-3 | `tests/test_cli.py` (`-k fr006`) | Verified |
 | FR-009 | MUST | Display implementations match shared vectors | FR-009-AC-1 | `tests/test_vectors.py`, `firmware/xteink/test/host/test_glucose_rules.cpp` (`make -C firmware/xteink test`) | Verified |
-| FR-010 | SHOULD | Xteink X4/X3 pocket display | FR-010-AC-1 | none, GAP-005 | Not Started |
-| FR-007 | SHOULD | Drive a Raspberry Pi e-ink display | FR-007-AC-1 | none, GAP-001 | Not Started |
-| FR-008 | SHOULD | Publish status to Home Assistant | FR-008-AC-1 | none, GAP-002 | Not Started |
+
+Planned requirements FR-007, FR-008, and FR-010 are reserved in `docs/PRODUCT_REQUIREMENTS.md` and get rows here when they are promoted (gaps GAP-001, GAP-002, GAP-005 in `docs/TEST_PLAN.md`).
 
 ## Non-Functional Requirements
 
@@ -41,8 +40,8 @@ Related documents:
 
 | Metric | Count |
 | --- | --- |
-| Total requirements | 14 |
+| Total requirements | 11 (plus 3 planned) |
 | Verified | 11 |
 | In progress | 0 |
-| Not started | 3 |
-| Requirements without a verifying test (gaps) | 3 |
+| Not started | 0 |
+| Requirements without a verifying test (gaps) | 0 |

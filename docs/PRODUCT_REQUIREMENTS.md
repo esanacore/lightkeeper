@@ -72,29 +72,19 @@ An open source stack for managing Kaitlin's type 1 diabetes with community tools
   - `FR-006-AC-2`: Exit code is 0 for fresh in-range, 1 for anything needing attention, 2 for configuration errors.
   - `FR-006-AC-3`: `--watch` refreshes no more often than every 15 seconds.
 
-**FR-007** `SHOULD` Drive a physical e-ink display on a Raspberry Pi.
-
-- Level: `SHOULD`
-- Acceptance criteria:
-  - `FR-007-AC-1`: The four rendered lines appear on the panel and refresh at least every 5 minutes.
-
-**FR-008** `SHOULD` Publish status to Home Assistant for alerts and automations.
-
-- Level: `SHOULD`
-- Acceptance criteria:
-  - `FR-008-AC-1`: Home Assistant shows a sensor with the level, value, and age, and can trigger an automation on URGENT LOW or STALE.
-
 **FR-009** `MUST` Keep every display implementation in lockstep with the shared golden vectors.
 
 - Level: `MUST`
 - Acceptance criteria:
   - `FR-009-AC-1`: The Python suite and the firmware host tests both pass every case in `spec/display_vectors.json`, rendering identical level and lines.
 
-**FR-010** `SHOULD` Run on an Xteink X4/X3 pocket e-ink reader over Wi-Fi.
+## Planned Requirements
 
-- Level: `SHOULD`
-- Acceptance criteria:
-  - `FR-010-AC-1`: The device fetches from Nightscout, shows every vector state correctly, and updates at least every 5 minutes (ADR-0006).
+These IDs are reserved for work that hasn't started. They are listed here, not declared above, so the traceability gate only enforces requirements the current release commits to. Promote one into Functional Requirements, in bold, in the same change that adds its first verifying test.
+
+- FR-007 (SHOULD): Drive a physical e-ink display on a Raspberry Pi. Acceptance: the four rendered lines appear on the panel and refresh at least every 5 minutes.
+- FR-008 (SHOULD): Publish status to Home Assistant. Acceptance: Home Assistant shows a sensor with level, value, and age, and can trigger an automation on URGENT LOW or STALE.
+- FR-010 (SHOULD): Run on an Xteink X4/X3 pocket e-ink reader over Wi-Fi. Acceptance: the device fetches from Nightscout, shows every vector state correctly, and updates at least every 5 minutes (ADR-0006).
 
 ## Non-Functional Requirements
 
