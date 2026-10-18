@@ -1,4 +1,4 @@
-# t1d-open-stack
+# Lightkeeper
 
 <!-- CONSTITUTION_START -->
 [![Eric's Engineering Constitution](https://img.shields.io/badge/Eric's%20Engineering%20Constitution-Adopted-blue)](https://github.com/esanacore/engineering-constitution)
@@ -10,7 +10,7 @@ An open source type 1 diabetes management stack, built by Eric and Kaitlin along
 
 ## Current Capabilities
 
-- `glucose_watch`: reads the latest glucose from a self-hosted Nightscout site using a read-only token, and turns it into a short plain-text status (IN RANGE, LOW, URGENT LOW, HIGH, URGENT HIGH, STALE, NO DATA) sized for a small e-ink screen.
+- `lightkeeper`: reads the latest glucose from a self-hosted Nightscout site using a read-only token, and turns it into a short plain-text status (IN RANGE, LOW, URGENT LOW, HIGH, URGENT HIGH, STALE, NO DATA) sized for a small e-ink screen.
 - Old or future-dated readings always show as **STALE - DO NOT TRUST**, never as a current number.
 - If Nightscout goes down, the display degrades to the last good reading, which then ages into STALE on its own instead of freezing.
 - Exit code `0` means in range and fresh, `1` means someone should look, so scripts like Home Assistant can react.
@@ -25,9 +25,9 @@ flowchart LR
     DexApp --> Trio[Trio on iPhone<br/>dosing decisions]
     Trio -- BLE --> Pod[Omnipod 5 pod]
     Trio -- upload --> NS[(Nightscout<br/>self-hosted)]
-    NS -- read-only token --> GW[glucose_watch<br/>this repo]
-    GW --> Eink[E-ink / bedside display]
-    GW --> HA[Home Assistant alerts]
+    NS -- read-only token --> LK[Lightkeeper<br/>this repo]
+    LK --> Eink[E-ink / bedside display]
+    LK --> HA[Home Assistant alerts]
 ```
 
 The left half is community software we configure and test. The right half, after Nightscout, is what this repository builds. Data only flows rightward into our code. Details in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
@@ -37,8 +37,8 @@ The left half is community software we configure and test. The right half, after
 **Supported platforms:** Windows 11 (PowerShell 7), macOS 14+, Ubuntu 22.04+ (and Raspberry Pi OS Bookworm for display builds). Requires Python 3.11 or newer. CI runs on Ubuntu.
 
 ```bash
-git clone --recurse-submodules <repository-url> t1d-open-stack
-cd t1d-open-stack
+git clone --recurse-submodules <repository-url> lightkeeper
+cd lightkeeper
 ```
 
 <details>
@@ -79,16 +79,16 @@ pip install -e ".[dev]"
 Try it with no Nightscout at all (same on every platform):
 
 ```bash
-python -m glucose_watch --demo
-python -m glucose_watch --demo --demo-mgdl 62
-python -m glucose_watch --demo --demo-minutes-ago 40
+python -m lightkeeper --demo
+python -m lightkeeper --demo --demo-mgdl 62
+python -m lightkeeper --demo --demo-minutes-ago 40
 ```
 
 Against a real Nightscout site, set the environment variables from [`docs/ENV_VARS.md`](docs/ENV_VARS.md), then:
 
 ```bash
-python -m glucose_watch            # print once, exit 0 or 1
-python -m glucose_watch --watch    # refresh every 60 seconds until Ctrl+C
+python -m lightkeeper            # print once, exit 0 or 1
+python -m lightkeeper --watch    # refresh every 60 seconds until Ctrl+C
 ```
 
 Use a Nightscout token with the **readable** role only, never your API_SECRET.
@@ -114,8 +114,8 @@ Open [`demo.html`](demo.html) to see every display state with simulated data, no
 <summary>Full project structure</summary>
 
 ```text
-t1d-open-stack/
-├── src/glucose_watch/
+lightkeeper/
+├── src/lightkeeper/
 │   ├── domain/          ← Pure rules: parsing, thresholds, staleness (no I/O)
 │   ├── application/     ← Fetch, classify, render for a display
 │   ├── infrastructure/  ← Read-only HTTPS Nightscout client

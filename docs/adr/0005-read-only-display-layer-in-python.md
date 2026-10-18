@@ -16,7 +16,7 @@ The first things we want to build are e-ink and bedside displays and Home Assist
 
 ## Decision
 
-Build the display layer as a Python 3.11+ package (`glucose_watch`) with three layers: a pure domain layer with all safety rules, an application layer, and an infrastructure layer with a read-only HTTPS Nightscout client. Use only the standard library at runtime; test dependencies are pytest and pytest-cov.
+Build the display layer as a Python 3.11+ package (`lightkeeper`) with three layers: a pure domain layer with all safety rules, an application layer, and an infrastructure layer with a read-only HTTPS Nightscout client. Use only the standard library at runtime; test dependencies are pytest and pytest-cov.
 
 ## Consequences
 

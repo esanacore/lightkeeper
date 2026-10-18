@@ -13,7 +13,7 @@ Date: 2026-10-17
 ## Promotion Criteria
 
 - Nightscout is deployed with HTTPS, a strong API_SECRET, and authentication defaulted to deny.
-- Trio is uploading and a readable-role token works with `glucose_watch`.
+- Trio is uploading and a readable-role token works with `lightkeeper`.
 - Backups are configured and a restore has been tested once.
 
 ## Context

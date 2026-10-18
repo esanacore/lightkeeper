@@ -49,25 +49,25 @@ const Vector kVectors[] = {
 
 void run_vectors() {
   for (const Vector& v : kVectors) {
-    gw::Reading reading;
+    lk::Reading reading;
     bool ok = false;
     if (v.has_entry) {
-      gw::RawEntry raw;
+      lk::RawEntry raw;
       raw.type = v.type;
       raw.has_sgv = v.has_sgv;
       raw.sgv = v.sgv;
       raw.has_date = true;
       raw.date_ms = static_cast<double>(kNowMs - v.minutes_ago * kMinute);
       raw.direction = v.direction;
-      ok = gw::parse_entry(raw, &reading);
+      ok = lk::parse_entry(raw, &reading);
     }
-    gw::Status status = gw::classify(ok ? &reading : nullptr, kNowMs, gw::Thresholds());
-    gw::Lines lines;
-    gw::render(status, v.error, &lines);
+    lk::Status status = lk::classify(ok ? &reading : nullptr, kNowMs, lk::Thresholds());
+    lk::Lines lines;
+    lk::render(status, v.error, &lines);
 
     char msg[96];
     snprintf(msg, sizeof(msg), "vector %s: level", v.name);
-    CHECK(strcmp(gw::level_name(status.level), v.level) == 0, msg);
+    CHECK(strcmp(lk::level_name(status.level), v.level) == 0, msg);
     snprintf(msg, sizeof(msg), "vector %s: line count", v.name);
     CHECK(lines.count == v.line_count, msg);
     for (int i = 0; i < v.line_count && i < lines.count; i++) {
@@ -77,8 +77,8 @@ void run_vectors() {
   }
 }
 
-gw::RawEntry good_entry() {
-  gw::RawEntry e;
+lk::RawEntry good_entry() {
+  lk::RawEntry e;
   e.type = "sgv";
   e.has_sgv = true;
   e.sgv = 120;
@@ -89,84 +89,84 @@ gw::RawEntry good_entry() {
 }
 
 void test_parse_edges() {
-  gw::Reading r;
-  gw::RawEntry e = good_entry();
-  CHECK(gw::parse_entry(e, &r) && r.mgdl == 120, "good entry parses");
+  lk::Reading r;
+  lk::RawEntry e = good_entry();
+  CHECK(lk::parse_entry(e, &r) && r.mgdl == 120, "good entry parses");
 
   e = good_entry();
   e.type = nullptr;
-  CHECK(gw::parse_entry(e, &r), "missing type is treated as sgv");
+  CHECK(lk::parse_entry(e, &r), "missing type is treated as sgv");
 
   e = good_entry();
   e.sgv = NAN;
-  CHECK(!gw::parse_entry(e, &r), "NaN value rejected");
+  CHECK(!lk::parse_entry(e, &r), "NaN value rejected");
 
   e = good_entry();
   e.sgv = 1e300;
-  CHECK(!gw::parse_entry(e, &r), "huge value rejected without overflow");
+  CHECK(!lk::parse_entry(e, &r), "huge value rejected without overflow");
 
   e = good_entry();
   e.sgv = -5;
-  CHECK(!gw::parse_entry(e, &r), "negative value rejected");
+  CHECK(!lk::parse_entry(e, &r), "negative value rejected");
 
   e = good_entry();
   e.sgv = 120.5;
-  CHECK(!gw::parse_entry(e, &r), "fractional value rejected");
+  CHECK(!lk::parse_entry(e, &r), "fractional value rejected");
 
   e = good_entry();
   e.has_sgv = false;
-  CHECK(!gw::parse_entry(e, &r), "missing value rejected");
+  CHECK(!lk::parse_entry(e, &r), "missing value rejected");
 
   e = good_entry();
   e.has_date = false;
-  CHECK(!gw::parse_entry(e, &r), "missing date rejected");
+  CHECK(!lk::parse_entry(e, &r), "missing date rejected");
 
   e = good_entry();
   e.date_ms = NAN;
-  CHECK(!gw::parse_entry(e, &r), "NaN date rejected");
+  CHECK(!lk::parse_entry(e, &r), "NaN date rejected");
 
   e = good_entry();
   e.date_ms = 0;
-  CHECK(!gw::parse_entry(e, &r), "zero date rejected");
+  CHECK(!lk::parse_entry(e, &r), "zero date rejected");
 
   e = good_entry();
   e.direction = nullptr;
-  CHECK(gw::parse_entry(e, &r) && r.trend == gw::Trend::Unknown, "missing direction is unknown");
+  CHECK(lk::parse_entry(e, &r) && r.trend == lk::Trend::Unknown, "missing direction is unknown");
 
-  CHECK(!gw::parse_entry(good_entry(), nullptr), "null output pointer is safe");
+  CHECK(!lk::parse_entry(good_entry(), nullptr), "null output pointer is safe");
 }
 
 void test_thresholds() {
-  gw::Thresholds t;
+  lk::Thresholds t;
   CHECK(t.valid(), "defaults are valid");
   t.low = t.urgent_low;
   CHECK(!t.valid(), "urgent_low must be below low");
-  t = gw::Thresholds();
+  t = lk::Thresholds();
   t.urgent_high = 450;
   CHECK(!t.valid(), "urgent_high capped at 400");
-  t = gw::Thresholds();
+  t = lk::Thresholds();
   t.stale_after_ms = 0;
   CHECK(!t.valid(), "stale limit must be positive");
 }
 
 void test_render_limits() {
-  gw::Lines lines;
-  gw::render(gw::Status(), true, &lines);
+  lk::Lines lines;
+  lk::render(lk::Status(), true, &lines);
   CHECK(lines.count == 4, "no data + error fits four lines");
   for (int i = 0; i < lines.count; i++) {
     CHECK(strlen(lines.text[i]) <= 26, "every line fits the panel width");
   }
-  gw::render(gw::Status(), false, nullptr);  // must not crash
-  CHECK(gw::needs_attention(gw::Level::Stale) && !gw::needs_attention(gw::Level::InRange), "attention rule");
-  CHECK(strcmp(gw::trend_arrow(gw::trend_from_string("DoubleDown")), "vv") == 0, "arrow lookup");
+  lk::render(lk::Status(), false, nullptr);  // must not crash
+  CHECK(lk::needs_attention(lk::Level::Stale) && !lk::needs_attention(lk::Level::InRange), "attention rule");
+  CHECK(strcmp(lk::trend_arrow(lk::trend_from_string("DoubleDown")), "vv") == 0, "arrow lookup");
 }
 
 void test_age_floor() {
-  gw::Status s;
+  lk::Status s;
   s.age_ms = -59 * 1000;
-  CHECK(gw::age_minutes(s) == -1, "negative age floors like Python");
+  CHECK(lk::age_minutes(s) == -1, "negative age floors like Python");
   s.age_ms = 119 * 1000;
-  CHECK(gw::age_minutes(s) == 1, "positive age floors");
+  CHECK(lk::age_minutes(s) == 1, "positive age floors");
 }
 
 }  // namespace

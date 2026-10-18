@@ -2,7 +2,7 @@
 
 import pytest
 
-from glucose_watch.domain.glucose import (
+from lightkeeper.domain.glucose import (
     InvalidReadingError,
     Trend,
     parse_entries,

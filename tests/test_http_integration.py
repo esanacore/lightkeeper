@@ -14,9 +14,9 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 
-from glucose_watch.application.monitor import current_status, render_lines
-from glucose_watch.domain.status import Level, Thresholds
-from glucose_watch.infrastructure.nightscout import NightscoutClient, NightscoutError
+from lightkeeper.application.monitor import current_status, render_lines
+from lightkeeper.domain.status import Level, Thresholds
+from lightkeeper.infrastructure.nightscout import NightscoutClient, NightscoutError
 
 TOKEN = "readable-integration-token"
 

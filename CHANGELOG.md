@@ -8,7 +8,7 @@ This project follows semantic versioning.
 
 ### Added
 
-- `glucose_watch` read-only Nightscout display: strict entry parsing, configurable thresholds, staleness and future-timestamp protection, short ASCII rendering for e-ink, safe degradation when Nightscout fails, and a CLI with `--demo` and `--watch`.
+- `lightkeeper` read-only Nightscout display: strict entry parsing, configurable thresholds, staleness and future-timestamp protection, short ASCII rendering for e-ink, safe degradation when Nightscout fails, and a CLI with `--demo` and `--watch`.
 - Safety boundary and hazard log (`docs/SAFETY.md`).
 - ADRs 0002 to 0005: Trio on iPhone as dosing controller, self-hosted Nightscout, no insulin delivery code in this repo, Python display layer.
 - Product requirements, traceability matrix, test plan, OTS inventory, and phased rollout backlog.
@@ -19,6 +19,8 @@ This project follows semantic versioning.
 - CI installs Python and runs the declared suite in strict mode.
 
 ### Changed
+
+- Project renamed to Lightkeeper: Python package and command `lightkeeper`, threshold variables now `LK_*`, firmware namespace `lk`.
 
 ### Fixed
 

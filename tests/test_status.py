@@ -4,8 +4,8 @@ from datetime import timedelta
 
 import pytest
 
-from glucose_watch.domain.glucose import parse_entry
-from glucose_watch.domain.status import Level, Thresholds, classify
+from lightkeeper.domain.glucose import parse_entry
+from lightkeeper.domain.status import Level, Thresholds, classify
 from tests.helpers import NOW, entry
 
 DEFAULTS = Thresholds()

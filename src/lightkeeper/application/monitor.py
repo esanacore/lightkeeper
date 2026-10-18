@@ -11,8 +11,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Protocol
 
-from glucose_watch.domain.glucose import parse_entries
-from glucose_watch.domain.status import Level, Status, Thresholds, classify
+from lightkeeper.domain.glucose import parse_entries
+from lightkeeper.domain.status import Level, Status, Thresholds, classify
 
 # Small e-ink panels fit four lines at a readable size (FR-004).
 MAX_LINES = 4

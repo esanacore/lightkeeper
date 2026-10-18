@@ -2,8 +2,8 @@
 
 from datetime import timedelta
 
-from glucose_watch.application.monitor import current_status, render_lines
-from glucose_watch.domain.status import Level, Thresholds
+from lightkeeper.application.monitor import current_status, render_lines
+from lightkeeper.domain.status import Level, Thresholds
 from tests.helpers import NOW, FakeSource, entry
 
 T = Thresholds()

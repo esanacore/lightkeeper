@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
 
-from glucose_watch.domain.glucose import GlucoseReading
+from lightkeeper.domain.glucose import GlucoseReading
 
 # A reading timestamped this far in the future means a clock is wrong
 # somewhere, so we refuse to trust it.

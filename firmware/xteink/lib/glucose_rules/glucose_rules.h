@@ -1,4 +1,4 @@
-// glucose_rules: the safety rules from glucose_watch, ported to C++ for the
+// glucose_rules: the safety rules from lightkeeper, ported to C++ for the
 // ESP32-C3 in the Xteink X4/X3 pocket e-ink readers.
 //
 // This file is pure logic: no Arduino, no Wi-Fi, no display, no heap. The
@@ -6,7 +6,7 @@
 // parse_entry -> classify -> render, and draws the lines. Keeping it pure
 // means the exact same code runs in host tests on a PC and on the device.
 //
-// It must behave identically to src/glucose_watch. The shared vectors in
+// It must behave identically to src/lightkeeper. The shared vectors in
 // spec/display_vectors.json are run against both implementations.
 //
 // Safety: stale or future-dated data is never shown as current, and bad
@@ -16,7 +16,7 @@
 
 #include <stdint.h>
 
-namespace gw {
+namespace lk {
 
 // Dexcom and Libre sensors report 40-400 mg/dL; 39 and 401 are the
 // Nightscout sentinels for below and above range.
@@ -90,4 +90,4 @@ int64_t age_minutes(const Status& status);
 // fetch_error: true when the latest Nightscout fetch failed.
 void render(const Status& status, bool fetch_error, Lines* out);
 
-}  // namespace gw
+}  // namespace lk

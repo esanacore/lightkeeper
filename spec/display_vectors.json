@@ -1,5 +1,5 @@
 {
-  "description": "Shared golden test vectors for every glucose_watch implementation (Python and ESP32 firmware). Each case is one raw Nightscout entry (or none), the minutes since that entry when the display updates, an optional fetch error, and the exact expected level and display lines. Both test suites must pass every case, which keeps the implementations in lockstep. Default thresholds: 55 / 70 / 180 / 250 mg/dL, stale after 15 minutes.",
+  "description": "Shared golden test vectors for every lightkeeper implementation (Python and ESP32 firmware). Each case is one raw Nightscout entry (or none), the minutes since that entry when the display updates, an optional fetch error, and the exact expected level and display lines. Both test suites must pass every case, which keeps the implementations in lockstep. Default thresholds: 55 / 70 / 180 / 250 mg/dL, stale after 15 minutes.",
   "cases": [
     {"name": "in_range_flat", "entry": {"type": "sgv", "sgv": 112, "direction": "Flat"}, "minutes_ago": 3, "error": null,
      "level": "IN RANGE", "lines": ["IN RANGE", "112 mg/dL ->", "3 min ago"]},

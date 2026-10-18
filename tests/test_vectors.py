@@ -10,9 +10,9 @@ from pathlib import Path
 
 import pytest
 
-from glucose_watch.application.monitor import render_lines
-from glucose_watch.domain.glucose import InvalidReadingError, parse_entry
-from glucose_watch.domain.status import Thresholds, classify
+from lightkeeper.application.monitor import render_lines
+from lightkeeper.domain.glucose import InvalidReadingError, parse_entry
+from lightkeeper.domain.status import Thresholds, classify
 from tests.helpers import NOW
 
 VECTORS = json.loads((Path(__file__).parent.parent / "spec" / "display_vectors.json").read_text())["cases"]

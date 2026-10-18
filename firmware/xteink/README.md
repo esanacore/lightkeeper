@@ -4,7 +4,7 @@ Firmware for a pocket e-ink glucose display on the Xteink X4 or X3 (ESP32-C3, Wi
 
 ## Status
 
-- [x] `lib/glucose_rules`: the safety rules (parse, classify, render) ported from `glucose_watch` to dependency-free C++17. No heap, no Arduino, fixed-size buffers.
+- [x] `lib/glucose_rules`: the safety rules (parse, classify, render) ported from `lightkeeper` to dependency-free C++17. No heap, no Arduino, fixed-size buffers.
 - [x] Host tests run on a PC with AddressSanitizer and UBSan, including every shared vector in `spec/display_vectors.json`, so this code and the Python code render identical screens.
 - [ ] Device project (PlatformIO, ESP32-C3): Wi-Fi setup, HTTPS fetch with a readable token, JSON field extraction, e-paper drawing, deep sleep between updates. Starts once the hardware is on the bench; see `ADR-0006`.
 

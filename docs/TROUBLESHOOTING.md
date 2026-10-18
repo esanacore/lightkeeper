@@ -7,7 +7,7 @@ Known issues and fixes. If a display ever shows something that disagrees with th
 ### The display says STALE - DO NOT TRUST
 
 - **Symptom**: The first line is STALE and the age keeps growing.
-- **Cause**: Nightscout has not received a reading in more than 15 minutes (or `GW_STALE_MINUTES`). Usually the phone lost Bluetooth to the sensor, Trio is not running in the background, the phone is offline, or the sensor is warming up.
+- **Cause**: Nightscout has not received a reading in more than 15 minutes (or `LK_STALE_MINUTES`). Usually the phone lost Bluetooth to the sensor, Trio is not running in the background, the phone is offline, or the sensor is warming up.
 - **Solution**: Check the Dexcom G7 app and Trio on Kaitlin's phone first, then the Nightscout site in a browser. The display is doing its job; it recovers on its own when fresh data arrives.
 
 ### The display says "time is in the future"

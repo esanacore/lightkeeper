@@ -5,13 +5,13 @@ Operational procedures for the parts of the stack we run. Health data is involve
 ## Deployment
 
 - **Environments**: local development (demo mode and a test Nightscout), and production (Kaitlin's real Nightscout and display devices). There is no staging for the therapy half; Trio's open-loop phase plays that role (ADR-0002).
-- **Deployment Procedure**: `glucose_watch` is installed on a display device with `pip install` from a tagged release and run as a service (systemd on a Pi). Nightscout deployment is documented when hosting is chosen (Phase 1).
+- **Deployment Procedure**: `lightkeeper` is installed on a display device with `pip install` from a tagged release and run as a service (systemd on a Pi). Nightscout deployment is documented when hosting is chosen (Phase 1).
 - **Approvals / Gates**: tests and constitution checks green in CI; any change touching parsing, classification, rendering, or the client gets a hazard review against `docs/SAFETY.md`; Trio rebuilds happen only after reading release notes and checking community reports.
-- **Rollback**: reinstall the previous `glucose_watch` tag. For Trio, keep the previous build archived; for pods, the official Omnipod 5 app or Controller is the fallback.
+- **Rollback**: reinstall the previous `lightkeeper` tag. For Trio, keep the previous build archived; for pods, the official Omnipod 5 app or Controller is the fallback.
 
 ## Monitoring & Observability
 
-- **Logs**: `glucose_watch` prints to stdout; under systemd, `journalctl -u glucose-watch`. Logs never contain the token.
+- **Logs**: `lightkeeper` prints to stdout; under systemd, `journalctl -u lightkeeper`. Logs never contain the token.
 - **Metrics**: Nightscout's own reports, plus Trio's loop status uploads.
 - **Alerts**: the primary CGM app's alarms are the safety net. Home Assistant alerts (FR-008) are an extra layer, never a replacement.
 

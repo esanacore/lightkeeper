@@ -4,7 +4,7 @@ The living roadmap. The phased rollout plan is in `docs/MVP_BACKLOG.md`; this fi
 
 ## Features
 
-- [ ] Raspberry Pi e-paper display adapter for `glucose_watch` (FR-007).
+- [ ] Raspberry Pi e-paper display adapter for `lightkeeper` (FR-007).
 - [ ] Home Assistant integration: publish level, value, and age as a sensor, alert on URGENT LOW and STALE (FR-008).
 - [ ] Optional mmol/L display units.
 - [ ] Show a short sparkline or delta from the previous reading.

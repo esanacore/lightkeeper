@@ -17,7 +17,7 @@ This document translates product intent into concrete implementation requirement
 
 ## Product Summary
 
-An open source stack for managing Kaitlin's type 1 diabetes with community tools (Trio, Nightscout) instead of the stock Dexcom and Omnipod experience, plus our own read-only displays. Users: Kaitlin first, Eric as builder and secondary viewer, and later anyone in the community. Current release goal (0.1.0): a trustworthy, tested `glucose_watch` that can drive a text display from Nightscout, and the documentation to stand up Nightscout and Trio.
+An open source stack for managing Kaitlin's type 1 diabetes with community tools (Trio, Nightscout) instead of the stock Dexcom and Omnipod experience, plus our own read-only displays. Users: Kaitlin first, Eric as builder and secondary viewer, and later anyone in the community. Current release goal (0.1.0): a trustworthy, tested `lightkeeper` that can drive a text display from Nightscout, and the documentation to stand up Nightscout and Trio.
 
 ## Functional Requirements
 

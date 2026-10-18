@@ -1,4 +1,4 @@
-"""Command-line entry point: `python -m glucose_watch`.
+"""Command-line entry point: `python -m lightkeeper`.
 
 This is the composition root, the one place that wires real settings,
 the real clock, and the real Nightscout client together.
@@ -12,13 +12,13 @@ import sys
 import time
 from datetime import datetime, timedelta, timezone
 
-from glucose_watch import __version__
-from glucose_watch.application.monitor import current_status, render_lines
-from glucose_watch.domain.status import Thresholds
-from glucose_watch.infrastructure.nightscout import NightscoutClient
+from lightkeeper import __version__
+from lightkeeper.application.monitor import current_status, render_lines
+from lightkeeper.domain.status import Thresholds
+from lightkeeper.infrastructure.nightscout import NightscoutClient
 
 DISCLAIMER = (
-    "glucose_watch is a secondary, read-only display. It is not a medical device. "
+    "lightkeeper is a secondary, read-only display. It is not a medical device. "
     "Always confirm on the primary CGM app before acting."
 )
 
@@ -54,21 +54,21 @@ def _int_env(name: str, default: int) -> int:
 
 
 def thresholds_from_env() -> Thresholds:
-    """Build thresholds from GW_* environment variables (see docs/ENV_VARS.md)."""
+    """Build thresholds from LK_* environment variables (see docs/ENV_VARS.md)."""
     try:
         return Thresholds(
-            urgent_low=_int_env("GW_URGENT_LOW", 55),
-            low=_int_env("GW_LOW", 70),
-            high=_int_env("GW_HIGH", 180),
-            urgent_high=_int_env("GW_URGENT_HIGH", 250),
-            stale_after=timedelta(minutes=_int_env("GW_STALE_MINUTES", 15)),
+            urgent_low=_int_env("LK_URGENT_LOW", 55),
+            low=_int_env("LK_LOW", 70),
+            high=_int_env("LK_HIGH", 180),
+            urgent_high=_int_env("LK_URGENT_HIGH", 250),
+            stale_after=timedelta(minutes=_int_env("LK_STALE_MINUTES", 15)),
         )
     except ValueError as exc:
         raise SystemExit(f"invalid threshold settings: {exc}") from None
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="glucose_watch", description=DISCLAIMER)
+    parser = argparse.ArgumentParser(prog="lightkeeper", description=DISCLAIMER)
     parser.add_argument("--demo", action="store_true", help="use canned data, no network")
     parser.add_argument("--demo-mgdl", type=int, default=112, help="glucose value for --demo")
     parser.add_argument("--demo-minutes-ago", type=int, default=3, help="reading age for --demo")

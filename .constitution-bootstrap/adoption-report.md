@@ -1,8 +1,8 @@
 # Eric's Engineering Constitution Adoption Report
 
-Project: t1d-open-stack
+Project: lightkeeper
 
-Project path: `/home/claude/t1d-open-stack`
+Project path: `/home/claude/lightkeeper`
 
 Constitution source: `https://github.com/esanacore/engineering-constitution.git`
 

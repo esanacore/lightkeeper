@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-namespace gw {
+namespace lk {
 
 namespace {
 
@@ -180,4 +180,4 @@ void render(const Status& status, bool fetch_error, Lines* out) {
   }
 }
 
-}  // namespace gw
+}  // namespace lk

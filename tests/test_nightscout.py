@@ -6,8 +6,8 @@ import urllib.parse
 
 import pytest
 
-from glucose_watch.infrastructure import nightscout
-from glucose_watch.infrastructure.nightscout import NightscoutClient, NightscoutError
+from lightkeeper.infrastructure import nightscout
+from lightkeeper.infrastructure.nightscout import NightscoutClient, NightscoutError
 from tests.helpers import entry
 
 TOKEN = "readable-abc123secret"

@@ -6,7 +6,7 @@ The phased rollout of the whole stack. Phases gate on evidence, not dates. `TODO
 
 - [x] Bootstrap the repo with the engineering constitution.
 - [x] Write the safety boundary, hazard log, and ADRs 0001 to 0005.
-- [x] `glucose_watch` 0.1.0: parse, classify, render, degrade safely, with tests (FR-001 to FR-006).
+- [x] `lightkeeper` 0.1.0: parse, classify, render, degrade safely, with tests (FR-001 to FR-006).
 - [ ] Kaitlin reviews `docs/SAFETY.md` and the default thresholds.
 
 ## Phase 1: Data Hub
@@ -14,7 +14,7 @@ The phased rollout of the whole stack. Phases gate on evidence, not dates. `TODO
 - [ ] Choose hosting and deploy Nightscout over HTTPS, with authentication defaulted to deny (ADR-0003).
 - [ ] Create a readable-role token for displays.
 - [ ] Configure backups and test a restore.
-- [ ] Run `glucose_watch` against it and close GAP-003.
+- [ ] Run `lightkeeper` against it and close GAP-003.
 
 ## Phase 2: Trio in Open Loop
 

@@ -2,13 +2,13 @@
 
 import pytest
 
-from glucose_watch import cli
+from lightkeeper import cli
 
 
 @pytest.fixture(autouse=True)
 def clean_env(monkeypatch):
-    for name in ["NIGHTSCOUT_URL", "NIGHTSCOUT_TOKEN", "GW_URGENT_LOW", "GW_LOW", "GW_HIGH",
-                 "GW_URGENT_HIGH", "GW_STALE_MINUTES"]:
+    for name in ["NIGHTSCOUT_URL", "NIGHTSCOUT_TOKEN", "LK_URGENT_LOW", "LK_LOW", "LK_HIGH",
+                 "LK_URGENT_HIGH", "LK_STALE_MINUTES"]:
         monkeypatch.delenv(name, raising=False)
 
 
@@ -64,14 +64,14 @@ def _client_init_with(fetcher):
 
 
 def test_nfr002_thresholds_from_env(monkeypatch):
-    monkeypatch.setenv("GW_LOW", "75")
-    monkeypatch.setenv("GW_STALE_MINUTES", "10")
+    monkeypatch.setenv("LK_LOW", "75")
+    monkeypatch.setenv("LK_STALE_MINUTES", "10")
     t = cli.thresholds_from_env()
     assert t.low == 75
     assert t.stale_after.total_seconds() == 600
 
 
-@pytest.mark.parametrize("name, value", [("GW_LOW", "abc"), ("GW_HIGH", "50")])
+@pytest.mark.parametrize("name, value", [("LK_LOW", "abc"), ("LK_HIGH", "50")])
 def test_nfr002_bad_threshold_env_stops_startup(monkeypatch, name, value):
     monkeypatch.setenv(name, value)
     with pytest.raises(SystemExit):

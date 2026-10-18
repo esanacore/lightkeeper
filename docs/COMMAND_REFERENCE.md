@@ -5,10 +5,10 @@ Common commands for this repository. Commands are the same on every platform onc
 ## Development
 
 - `pip install -e ".[dev]"`: install the package in editable mode with test tools.
-- `python -m glucose_watch --demo`: run with canned data, no network.
-- `python -m glucose_watch --demo --demo-mgdl 62 --demo-minutes-ago 2`: try a specific simulated reading.
-- `python -m glucose_watch`: read once from Nightscout (needs `NIGHTSCOUT_URL`), exit 0 if fresh and in range, 1 if someone should look, 2 on a configuration error.
-- `python -m glucose_watch --watch --interval 60`: refresh until Ctrl+C (minimum 15 seconds).
+- `python -m lightkeeper --demo`: run with canned data, no network.
+- `python -m lightkeeper --demo --demo-mgdl 62 --demo-minutes-ago 2`: try a specific simulated reading.
+- `python -m lightkeeper`: read once from Nightscout (needs `NIGHTSCOUT_URL`), exit 0 if fresh and in range, 1 if someone should look, 2 on a configuration error.
+- `python -m lightkeeper --watch --interval 60`: refresh until Ctrl+C (minimum 15 seconds).
 
 ## Testing
 

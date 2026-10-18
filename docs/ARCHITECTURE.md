@@ -8,7 +8,7 @@ The stack has two halves with a one-way boundary between them.
 
 The **therapy half** is community software running on Kaitlin's iPhone: the Dexcom G7 app (kept only as a Bluetooth radio), Trio (the open source automated insulin delivery app, built from source), and Omnipod 5 pods paired to Trio. Trio uploads glucose, insulin, and loop status to Nightscout. We configure, test, and contribute upstream to these projects, but no code for them lives here.
 
-The **display half** is what this repository builds: read-only consumers of Nightscout data, starting with `glucose_watch`, which renders a short status for e-ink screens, bedside displays, and Home Assistant.
+The **display half** is what this repository builds: read-only consumers of Nightscout data, starting with `lightkeeper`, which renders a short status for e-ink screens, bedside displays, and Home Assistant.
 
 Data only flows from the therapy half into the display half. Nothing in the display half can write to Nightscout treatments, Trio, the pump, or the sensor. See `docs/SAFETY.md`.
 
@@ -42,7 +42,7 @@ flowchart LR
 
 1. The G7 sends a reading every 5 minutes to the Dexcom G7 app; Trio reads it on the same phone.
 2. Trio runs its algorithm, commands the pod, and uploads glucose entries to Nightscout.
-3. `glucose_watch` requests the newest entries from `/api/v1/entries/sgv.json` with a read-only token.
+3. `lightkeeper` requests the newest entries from `/api/v1/entries/sgv.json` with a read-only token.
 4. The domain layer drops anything untrustworthy, picks the newest valid reading, and classifies it. Staleness is evaluated before range.
 5. The application layer renders a few short ASCII lines and returns an exit code; on fetch failure it re-classifies the last good reading against the current time so it ages into STALE.
 
@@ -55,10 +55,10 @@ flowchart LR
 
 ## Repository Structure
 
-- `src/glucose_watch/domain/`: pure rules, no I/O, no clock.
-- `src/glucose_watch/application/`: use cases that combine a data source with the domain rules.
-- `src/glucose_watch/infrastructure/`: the HTTPS Nightscout client.
-- `src/glucose_watch/cli.py`: composition root, wires env config, clock, and client.
+- `src/lightkeeper/domain/`: pure rules, no I/O, no clock.
+- `src/lightkeeper/application/`: use cases that combine a data source with the domain rules.
+- `src/lightkeeper/infrastructure/`: the HTTPS Nightscout client.
+- `src/lightkeeper/cli.py`: composition root, wires env config, clock, and client.
 - `tests/`: pytest suite, test names carry requirement IDs.
 - `spec/display_vectors.json`: golden display cases every implementation must pass.
 - `firmware/xteink/`: C++17 port of the domain rules for the ESP32-C3 pocket display, with host tests.
@@ -69,8 +69,8 @@ flowchart LR
 
 | Layer          | Path                              | May Depend On |
 | -------------- | --------------------------------- | ------------- |
-| domain         | src/glucose_watch/domain          | --            |
-| application    | src/glucose_watch/application     | domain        |
-| infrastructure | src/glucose_watch/infrastructure  | domain        |
+| domain         | src/lightkeeper/domain          | --            |
+| application    | src/lightkeeper/application     | domain        |
+| infrastructure | src/lightkeeper/infrastructure  | domain        |
 
 The domain layer stays free of I/O so that every safety rule in `docs/SAFETY.md` can be tested with plain data and a fixed clock.
