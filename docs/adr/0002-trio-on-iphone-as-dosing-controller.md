@@ -37,7 +37,7 @@ Roll out in phases: CGM and Nightscout only, then open loop (suggestions only), 
 - Kaitlin keeps her phone, sensor, and pods; no prescription change is needed to start.
 - Dosing logic stays in a reviewed community project, not in our code.
 - We depend on a beta pump driver; our QA effort goes into testing and reporting upstream.
-- We need an Apple Developer account and must rebuild Trio periodically.
+- We need a paid Apple Developer account. Eric has no Mac, so Trio is built with the browser build method (GitHub Actions uploading to TestFlight), and builds must be refreshed before TestFlight expiry.
 - The Dexcom app is not fully eliminated on iPhone.
 
 ## Alternatives Considered

@@ -9,7 +9,7 @@ This project follows Eric's Engineering Constitution. Open the repository in VS 
 ## Supported Platforms
 
 - Windows: Windows 11, PowerShell 7
-- macOS: macOS 14+ (also required later for building Trio with Xcode, unless you use the GitHub build method)
+- macOS: macOS 14+ (optional; Trio is built in the browser with GitHub Actions, so no Mac is needed)
 - Linux: Ubuntu 22.04+ and Raspberry Pi OS Bookworm (display builds)
 - CI runs on Ubuntu.
 
@@ -120,6 +120,6 @@ python -m glucose_watch
 Follow the phases in `docs/MVP_BACKLOG.md`. In short:
 
 1. **Nightscout (Phase 1).** Deploy following the Nightscout documentation (nightscout.github.io). Use HTTPS, a long random API_SECRET, and set authentication to deny by default. In the admin tools, create a subject with the `readable` role and use its token for `glucose_watch`. Record the hosting choice in a new ADR.
-2. **Trio (Phase 2).** Read the Trio docs (triodocs.org) end to end first. Kaitlin talks to her endocrinologist before starting. Build from source with an Apple Developer account, set the Dexcom G7 app as the CGM source, turn off iOS automatic updates, and point Trio at Nightscout. Omnipod 5 pod support is in open beta; follow the instructions at nightscout.github.io/omnipod-five and keep the official Omnipod 5 app or Controller as a fallback.
+2. **Trio (Phase 2).** Read the Trio docs (triodocs.org) end to end first. Kaitlin talks to her endocrinologist before starting. Build with Trio's browser build method (GitHub Actions to TestFlight, no Mac needed) using a paid Apple Developer account, set the Dexcom G7 app as the CGM source, turn off iOS automatic updates, and point Trio at Nightscout. Omnipod 5 pod support is in open beta; follow the instructions at nightscout.github.io/omnipod-five and keep the official Omnipod 5 app or Controller as a fallback.
 3. **Open loop, then closed loop (Phases 2 and 3).** Promotion criteria are in `docs/adr/0002-trio-on-iphone-as-dosing-controller.md`.
 4. **Displays (Phase 4).** Run `glucose_watch` on the target device and compare it with the primary app for a full sensor session before relying on it.
