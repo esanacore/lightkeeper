@@ -29,6 +29,10 @@ Phases 1 to 3 are mostly about the therapy half and belong to Kaitlin and her ca
 5. **Keep the docs current.** README content, CHANGELOG, TODO, the OTS inventory for any new dependency, and the wiki if the shape of the project changed. The README's structure is fixed; only its content moves.
 6. **Run the suite and the constitution checks.** `docs/TEST_PLAN.md` has the one command; CI runs it on every push.
 
+## What the community told us
+
+`docs/COMMUNITY_RESEARCH.md` collects what people like and dislike about existing displays, follower apps, and bedside devices. Its twelve implications feed this roadmap: data age as the primary element, a real night profile, secrets handling as a differentiator, connectivity honesty, and "secondary awareness" wording rather than "alarm".
+
 ## Likely next additions, in rough order
 
 - Nightscout deployment notes and a real-instance end-to-end test (closes GAP-003).

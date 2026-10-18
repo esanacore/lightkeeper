@@ -4,6 +4,15 @@ The living roadmap. The phased rollout plan is in `docs/MVP_BACKLOG.md`; this fi
 
 ## Features
 
+From `docs/COMMUNITY_RESEARCH.md` (October 2026):
+
+- [ ] Graded aging before STALE: mark a reading as aging between about 7 and 15 minutes so it never looks as fresh as a new one (needs a vector change and a hazard review).
+- [ ] Distinguish "phone stopped uploading" from "Nightscout unreachable" using Nightscout device status.
+- [ ] Night profile for displays: scheduled dimming, silent or haptic-only options, per-display quiet hours.
+- [ ] Show delta from the previous reading, IOB and COB (greyed at zero), loop status, and "next reading in".
+- [ ] Compression-low hint on a sudden single-interval drop, labeled as a hint.
+- [ ] Firmware: exponential backoff on Wi-Fi, visible "offline since", published battery measurements; study WaveshareMon's config schema before inventing one.
+
 - [ ] Raspberry Pi e-paper display adapter for `lightkeeper` (FR-007).
 - [ ] Home Assistant integration: publish level, value, and age as a sensor, alert on URGENT LOW and STALE (FR-008).
 - [ ] Optional mmol/L display units.

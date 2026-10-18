@@ -21,6 +21,7 @@ This project follows semantic versioning.
 - Offline `demo.html` showing every display state.
 - `docs/ROADMAP.md` and ADR-0008 (proposed): a companion iOS app, read-only first, with bolus requests only through Trio's remote protocol.
 - `spec_version` field in `spec/display_vectors.json`.
+- `docs/COMMUNITY_RESEARCH.md`: what the community says about display and alert tools, with twelve implications for Lightkeeper.
 
 ### Changed
 

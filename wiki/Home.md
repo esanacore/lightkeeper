@@ -16,6 +16,10 @@ Lightkeeper is a secondary display and not a medical device. Always confirm on t
 
 Old data is never shown as current. A reading older than 15 minutes, or dated in the future, shows **STALE - DO NOT TRUST**, even if the number looks fine. Every screen Lightkeeper can show is pictured in `docs/DISPLAY_STATES.md` in the repository.
 
+## What people told us
+
+Before building more, we read what the community says about existing displays and alerts. The short version: show how old the data is, say so when a link in the chain breaks, make nights quiet and honest, and never call a secondary display an alarm. Details in `docs/COMMUNITY_RESEARCH.md`.
+
 ## Project status
 
 Version 0.1.0 has the Python display tool with full test coverage and the safety rules ported to C++ for an Xteink pocket e-ink display. Next up: a self-hosted Nightscout, Trio on Kaitlin's iPhone in open loop, and the first real e-ink hardware. The roadmap, including the planned companion app, is `docs/ROADMAP.md`.
