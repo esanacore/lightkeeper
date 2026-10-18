@@ -34,6 +34,7 @@ The phased rollout of the whole stack. Phases gate on evidence, not dates. `TODO
 
 See `docs/ROADMAP.md` for how phases relate and what gates each one.
 
+- [ ] Buy Tier 1 hardware from `docs/HARDWARE.md`.
 - [ ] Raspberry Pi e-paper bedside display (FR-007), side by side with the primary app for one full sensor session.
 - [ ] Home Assistant sensor and alerts (FR-008).
 - [x] ESP32 safety rules in C++ with shared-vector parity tests (ADR-0006).

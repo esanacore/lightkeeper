@@ -36,6 +36,7 @@ Phases 1 to 3 are mostly about the therapy half and belong to Kaitlin and her ca
 ## Likely next additions, in rough order
 
 - Nightscout deployment notes and a real-instance end-to-end test (closes GAP-003).
+- Hardware per `docs/HARDWARE.md`: Pi Zero 2 WH with a 2.9" e-paper HAT first, then the Xteink X4 Pro and an ESP32-S3 bench board.
 - Raspberry Pi e-paper adapter for the bedside display (FR-007).
 - Home Assistant integration: sensor entity plus example automations (FR-008).
 - Xteink device build: Wi-Fi, HTTPS, JSON, e-paper, deep sleep (FR-010).
