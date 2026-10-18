@@ -1,0 +1,92 @@
+name: Constitution Compliance
+
+# Gates the build on the constitution's governance checkers, which ship in the
+# pinned `constitution/` submodule:
+#   - check_compliance.sh   — the repository carries the required governance files.
+#   - check_traceability.sh — every declared requirement has a verifying test.
+#   - check_demo_page.sh    — demo.html is self-contained and linked from README.md.
+#   - check_next_steps.sh   — docs/AGENT_HANDOFF.md ends with a Next Steps procedure.
+#   - check_readme.sh       — README.md names its platforms and collapses correctly.
+#
+# The traceability check runs only when the product-facing documents exist, so
+# non-product repositories are not forced to maintain them. Runs on every pull
+# request and push to the default branch, plus a daily schedule so drift is
+# caught even when no one is opening PRs.
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+  schedule:
+    - cron: "23 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compliance-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository with submodules
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
+          fetch-depth: 0
+
+      - name: Confirm constitution submodule is present
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -e constitution/scripts/check_compliance.sh ]; then
+            echo "::error::No 'constitution/' submodule found (or it is too old to ship the compliance checker). This repository does not appear to adopt Eric's Engineering Constitution."
+            exit 1
+          fi
+
+      - name: Verify required governance files are present
+        shell: bash
+        run: bash constitution/scripts/check_compliance.sh .
+
+      - name: Verify the demo page is self-contained (when present)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Older constitution pins predate the demo page checker.
+          if [ -f demo.html ] && [ -e constitution/scripts/check_demo_page.sh ]; then
+            bash constitution/scripts/check_demo_page.sh .
+          else
+            echo "::notice::No demo.html (or no demo page checker in this constitution pin); skipping the demo page check."
+          fi
+
+      - name: Verify the README's platform and progressive-disclosure mechanics
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Older constitution pins predate the README checker.
+          if [ -e constitution/scripts/check_readme.sh ]; then
+            bash constitution/scripts/check_readme.sh .
+          else
+            echo "::notice::No README checker in this constitution pin; skipping the README check."
+          fi
+
+      - name: Verify the handoff's Next Steps procedure (when present)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Older constitution pins predate the Next Steps checker.
+          if [ -f docs/AGENT_HANDOFF.md ] && [ -e constitution/scripts/check_next_steps.sh ]; then
+            bash constitution/scripts/check_next_steps.sh .
+          else
+            echo "::notice::No docs/AGENT_HANDOFF.md (or no Next Steps checker in this constitution pin); skipping the Next Steps check."
+          fi
+
+      - name: Verify requirements traceability (product-facing repositories)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f docs/PRODUCT_REQUIREMENTS.md ] && [ -f docs/REQUIREMENTS_TRACEABILITY.md ]; then
+            bash constitution/scripts/check_traceability.sh \
+              docs/PRODUCT_REQUIREMENTS.md docs/REQUIREMENTS_TRACEABILITY.md
+          else
+            echo "::notice::No product requirements/traceability documents found; skipping the traceability gate."
+          fi

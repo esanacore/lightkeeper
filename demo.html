@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>glucose_watch demo</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0b1020;
+        --surface: #141c30;
+        --border: #27334d;
+        --text: #f2f5fa;
+        --muted: #9aa8bc;
+        --accent: #7dd3fc;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: clamp(24px, 5vw, 64px);
+        color: var(--text);
+        background: var(--bg);
+        line-height: 1.65;
+      }
+
+      main {
+        width: min(100%, 900px);
+        margin: 0 auto;
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: clamp(2rem, 5vw, 3rem);
+        letter-spacing: -0.03em;
+      }
+
+      .tagline {
+        margin: 0 0 32px;
+        max-width: 60ch;
+        color: var(--muted);
+        font-size: 1.1rem;
+      }
+
+      .notice {
+        margin: 0 0 32px;
+        padding: 14px 16px;
+        border: 1px solid var(--border);
+        border-left: 3px solid var(--accent);
+        border-radius: 10px;
+        background: var(--surface);
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      .panels {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        margin: 0 0 32px;
+        padding: 0;
+        list-style: none;
+      }
+
+      .panels li {
+        padding: 18px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--surface);
+      }
+
+      .panels strong {
+        display: block;
+        margin-bottom: 6px;
+      }
+
+      .panels span {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .stage {
+        padding: 20px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--surface);
+      }
+
+      .stage output {
+        display: block;
+        min-height: 4.5rem;
+        margin-top: 14px;
+        white-space: pre-wrap;
+        font-family: ui-monospace, Consolas, monospace;
+        font-size: 0.9rem;
+      }
+
+      button {
+        padding: 10px 16px;
+        color: #07101e;
+        border: 0;
+        border-radius: 10px;
+        background: var(--accent);
+        font: inherit;
+        font-weight: 650;
+        cursor: pointer;
+      }
+
+      button:focus-visible,
+      a:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+      }
+
+      footer {
+        margin-top: 40px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      a {
+        color: var(--accent);
+      }
+      .eink {
+        display: block;
+        width: min(100%, 360px);
+        margin: 14px 0 0;
+        padding: 18px 20px;
+        border: 2px solid #c9c9c4;
+        border-radius: 6px;
+        background: #e8e8e3;
+        color: #111;
+        font-family: ui-monospace, Consolas, monospace;
+        font-size: 1.05rem;
+        line-height: 1.5;
+      }
+
+      .eink .first {
+        font-weight: 800;
+        font-size: 1.25rem;
+      }
+
+      .states {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
+      }
+
+      button[aria-pressed="true"] {
+        outline: 2px solid var(--text);
+      }
+
+      .exit {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>glucose_watch</h1>
+      <p class="tagline">A read-only glucose display for e-ink screens and bedside clocks, fed from a self-hosted Nightscout site. Built for Kaitlin, shared with the type 1 diabetes open source community.</p>
+
+      <p class="notice">
+        Everything on this page is simulated in your browser with made-up readings. The real tool needs a Nightscout site and a read-only token (see the README).
+        It is a secondary display, not a medical device: always confirm on the primary CGM app.
+      </p>
+
+      <ul class="panels">
+        <li>
+          <strong>Never shows old data as current</strong>
+          <span>Readings older than 15 minutes, or dated in the future, show as STALE - DO NOT TRUST.</span>
+        </li>
+        <li>
+          <strong>Fails loudly, not silently</strong>
+          <span>If Nightscout goes down, the last value ages into STALE instead of freezing on screen.</span>
+        </li>
+        <li>
+          <strong>Read-only by design</strong>
+          <span>It never talks to the pump or sensor. Dosing stays in Trio.</span>
+        </li>
+      </ul>
+
+      <section class="stage" aria-labelledby="stage-title">
+        <h2 id="stage-title">Try every display state</h2>
+        <p>Pick a simulated situation to see exactly what the e-ink panel would show.</p>
+        <div class="states" role="group" aria-label="Simulated situations">
+          <button type="button" data-state="inrange">In range</button>
+          <button type="button" data-state="low">Low, falling</button>
+          <button type="button" data-state="urgentlow">Sensor LOW</button>
+          <button type="button" data-state="high">High</button>
+          <button type="button" data-state="stale">40 min old</button>
+          <button type="button" data-state="future">Clock wrong</button>
+          <button type="button" data-state="down">Nightscout down</button>
+        </div>
+        <output id="result" role="status" aria-live="polite" class="eink"></output>
+        <p class="exit" id="exit"></p>
+      </section>
+
+      <footer>
+        <p>
+          Source and setup: <a href="README.md">README</a>. Safety boundary: <a href="docs/SAFETY.md">docs/SAFETY.md</a>.
+          Built to <a href="constitution/DOCUMENTATION.md">Eric's Engineering Constitution</a>.
+        </p>
+      </footer>
+    </main>
+
+    <script>
+      // Each state mirrors render_lines() output from src/glucose_watch/application/monitor.py.
+      // Keep these in sync with the tests in tests/test_monitor.py.
+      const states = {
+        inrange: { lines: ["IN RANGE", "112 mg/dL ->", "3 min ago"], code: 0 },
+        low: { lines: ["LOW", "64 mg/dL v", "2 min ago"], code: 1 },
+        urgentlow: { lines: ["URGENT LOW", "LOW (<40)", "just now"], code: 1 },
+        high: { lines: ["HIGH", "212 mg/dL /", "4 min ago"], code: 1 },
+        stale: { lines: ["STALE - DO NOT TRUST", "last: 118 mg/dL ->", "40 min ago", "Confirm on primary device"], code: 1 },
+        future: { lines: ["STALE - DO NOT TRUST", "last: 118 mg/dL ->", "time is in the future", "Confirm on primary device"], code: 1 },
+        down: { lines: ["NO DATA", "Check sensor and phone", "Confirm on primary device", "Nightscout unreachable"], code: 1 },
+      };
+
+      const result = document.getElementById("result");
+      const exit = document.getElementById("exit");
+      const buttons = document.querySelectorAll("button[data-state]");
+
+      function show(name) {
+        const state = states[name];
+        result.innerHTML = "";
+        state.lines.forEach((line, index) => {
+          const div = document.createElement("div");
+          div.textContent = line;
+          if (index === 0) div.className = "first";
+          result.appendChild(div);
+        });
+        exit.textContent = `Simulated exit code: ${state.code} (${state.code === 0 ? "all good" : "someone should look"})`;
+        buttons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.state === name)));
+      }
+
+      buttons.forEach((b) => b.addEventListener("click", () => show(b.dataset.state)));
+      show("inrange");
+    </script>
+  </body>
+</html>

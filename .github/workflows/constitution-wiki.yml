@@ -1,0 +1,155 @@
+name: Constitution Wiki
+
+# Keeps an adopting repository's wiki honest and current, via two jobs that run
+# on different events (see ADR-0001 in the constitution's docs/adr/):
+#
+#   freshness (pull_request) -- flags a PR that ADDS or REMOVES source files
+#     without touching wiki/, via constitution/scripts/check_wiki_freshness.sh.
+#     A deliberately higher bar than the doc-freshness tripwire: it fires on
+#     structural change (a file appeared or disappeared), not on every edit.
+#     Runs in default (non-strict) mode, which warns instead of failing. Add
+#     --strict to the invocation below once the signal is useful for this repo.
+#
+#   links (pull_request + push) -- checks wiki/ for dangling [[WikiLinks]] and
+#     orphan pages, via constitution/scripts/check_wiki_links.sh. Also
+#     non-strict by default; add --strict once the wiki is caught up, at which
+#     point you may also gate the publish job on it with `needs: links`.
+#
+#   publish (push to the default branch) -- mirrors wiki/ to this repository's
+#     built-in GitHub wiki (<repo>.wiki.git) so the rendered wiki is never
+#     stale relative to its reviewed source.
+#
+# PREREQUISITE for the publish job: the GitHub wiki must be enabled and
+# initialized once by hand (Settings -> Features -> Wikis, then create the Home
+# page in the UI). Until a wiki repo exists, <repo>.wiki.git cannot be cloned.
+# The publish job treats that specific case as a graceful **skip** (a warning
+# annotation, exit 0) rather than a failure — it is a repository setting, not a
+# defect in the change under test, and the reviewed source in wiki/ is the
+# source of truth regardless of whether the mirror has been set up. Content
+# correctness is still enforced by the links/freshness jobs on pull requests.
+# A clone failure for ANY OTHER reason (auth, network) still fails the job, so
+# genuine problems are never masked as "wiki not enabled".
+#
+# Authored wiki pages live under wiki/ in this repository. Use GitHub-wiki
+# conventions: Home.md as the landing page, _Sidebar.md for navigation, and
+# [[Page Name]] links that resolve to Page-Name.md.
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: write
+
+jobs:
+  freshness:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository with submodules and full history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
+          fetch-depth: 0
+
+      - name: Confirm constitution submodule is present
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -e constitution/scripts/check_wiki_freshness.sh ]; then
+            echo "::error::No 'constitution/' submodule found (or it is too old to ship the wiki-freshness checker). This repository does not appear to adopt Eric's Engineering Constitution."
+            exit 1
+          fi
+
+      - name: Check wiki freshness
+        shell: bash
+        run: |
+          bash constitution/scripts/check_wiki_freshness.sh \
+            --base "${{ github.event.pull_request.base.sha }}" \
+            --head "${{ github.sha }}" \
+            .
+
+  links:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository with submodules
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
+
+      - name: Confirm constitution submodule is present
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -e constitution/scripts/check_wiki_links.sh ]; then
+            echo "::error::No 'constitution/' submodule found (or it is too old to ship the wiki-links checker). This repository does not appear to adopt Eric's Engineering Constitution."
+            exit 1
+          fi
+
+      - name: Check wiki link integrity
+        shell: bash
+        run: |
+          # Add --strict once this repository's wiki is caught up (no dangling
+          # links or orphans) to turn findings into a failure.
+          bash constitution/scripts/check_wiki_links.sh .
+
+  publish:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Publish wiki/ to the GitHub wiki
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ ! -d wiki ] || [ -z "$(ls -A wiki 2>/dev/null)" ]; then
+            echo "No wiki/ content to publish; nothing to do."
+            exit 0
+          fi
+
+          wiki_remote="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git"
+
+          # Capture the clone's output so we can distinguish "wiki not yet
+          # enabled/initialized" (a repo setting -> skip gracefully) from a
+          # genuine failure like auth or network (-> still fail). set +e around
+          # the clone so pipefail doesn't abort on the expected not-found case.
+          set +e
+          clone_out=$(git clone --depth 1 "$wiki_remote" wiki-publish 2>&1)
+          clone_rc=$?
+          set -e
+
+          if [ "$clone_rc" -ne 0 ]; then
+            if printf '%s' "$clone_out" | grep -qiE 'not found|does not exist|could not read'; then
+              echo "::warning::GitHub wiki for ${GITHUB_REPOSITORY} is not enabled/initialized, so wiki/ was not mirrored. This is a one-time repo setting, not a defect: enable it (Settings -> Features -> Wikis) and create the Home page once to turn publishing on. wiki/ content is still validated by the links/freshness jobs on pull requests."
+              exit 0
+            fi
+            echo "::error::Failed to clone ${GITHUB_REPOSITORY}.wiki.git for a reason other than an uninitialized wiki:"
+            printf '%s\n' "$clone_out"
+            exit 1
+          fi
+
+          # Mirror wiki/ into the wiki repo (excluding its .git), so deletions
+          # propagate too. rsync is available on ubuntu-latest runners.
+          rsync -a --delete --exclude '.git' wiki/ wiki-publish/
+
+          cd wiki-publish
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Wiki already up to date; nothing to publish."
+            exit 0
+          fi
+          git commit -m "Sync wiki from ${GITHUB_SHA}"
+          git push
+          echo "Published wiki/ to ${GITHUB_REPOSITORY}.wiki.git"

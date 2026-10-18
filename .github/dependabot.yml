@@ -1,0 +1,51 @@
+version: 2
+
+# Keeps the `constitution/` submodule current by opening a pull request whenever
+# Eric's Engineering Constitution advances on the branch the submodule tracks.
+# Paired with .github/workflows/constitution-version.yml, which fails the build
+# until that pull request is merged.
+#
+# Also keeps the SHA-pinned GitHub Actions in .github/workflows/ current (see
+# constitution/SECURITY.md, "CI/CD Supply Chain"): actions are pinned by full
+# commit SHA so a moved tag cannot change what CI runs, and Dependabot is the
+# reviewable way to move a pin.
+#
+# Dependabot cannot discover manifests on its own, so
+# constitution/scripts/bootstrap.sh appends one entry per dependency manifest
+# it finds at the repository root (npm, pip, cargo, gomod, maven, gradle,
+# swift, bundler, composer, docker), each marked with the manifest that
+# produced it. Manifests in subdirectories are yours to add; copy the
+# commented example below (after the two shipped entries) and set
+# `directory`.
+updates:
+  - package-ecosystem: "gitsubmodule"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    commit-message:
+      prefix: "constitution"
+    labels:
+      - "constitution"
+    # Scope updates to the constitution submodule so repositories with other
+    # submodules are not churned by this configuration.
+    allow:
+      - dependency-name: "constitution"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
+    labels:
+      - "dependencies"
+
+  # Example for a manifest below the root (a package.json in web/):
+  # - package-ecosystem: "npm"
+  #   directory: "/web"
+  #   schedule:
+  #     interval: "weekly"
+  #   commit-message:
+  #     prefix: "deps"
+  #   labels:
+  #     - "dependencies"
