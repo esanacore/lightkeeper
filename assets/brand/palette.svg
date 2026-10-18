@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" width="960" height="420" role="img" aria-label="Lightkeeper color palette">
+  <title>Lightkeeper color palette</title>
+  <style>text{font-family:"IBM Plex Mono",Consolas,monospace;font-size:14px}</style>
+  <rect width="960" height="420" fill="#F6F5F0"/>
+  <text x="24" y="34" font-size="18" font-weight="700" fill="#15171C" style="font-family:'Bricolage Grotesque','IBM Plex Sans',Arial,sans-serif">Lightkeeper palette</text>
+  <text x="24" y="56" fill="#5B6068">Core</text>
+  <g transform="translate(24,66)">
+    <rect width="140" height="90" rx="8" fill="#0E1116"/><text x="8" y="112" fill="#15171C">Night #0E1116</text>
+    <rect x="156" width="140" height="90" rx="8" fill="#15171C"/><text x="164" y="112" fill="#15171C">Ink #15171C</text>
+    <rect x="312" width="140" height="90" rx="8" fill="#E6E5DF" stroke="#CFCDC4"/><text x="320" y="112" fill="#15171C">Paper #E6E5DF</text>
+    <rect x="468" width="140" height="90" rx="8" fill="#ECEBE5" stroke="#CFCDC4"/><text x="476" y="112" fill="#15171C">Fog #ECEBE5</text>
+    <rect x="624" width="140" height="90" rx="8" fill="#E0A526"/><text x="632" y="112" fill="#15171C">Beam #E0A526</text>
+    <rect x="780" width="140" height="90" rx="8" fill="#B8730A"/><text x="788" y="112" fill="#15171C">Beam deep #B8730A</text>
+  </g>
+  <text x="24" y="212" fill="#5B6068">Status (light theme / dark theme)</text>
+  <g transform="translate(24,222)">
+    <rect width="140" height="60" rx="8" fill="#2E6B4A"/><rect y="60" width="140" height="30" rx="0" fill="#6CC597"/><text x="8" y="112" fill="#15171C">In range</text>
+    <rect x="156" width="140" height="60" rx="8" fill="#B3261E"/><rect x="156" y="60" width="140" height="30" fill="#FF6B5E"/><text x="164" y="112" fill="#15171C">Low / urgent low</text>
+    <rect x="312" width="140" height="60" rx="8" fill="#B86A00"/><rect x="312" y="60" width="140" height="30" fill="#F5A341"/><text x="320" y="112" fill="#15171C">High / urgent high</text>
+    <rect x="468" width="140" height="60" rx="8" fill="#6B6F76"/><rect x="468" y="60" width="140" height="30" fill="#9AA0A9"/><text x="476" y="112" fill="#15171C">Stale / no data</text>
+    <rect x="624" width="140" height="60" rx="8" fill="#5B6068"/><rect x="624" y="60" width="140" height="30" fill="#9AA0A9"/><text x="632" y="112" fill="#15171C">Muted text</text>
+    <rect x="780" width="140" height="60" rx="8" fill="#CFCDC4"/><rect x="780" y="60" width="140" height="30" fill="#262B33"/><text x="788" y="112" fill="#15171C">Lines</text>
+  </g>
+  <text x="24" y="372" fill="#5B6068">Status colors always travel with a word (LOW, STALE). Color never says it alone.</text>
+  <text x="24" y="396" fill="#5B6068">Type: Bricolage Grotesque (display), IBM Plex Sans (body), IBM Plex Mono (data and panels).</text>
+</svg>

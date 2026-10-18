@@ -142,6 +142,7 @@ lightkeeper/
 - What the community says about displays and alerts, and what we take from it: `docs/COMMUNITY_RESEARCH.md`
 - Setup for Nightscout, Trio, and this repo: `docs/SETUP.md`
 - What hardware to buy for the displays: `docs/HARDWARE.md`
+- Brand guide, mark, palette, and type: `docs/BRAND.md`
 - Roadmap and how the project grows: `docs/ROADMAP.md`, `docs/MVP_BACKLOG.md`, `TODO.md`
 - Changelog: `CHANGELOG.md`
 - Architecture and decisions: `docs/ARCHITECTURE.md`, `docs/adr/README.md`

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="Lightkeeper mark, for dark backgrounds">
+  <title>Lightkeeper mark (dark background)</title>
+  <path d="M132 76 L250 44 L250 62 Z" fill="#E0A526" opacity="0.55"/>
+  <path d="M132 84 L250 92 L250 110 Z" fill="#E0A526" opacity="0.85"/>
+  <circle cx="116" cy="80" r="22" fill="#E0A526"/>
+  <path d="M96 110 H136 L148 212 H84 Z" fill="#E6E5DF"/>
+  <rect x="90" y="106" width="52" height="10" rx="3" fill="#E6E5DF"/>
+  <rect x="104" y="136" width="24" height="7" rx="3.5" fill="#0E1116"/>
+  <rect x="106" y="166" width="20" height="7" rx="3.5" fill="#0E1116"/>
+  <rect x="24" y="212" width="208" height="8" rx="4" fill="#E6E5DF"/>
+</svg>

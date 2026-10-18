@@ -21,6 +21,7 @@ This project follows semantic versioning.
 - Offline `demo.html` showing every display state.
 - `docs/ROADMAP.md` and ADR-0008 (proposed): a companion iOS app, read-only first, with bolus requests only through Trio's remote protocol.
 - `spec_version` field in `spec/display_vectors.json`.
+- Brand kit: lighthouse mark (light, dark, mono), app icon, palette, social preview, and `docs/BRAND.md`.
 - `docs/HARDWARE.md`: buyer's guide for the bedside Pi display, the Xteink X4 Pro, and an ESP32-S3 bench board.
 - `docs/COMMUNITY_RESEARCH.md`: what the community says about display and alert tools, with twelve implications for Lightkeeper.
 
