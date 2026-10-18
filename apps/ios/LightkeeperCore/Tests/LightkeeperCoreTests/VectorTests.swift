@@ -28,9 +28,12 @@ final class VectorTests: XCTestCase {
     let nowMs: Int64 = 1_792_324_800_000
 
     func loadSpec() throws -> Spec {
-        // apps/ios/LightkeeperCore/Tests/LightkeeperCoreTests/VectorTests.swift -> repo root
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<5 { url.deleteLastPathComponent() }
+        // Walk up from this file until the repository root (the folder holding spec/).
+        var url = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+        while !FileManager.default.fileExists(atPath: url.appendingPathComponent("spec").path),
+              url.path != "/" {
+            url.deleteLastPathComponent()
+        }
         let spec = url.appendingPathComponent("spec/display_vectors.json")
         return try JSONDecoder().decode(Spec.self, from: Data(contentsOf: spec))
     }
