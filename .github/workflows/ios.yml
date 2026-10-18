@@ -26,7 +26,14 @@ jobs:
         run: swift --version
       - name: Run package tests
         working-directory: apps/ios/LightkeeperCore
-        run: swift test
+        shell: bash
+        run: |
+          set -o pipefail
+          swift test 2>&1 | tee test.log || status=$?
+          # Surface compiler and test failures as annotations, which are readable
+          # through the API even where raw logs are not.
+          grep -E "(error:|failed|XCTAssert)" test.log | head -40 | sed 's/^/::error::/' || true
+          exit ${status:-0}
 
   app-build:
     name: Build the app for the simulator
@@ -44,6 +51,9 @@ jobs:
       - name: Build (no signing, simulator)
         working-directory: apps/ios/Lightkeeper
         run: |
+          set -o pipefail
           xcodebuild -project Lightkeeper.xcodeproj -scheme Lightkeeper \
             -destination 'generic/platform=iOS Simulator' \
-            CODE_SIGNING_ALLOWED=NO build | tail -40
+            CODE_SIGNING_ALLOWED=NO build 2>&1 | tee build.log | tail -40 || status=$?
+          grep -E "error:" build.log | head -40 | sed 's/^/::error::/' || true
+          exit ${status:-0}

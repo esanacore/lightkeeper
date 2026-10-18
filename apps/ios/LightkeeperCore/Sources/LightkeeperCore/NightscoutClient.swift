@@ -16,7 +16,7 @@ public enum NightscoutError: Error, Equatable {
     case httpStatus(Int)
 }
 
-public final class NightscoutClient: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
+public final class NightscoutClient: NSObject, URLSessionTaskDelegate {
     public static let maxResponseBytes = 1_000_000
     public static let defaultTimeout: TimeInterval = 10
 
@@ -47,6 +47,7 @@ public final class NightscoutClient: NSObject, URLSessionTaskDelegate, @unchecke
         self.baseURL = url
         self.token = token
         self.timeout = timeout
+        super.init()
     }
 
     func entriesURL(count: Int) -> URL {

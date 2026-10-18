@@ -45,7 +45,12 @@ public struct Thresholds: Equatable, Sendable {
         self.staleAfterMs = staleAfterMs
     }
 
-    public static let defaults = try! Thresholds()  // swiftlint:disable:this force_try
+    /// The documented defaults (55 / 70 / 180 / 250 mg/dL, stale after 15 minutes).
+    public static let defaults: Thresholds = {
+        // The literal values satisfy the invariant, so this cannot throw.
+        // swiftlint:disable:next force_try
+        try! Thresholds()
+    }()
 }
 
 /// What a display should show, derived from a reading and the time.

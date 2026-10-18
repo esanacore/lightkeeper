@@ -78,8 +78,9 @@ public enum ParseError: Error, Equatable {
 /// JSON booleans arrive as NSNumber too, so rule them out explicitly, the way
 /// the Python code rules out `bool` (a subclass of `int`).
 private func number(_ value: Any?) -> Double? {
+    if value is Bool { return nil }
     guard let num = value as? NSNumber else { return nil }
-    if CFGetTypeID(num) == CFBooleanGetTypeID() { return nil }
+    if num === kCFBooleanTrue || num === kCFBooleanFalse { return nil }
     return num.doubleValue
 }
 
