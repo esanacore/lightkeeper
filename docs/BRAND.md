@@ -4,7 +4,7 @@ How Lightkeeper looks and sounds, so every screen, slide, and page reads as one 
 
 ## The idea
 
-A lighthouse watches all night and never steers the ship. That is the whole product in one image, and the mark is built from it: a lamp, a beam, a tower, a horizon. Nothing else. The beam always points right, into the future reading.
+A lighthouse watches all night and never steers the ship. The mark reduces that to geometry: one point of light and the sweep it casts, three concentric arcs inside a 60 degree sector (lens, beam, reach), held by a stem that stands in for the tower. No windows, no waves, no picture of a building. The beam always sweeps to the right, toward the next reading.
 
 ## Mark
 
@@ -13,11 +13,12 @@ A lighthouse watches all night and never steers the ship. That is the whole prod
 | `assets/brand/lightkeeper-mark.svg` | On light backgrounds (ink tower, amber lamp) |
 | `assets/brand/lightkeeper-mark-dark.svg` | On dark backgrounds (paper tower, amber lamp) |
 | `assets/brand/lightkeeper-mark-mono.svg` | Single color, inherits `currentColor`; for favicons, watch faces, e-ink |
+| `assets/brand/lightkeeper-wordmark.svg` | Horizontal lockup, mark plus the name in Bricolage Grotesque |
 | `assets/brand/app-icon.svg` | 1024 px iOS app icon source (night background, rounded by iOS) |
 | `assets/brand/social-preview.svg` | 1280x640 GitHub social preview (upload in repository Settings) |
 | `assets/brand/png/` | Rendered PNGs of the above |
 
-Rules: keep clear space of at least the lamp's diameter around the mark; never recolor the lamp anything but Beam amber or the mono color; never add a face, a wave, or a second beam; on e-ink use the mono mark in ink only.
+Rules: keep clear space of at least the lamp's diameter around the mark; the sweep keeps its three steps and its 60 degree angle; never recolor the lamp anything but Beam amber or the mono color; never add a face, a wave, a building, or a second beam; on e-ink use the mono mark in ink only. At 16 px, use the mono mark without the outer arc.
 
 ## Color
 

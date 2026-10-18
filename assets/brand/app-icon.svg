@@ -1,15 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="Lightkeeper app icon">
   <title>Lightkeeper app icon</title>
-  <rect width="1024" height="1024" rx="228" fill="#0E1116"/>
-  <!-- soft glow behind the lamp -->
-  <circle cx="464" cy="330" r="200" fill="#E0A526" opacity="0.10"/>
-  <circle cx="464" cy="330" r="120" fill="#E0A526" opacity="0.14"/>
-  <path d="M528 314 L1000 196 L1000 268 Z" fill="#E0A526" opacity="0.5"/>
-  <path d="M528 346 L1000 376 L1000 448 Z" fill="#E0A526" opacity="0.85"/>
-  <circle cx="464" cy="330" r="88" fill="#E0A526"/>
-  <path d="M384 450 H544 L592 846 H336 Z" fill="#E6E5DF"/>
-  <rect x="360" y="434" width="208" height="40" rx="12" fill="#E6E5DF"/>
-  <rect x="416" y="556" width="96" height="28" rx="14" fill="#0E1116"/>
-  <rect x="424" y="676" width="80" height="28" rx="14" fill="#0E1116"/>
-  <rect x="112" y="846" width="800" height="32" rx="16" fill="#E6E5DF"/>
+  <defs>
+    <clipPath id="lk-icon-sector"><path d="M368 480 L1024 101 L1024 859 Z"/></clipPath>
+  </defs>
+  <rect width="1024" height="1024" fill="#0E1116"/>
+  <g clip-path="url(#lk-icon-sector)">
+    <circle cx="368" cy="480" r="700" fill="#E0A526" opacity="0.14"/>
+    <circle cx="368" cy="480" r="480" fill="#E0A526" opacity="0.40"/>
+    <circle cx="368" cy="480" r="280" fill="#E0A526"/>
+  </g>
+  <rect x="336" y="480" width="64" height="400" rx="12" fill="#E6E5DF"/>
+  <rect x="224" y="872" width="288" height="40" rx="12" fill="#E6E5DF"/>
+  <circle cx="368" cy="480" r="96" fill="#E6E5DF"/>
+  <circle cx="368" cy="480" r="44" fill="#E0A526"/>
 </svg>

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 256" width="1120" height="256" role="img" aria-label="Lightkeeper">
+  <title>Lightkeeper wordmark</title>
+  <defs>
+    <clipPath id="lk-wm-sector"><path d="M96 120 L256 27.6 L256 212.4 Z"/></clipPath>
+  </defs>
+  <g clip-path="url(#lk-wm-sector)">
+    <circle cx="96" cy="120" r="152" fill="#E0A526" opacity="0.16"/>
+    <circle cx="96" cy="120" r="108" fill="#E0A526" opacity="0.42"/>
+    <circle cx="96" cy="120" r="66" fill="#E0A526"/>
+  </g>
+  <rect x="88" y="120" width="16" height="104" rx="3" fill="#15171C"/>
+  <rect x="60" y="222" width="72" height="10" rx="3" fill="#15171C"/>
+  <circle cx="96" cy="120" r="24" fill="#15171C"/>
+  <circle cx="96" cy="120" r="11" fill="#E0A526"/>
+  <text x="300" y="166" fill="#15171C" font-size="124" font-weight="700" letter-spacing="-4" style="font-family:'Bricolage Grotesque','IBM Plex Sans',Arial,sans-serif">Lightkeeper</text>
+</svg>

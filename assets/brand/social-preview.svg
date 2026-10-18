@@ -1,19 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640" role="img" aria-label="Lightkeeper social preview">
   <title>Lightkeeper</title>
+  <defs>
+    <clipPath id="lk-sp-sector"><path d="M240 320 L1280 -280 L1280 920 Z"/></clipPath>
+  </defs>
   <rect width="1280" height="640" fill="#0E1116"/>
-  <circle cx="300" cy="250" r="260" fill="#E0A526" opacity="0.07"/>
-  <g transform="translate(120,110) scale(1.6)">
-    <path d="M132 76 L250 44 L250 62 Z" fill="#E0A526" opacity="0.55"/>
-    <path d="M132 84 L250 92 L250 110 Z" fill="#E0A526" opacity="0.85"/>
-    <circle cx="116" cy="80" r="22" fill="#E0A526"/>
-    <path d="M96 110 H136 L148 212 H84 Z" fill="#E6E5DF"/>
-    <rect x="90" y="106" width="52" height="10" rx="3" fill="#E6E5DF"/>
-    <rect x="104" y="136" width="24" height="7" rx="3.5" fill="#0E1116"/>
-    <rect x="106" y="166" width="20" height="7" rx="3.5" fill="#0E1116"/>
-    <rect x="24" y="212" width="208" height="8" rx="4" fill="#E6E5DF"/>
+  <g clip-path="url(#lk-sp-sector)">
+    <circle cx="240" cy="320" r="1100" fill="#E0A526" opacity="0.06"/>
+    <circle cx="240" cy="320" r="760" fill="#E0A526" opacity="0.10"/>
+    <circle cx="240" cy="320" r="420" fill="#E0A526" opacity="0.18"/>
   </g>
-  <text x="580" y="270" fill="#E6E5DF" font-size="96" font-weight="800" letter-spacing="-3" style="font-family:'Bricolage Grotesque','IBM Plex Sans',Arial,sans-serif">Lightkeeper</text>
-  <text x="584" y="330" fill="#9AA0A9" font-size="27" style="font-family:'IBM Plex Sans',Arial,sans-serif">Read-only glucose displays for type 1 diabetes.</text>
-  <text x="584" y="372" fill="#9AA0A9" font-size="27" style="font-family:'IBM Plex Sans',Arial,sans-serif">Built beside Nightscout and Trio. Never steers.</text>
-  <text x="584" y="470" fill="#E0A526" font-size="22" letter-spacing="3" style="font-family:'IBM Plex Mono',Consolas,monospace">#WeAreNotWaiting · Not a medical device</text>
+  <rect x="226" y="320" width="28" height="200" rx="6" fill="#E6E5DF"/>
+  <rect x="176" y="516" width="128" height="18" rx="6" fill="#E6E5DF"/>
+  <circle cx="240" cy="320" r="44" fill="#E6E5DF"/>
+  <circle cx="240" cy="320" r="20" fill="#E0A526"/>
+  <text x="440" y="300" fill="#E6E5DF" font-size="108" font-weight="700" letter-spacing="-4" style="font-family:'Bricolage Grotesque','IBM Plex Sans',Arial,sans-serif">Lightkeeper</text>
+  <text x="444" y="358" fill="#9AA0A9" font-size="28" style="font-family:'IBM Plex Sans',Arial,sans-serif">Read-only glucose displays for type 1 diabetes.</text>
+  <text x="444" y="398" fill="#9AA0A9" font-size="28" style="font-family:'IBM Plex Sans',Arial,sans-serif">Built beside Nightscout and Trio. Never steers.</text>
+  <text x="444" y="480" fill="#E0A526" font-size="20" letter-spacing="3" style="font-family:'IBM Plex Mono',Consolas,monospace">#WeAreNotWaiting · NOT A MEDICAL DEVICE</text>
 </svg>
