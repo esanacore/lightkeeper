@@ -60,6 +60,15 @@ public struct Status: Equatable, Sendable {
     /// Milliseconds since the reading; clamped to 0 when fresh, raw when stale.
     public let ageMs: Int64?
 
+    public init(level: Level, reading: GlucoseReading?, ageMs: Int64?) {
+        self.level = level
+        self.reading = reading
+        self.ageMs = ageMs
+    }
+
+    /// The screen before any fetch has happened.
+    public static let empty = Status(level: .noData, reading: nil, ageMs: nil)
+
     /// Whole minutes, floored, matching Python's `seconds // 60`.
     public var ageMinutes: Int? {
         guard let ageMs else { return nil }

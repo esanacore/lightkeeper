@@ -7,7 +7,7 @@ import SwiftUI
 
 @MainActor
 final class GlucoseModel: ObservableObject {
-    @Published private(set) var status = Status(level: .noData, reading: nil, ageMs: nil)
+    @Published private(set) var status = Status.empty
     @Published private(set) var lines: [String] = ["NO DATA", "Check sensor and phone", "Confirm on primary device"]
     @Published private(set) var fetchError = false
     @Published private(set) var lastRefresh: Date?
