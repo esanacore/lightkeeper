@@ -38,6 +38,21 @@ class FakeNightscout(BaseHTTPRequestHandler):
         elif FakeNightscout.mode == "slow":
             time.sleep(2)
             self._send(200, b"[]")
+        elif FakeNightscout.mode == "redirect":
+            # Points at a different scheme/host: must not be followed.
+            self.send_response(302)
+            self.send_header("Location", "http://example.invalid/api/v1/entries/sgv.json")
+            self.end_headers()
+        elif (
+            FakeNightscout.mode == "redirect-same"
+            and "token" in parsed.query
+            and "r=1" not in parsed.query
+        ):
+            self.send_response(302)
+            self.send_header("Location", self.path + "&r=1")
+            self.end_headers()
+        elif FakeNightscout.mode == "huge":
+            self._send(200, b"[" + b"1," * 600_000 + b"1]")
         elif FakeNightscout.mode == "html":
             self._send(200, b"<html>maintenance</html>")
         else:
@@ -120,3 +135,25 @@ def test_fr005_server_gone_degrades_to_no_data(server):
     status, error = current_status(client(dead), datetime.now(UTC), Thresholds())
     assert status.level is Level.NO_DATA
     assert error and TOKEN not in error
+
+
+def test_nfr001_https_to_http_redirect_is_refused(server):
+    """A downgrade redirect would leak the token in the clear, so it is refused."""
+    FakeNightscout.mode = "redirect"
+    with pytest.raises(NightscoutError) as caught:
+        client(server).fetch_entries()
+    assert "redirect" in str(caught.value)
+    assert TOKEN not in str(caught.value)
+    # Only the first request reached the server; nothing followed the redirect.
+    assert [r[1] for r in FakeNightscout.requests] == ["/api/v1/entries/sgv.json"]
+
+
+def test_nfr001_same_site_redirect_is_followed(server):
+    FakeNightscout.mode = "redirect-same"
+    assert client(server).fetch_entries()[0]["sgv"] == 98
+
+
+def test_fr005_oversized_response_is_an_error(server):
+    FakeNightscout.mode = "huge"
+    with pytest.raises(NightscoutError):
+        client(server).fetch_entries()

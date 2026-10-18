@@ -114,15 +114,34 @@ def test_default_fetcher_sends_json_accept_header(monkeypatch):
         def __exit__(self, *exc):
             return False
 
-        def read(self):
+        def read(self, limit=None):
+            seen["limit"] = limit
             return b"[]"
 
-    def fake_urlopen(request, timeout):
+    def fake_open(request, timeout):
         seen["accept"] = request.get_header("Accept")
         seen["timeout"] = timeout
         seen["method"] = request.get_method()
         return FakeResponse()
 
-    monkeypatch.setattr(nightscout.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(nightscout._opener, "open", fake_open)
     assert nightscout._default_fetcher("https://ns.example.com/x", 3) == b"[]"
-    assert seen == {"accept": "application/json", "timeout": 3, "method": "GET"}
+    assert seen == {
+        "accept": "application/json",
+        "timeout": 3,
+        "method": "GET",
+        "limit": nightscout.MAX_RESPONSE_BYTES + 1,
+    }
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://ns.example.com/?token=abc",
+        "https://ns.example.com/#x",
+        "https://user:pw@ns.example.com",
+    ],
+)
+def test_nfr001_rejects_urls_with_query_fragment_or_login(url):
+    with pytest.raises(ValueError):
+        NightscoutClient(url)

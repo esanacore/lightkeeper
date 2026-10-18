@@ -20,6 +20,9 @@ from typing import Any
 
 DEFAULT_TIMEOUT_SECONDS = 10
 
+# 288 entries of ~200 bytes is ~60 KB; anything near a megabyte is not Nightscout.
+MAX_RESPONSE_BYTES = 1_000_000
+
 # A fetcher takes (url, timeout) and returns the response body as bytes.
 # Injecting it keeps the client testable without a real server.
 Fetcher = Callable[[str, float], bytes]
@@ -29,15 +32,38 @@ class NightscoutError(RuntimeError):
     """Raised when Nightscout can't be reached or returns something unusable."""
 
 
+class _SameSchemeRedirects(urllib.request.HTTPRedirectHandler):
+    """Refuse redirects that would downgrade https to http.
+
+    urllib follows redirects by default, and a redirect to http:// would send
+    the token in the clear. Cross-site redirects are refused too: the token
+    belongs to one Nightscout site.
+    """
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # type: ignore[no-untyped-def]
+        old = urllib.parse.urlparse(req.full_url)
+        new = urllib.parse.urlparse(newurl)
+        if new.scheme != old.scheme or new.netloc != old.netloc:
+            raise urllib.error.URLError(
+                f"refused redirect to a different scheme or host ({new.scheme}://{new.netloc})"
+            )
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+_opener = urllib.request.build_opener(_SameSchemeRedirects)
+
+
 def _default_fetcher(url: str, timeout: float) -> bytes:
-    """GET `url` and return the raw body.
+    """GET `url` and return the raw body, capped at MAX_RESPONSE_BYTES.
 
     NightscoutClient.__init__ only accepts https (or explicitly allowed http
     for localhost tests), so file:// and custom schemes never reach urlopen.
     """
     request = urllib.request.Request(url, headers={"Accept": "application/json"})  # noqa: S310
-    with urllib.request.urlopen(request, timeout=timeout) as response:  # noqa: S310
-        body: bytes = response.read()
+    with _opener.open(request, timeout=timeout) as response:
+        body: bytes = response.read(MAX_RESPONSE_BYTES + 1)
+        if len(body) > MAX_RESPONSE_BYTES:
+            raise urllib.error.URLError("response larger than expected for an entries query")
         return body
 
 
@@ -65,6 +91,8 @@ class NightscoutClient:
             raise ValueError(
                 "base_url must use https (pass allow_http=True for local testing only)"
             )
+        if parsed.query or parsed.fragment or parsed.username or parsed.password:
+            raise ValueError("base_url must be just the site, with no query, fragment, or login")
         self._base_url = base_url.rstrip("/")
         self._token = token
         self._fetcher = fetcher or _default_fetcher
