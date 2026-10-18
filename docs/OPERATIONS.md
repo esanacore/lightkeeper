@@ -17,6 +17,7 @@ Operational procedures for the parts of the stack we run. Health data is involve
 
 ## Safe Operations
 
+- **Retention**: Lightkeeper keeps only the newest reading, in memory; the optional `--svg` file holds one screen and is overwritten each refresh (delete the file to remove it). Nightscout's retention period and deletion path are set and recorded here when hosting is chosen in Phase 1. Classification details: `docs/SECURITY_MODEL.md`.
 - **Backup/Restore**: back up the Nightscout database on a schedule and test a restore at least once (ADR-0003 promotion criteria).
 - **Maintenance Mode**: before taking Nightscout down, tell Kaitlin; displays will show STALE, which is expected.
 - **Stateful Changes**: never edit or delete Nightscout entries by hand; never write treatments from this repo.

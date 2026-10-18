@@ -48,10 +48,10 @@ sudo apt update && sudo apt install -y python3 python3-venv git
 ## Verify Prerequisites
 
 ```bash
-python --version        # 3.11 or newer (use python3 on macOS/Linux)
-git --version
-git submodule status    # constitution should not start with "-"
+python tools/doctor.py   # use python3 on macOS/Linux
 ```
+
+It checks Python 3.11+, the constitution submodule, the test and lint tools, and the C++ toolchain, and names exactly what's missing. Run it again after installing (next step) to confirm the dev tools.
 
 ## Installation
 
@@ -91,7 +91,7 @@ python -m pytest --cov
 
 ## Environment Variables
 
-There is no `.env` loader; set variables in your shell or service definition. See `docs/ENV_VARS.md`.
+There is no `.env` loader; set variables in your shell or service definition. `.env.example` lists them all with safe defaults, and `docs/ENV_VARS.md` describes each one.
 
 <details>
 <summary>Windows (PowerShell)</summary>
@@ -120,6 +120,6 @@ python -m lightkeeper
 Follow the phases in `docs/MVP_BACKLOG.md`. In short:
 
 1. **Nightscout (Phase 1).** Deploy following the Nightscout documentation (nightscout.github.io). Use HTTPS, a long random API_SECRET, and set authentication to deny by default. In the admin tools, create a subject with the `readable` role and use its token for `lightkeeper`. Record the hosting choice in a new ADR.
-2. **Trio (Phase 2).** Read the Trio docs (triodocs.org) end to end first. Kaitlin talks to her endocrinologist before starting. Build with Trio's browser build method (GitHub Actions to TestFlight, no Mac needed) using a paid Apple Developer account, set the Dexcom G7 app as the CGM source, turn off iOS automatic updates, and point Trio at Nightscout. Omnipod 5 pod support is in open beta; follow the instructions at nightscout.github.io/omnipod-five and keep the official Omnipod 5 app or Controller as a fallback.
+2. **Trio (Phase 2).** Read the Trio docs (triodocs.org) end to end first. Kaitlin talks to her endocrinologist before starting. Build with Trio's browser build method (GitHub Actions to TestFlight, no Mac needed) using a paid Apple Developer account, set the Dexcom G7 app as the CGM source, turn off iOS automatic updates, and point Trio at Nightscout. Omnipod 5 pods are supported on Trio's main branch since v1.0.0; follow the switching steps at nightscout.github.io/omnipod-five/compatibility.html (keep a backup DASH pod, don't fill the pod until Trio shows the pairing screen) and keep the official Omnipod 5 app or Controller as a fallback. For Dexcom G7, the first sensor session must start in the country of the App Store the Dexcom app came from.
 3. **Open loop, then closed loop (Phases 2 and 3).** Promotion criteria are in `docs/adr/0002-trio-on-iphone-as-dosing-controller.md`.
 4. **Displays (Phase 4).** Run `lightkeeper` on the target device and compare it with the primary app for a full sensor session before relying on it.

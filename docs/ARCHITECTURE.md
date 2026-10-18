@@ -46,9 +46,11 @@ flowchart LR
 4. The domain layer drops anything untrustworthy, picks the newest valid reading, and classifies it. Staleness is evaluated before range.
 5. The application layer renders a few short ASCII lines and returns an exit code; on fetch failure it re-classifies the last good reading against the current time so it ages into STALE.
 
+Glucose data is **Restricted** (health data) at every step of this flow, and the readable token is Confidential. The classification of each store and boundary-crossing flow, plus the STRIDE threat model, are in `docs/SECURITY_MODEL.md`.
+
 ## Key Technologies
 
-- **Therapy (external):** Trio (Swift, OpenAPS oref algorithm), Dexcom G7 app, Omnipod 5 pods via Trio's open beta driver
+- **Therapy (external):** Trio (Swift, OpenAPS oref algorithm), Dexcom G7 app, Omnipod 5 pods via Trio's OmnipodKit driver (v1.0.0+)
 - **Data hub (external, self-hosted):** Nightscout (Node.js, MongoDB)
 - **This repo:** Python 3.11+, standard library only at runtime; pytest and pytest-cov for tests
 - **Display targets:** Xteink X4/X3 pocket e-ink (ESP32-C3, C++17, rules done, device build pending), Raspberry Pi with an e-paper HAT, Home Assistant

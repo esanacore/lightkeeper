@@ -14,14 +14,15 @@ Date: 2026-10-17
 
 - Kaitlin's endocrinologist has reviewed the plan and her therapy settings for Trio.
 - Trio has run in open loop for at least two weeks with settings validated against her current results.
-- Omnipod 5 pod support in Trio has been exercised through at least five pod changes without unresolved faults, and any issues were reported upstream with logs.
+- Omnipod 5 pods with Trio have been exercised through at least five pod changes without unresolved faults, and any issues were reported upstream with logs.
+
+- Gate: Kaitlin decides, with her endocrinologist's agreement; Eric confirms the logged evidence.
 
 ## Context
 
 Kaitlin uses a Dexcom G7 and Omnipod 5 pods with an iPhone, and wants to move to open source tools. As of October 2026:
 
-- Trio (iOS) lists Omnipod 5 pods as compatible in open beta, alongside DASH, Eros, and Dana-i.
-- Loop supports Omnipod 5 only in development branches.
+- Omnipod 5 support shipped in Trio v1.0.0 and Loop v3.14.7, both released September 15, 2026, after an open beta. It is on the main branch, so a normal build supports Kaitlin's pods.
 - AndroidAPS support for Omnipod 5 is earlier stage, expected late 2026 or early 2027.
 - When paired with Trio, an Omnipod 5 pod stops talking to the CGM and only takes commands from Trio, so pod and sensor must both be in range of the phone.
 - On iPhone, Trio reads G7 data by intercepting the Dexcom G7 app on the same phone, so that app stays installed as a background radio.
@@ -36,14 +37,14 @@ Roll out in phases: CGM and Nightscout only, then open loop (suggestions only), 
 
 - Kaitlin keeps her phone, sensor, and pods; no prescription change is needed to start.
 - Dosing logic stays in a reviewed community project, not in our code.
-- We depend on a beta pump driver; our QA effort goes into testing and reporting upstream.
+- We depend on a newly released pump driver; our QA effort goes into careful rollout, logging, and reporting upstream.
 - We need a paid Apple Developer account. Eric has no Mac, so Trio is built with the browser build method (GitHub Actions uploading to TestFlight), and builds must be refreshed before TestFlight expiry.
 - The Dexcom app is not fully eliminated on iPhone.
 
 ## Alternatives Considered
 
 - **Android collector plus AndroidAPS:** fully removes the Dexcom app via xDrip+, but AndroidAPS does not yet support Omnipod 5. Revisit when it does.
-- **Loop:** Omnipod 5 only in development branches today.
+- **Loop:** also supports Omnipod 5 since v3.14.7. Trio was chosen for its oref algorithm features and active community; Loop remains a reasonable fallback.
 - **Switch to Omnipod DASH pods:** mature support in all three apps, but requires a prescription change and loses nothing we need yet.
-- **Switch the CGM to FreeStyle Libre 3 Plus:** Kaitlin is considering this. Trio's docs say it connects to Libre 3/3 Plus directly (NFC pairing, then Bluetooth) with no Abbott app, in all regions, which would remove the last proprietary app from the phone. As of October 2026 that support is open beta, dev branch only, and needs a paid Apple Developer account. Deferred so we don't stack two betas (pump driver and CGM driver) at once; revisit after closed loop is stable, or sooner if Kaitlin and her endo prefer Libre for other reasons. US Libre 2 sensors are not supported for direct connection.
+- **Switch the CGM to FreeStyle Libre 3 Plus:** Kaitlin is considering this. Trio's docs say it connects to Libre 3/3 Plus directly (NFC pairing, then Bluetooth) with no Abbott app, in all regions, which would remove the last proprietary app from the phone. As of October 2026 that support is open beta, dev branch only, and needs a paid Apple Developer account. Deferred so we don't add a beta CGM driver while the pump driver is still new to us; revisit after closed loop is stable, or sooner if Kaitlin and her endo prefer Libre for other reasons. US Libre 2 sensors are not supported for direct connection.
 - **Stay on stock Omnipod 5 SmartAdjust:** no change, but doesn't meet the goal of open source control.

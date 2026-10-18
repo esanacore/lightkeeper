@@ -4,9 +4,10 @@ This file provides help for humans and AI agents working on this project.
 
 ## For Humans
 
-- **Primary Maintainers**: <!-- Add names or team here -->
+- **Primary Maintainers**: Eric (@esanacore), building Lightkeeper with and for Kaitlin.
 - **Getting Started**: Read `README.md` and `docs/SETUP.md`.
-- **Asking for Help**: <!-- Add Slack channel, email, or issue tracker link here -->
+- **Asking for Help**: open an issue at https://github.com/esanacore/lightkeeper/issues. For security problems, follow `.github/SECURITY.md` instead. For questions about Trio, Nightscout, or the sensor and pump themselves, the community docs and support channels linked in `docs/SETUP.md` are the right place.
+- **Medical questions**: Lightkeeper is not a medical device and its maintainers can't give medical advice. Talk to your care team.
 
 ## Using This Project in Your IDE
 
@@ -17,15 +18,16 @@ instruction files committed here — chiefly `AGENTS.md`, plus any tool-specific
 file this repo carries — which point it at the read-only `constitution/`
 submodule and its reading order.
 
-| IDE | AI assistant | File it reads automatically |
-|---|---|---|
-| Visual Studio (2022 17.x / 2026 18.x) | GitHub Copilot (+ **Solon** custom agent) | `.github/copilot-instructions.md`, `AGENTS.md`, `.github/agents/solon.agent.md` |
-| VS Code | GitHub Copilot / Continue.dev / Cursor | `.github/copilot-instructions.md`, `.continue/config.json`, `.cursor/rules/project.mdc`, `AGENTS.md` |
-| JetBrains (IntelliJ, PyCharm, WebStorm, GoLand, Rider) | GitHub Copilot / Continue plugin | `.github/copilot-instructions.md`, `.continue/config.json`, `AGENTS.md` |
+| Tool | File it reads automatically |
+|---|---|
+| Claude Code | `CLAUDE.md`, `.claude/settings.json` |
+| GitHub Copilot in Visual Studio, VS Code, or JetBrains (+ **Solon** custom agent) | `AGENTS.md`, `.github/agents/solon.agent.md` |
+| Most other assistants (Cursor, Continue, Codex, and others) | `AGENTS.md` |
 
-Some tool-specific files above are installed only when the project opted into
-that tool at bootstrap time; `AGENTS.md` is always present and read by most
-modern assistants directly. Run `git submodule update --init --recursive` after
+This repository was bootstrapped with Claude Code instructions only. `AGENTS.md`
+is the cross-vendor file and is read by most modern assistants directly. To add
+another tool's own instruction file, re-run the constitution bootstrap with
+`--agents=<tool>` (see `constitution/INTEGRATION.md`). Run `git submodule update --init --recursive` after
 cloning so the `constitution/` files the instructions point at exist.
 
 To confirm the constitution is loaded, ask your assistant:

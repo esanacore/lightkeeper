@@ -10,11 +10,13 @@ This document defines how this repository is tested, what coverage it targets, a
 - **Shared vectors (parity)**: `spec/display_vectors.json` is run by `tests/test_vectors.py` and by the firmware host tests, so Python and C++ render identical screens.
 - **Firmware host tests**: C++17 rules built with AddressSanitizer and UBSan, run on a PC. Location: `firmware/xteink/test/host/`. Command: `make -C firmware/xteink test`.
 - **End-to-end tests**: against a real self-hosted Nightscout instance with simulated uploads, planned once Nightscout is stood up (see GAP-003).
+- **Static analysis**: ruff (pycodestyle, pyflakes, import order, PEP 257 docstrings, bugbear, pyupgrade, bandit security rules), ruff format, strict mypy on `src/`, and clang-format for the firmware. Run in the full suite and as pre-commit hooks.
 - **Manual validation**: before Kaitlin relies on any display, run it side by side with the primary app for at least one full sensor session and log any mismatch, freeze, or missed STALE.
 
 ## How to Run Tests
 
-- Full suite: `python -m pytest --cov && make -C firmware/xteink test`
+- Full suite: `python -m ruff check . && python -m ruff format --check . && python -m mypy && python -m pytest --cov && make -C firmware/xteink format-check test`
+- Lint, format, and types only: `python -m ruff check . && python -m ruff format --check . && python -m mypy`
 - With coverage: `python -m pytest --cov --cov-report=term-missing`
 - A single test or subset: `python -m pytest -k fr003`
 

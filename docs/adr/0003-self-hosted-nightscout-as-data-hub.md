@@ -16,6 +16,8 @@ Date: 2026-10-17
 - Trio is uploading and a readable-role token works with `lightkeeper`.
 - Backups are configured and a restore has been tested once.
 
+- Gate: Eric.
+
 ## Context
 
 Every display, follower, and alert we build needs one source of glucose data that isn't the phone itself. Nightscout is the community standard, Trio uploads to it natively, and followers such as xDrip4iOS can read from it.

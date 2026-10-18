@@ -21,7 +21,7 @@ The phased rollout of the whole stack. Phases gate on evidence, not dates. `TODO
 - [ ] Kaitlin talks with her endocrinologist about moving to Trio and reviews her current settings.
 - [ ] Get an Apple Developer account and build Trio from source.
 - [ ] Connect the Dexcom G7 app as the CGM source, turn off iOS automatic updates, and confirm Nightscout uploads.
-- [ ] Pair Omnipod 5 pods with Trio (open beta) in open loop, so Trio only suggests.
+- [ ] Pair Omnipod 5 pods with Trio (supported on main since Trio v1.0.0) in open loop, so Trio only suggests. Keep a backup DASH pod for the first switch, and don't fill the pod until Trio shows the pairing screen.
 - [ ] Log every pod change, fault, and suggestion mismatch for at least two weeks.
 
 ## Phase 3: Closed Loop

@@ -26,7 +26,7 @@ Severity: how bad the outcome could be. Likelihood: before mitigation. Each miti
 | HAZ-006 | Misconfigured thresholds hide a low | Typo in env vars, inverted ranges | Serious | Possible | Thresholds validated at startup, invalid config stops the program | NFR-002, `test_nfr002_invalid_thresholds_are_rejected` |
 | HAZ-007 | Health data or Nightscout credentials exposed | Plain HTTP, token in logs or errors | Moderate | Possible | HTTPS required; read-only token only; token redacted from all errors | NFR-001, `test_nfr001_network_errors_redact_the_token` |
 | HAZ-008 | Someone trusts the secondary display over the primary app | Display looks authoritative | Serious | Possible | Disclaimer in CLI help and README; STALE and NO DATA states tell the user to confirm on the primary device | FR-004, manual review |
-| HAZ-009 | Trio misconfiguration causes over or under delivery | Wrong therapy settings, beta pump driver bug | Critical | Possible | Outside this codebase. Open loop first, closed loop only after settings are validated with her endo; keep the official Omnipod 5 app as fallback; report bugs upstream with logs | Process, see `docs/SETUP.md` phases |
+| HAZ-009 | Trio misconfiguration causes over or under delivery | Wrong therapy settings, pump driver bug (Omnipod 5 support is new, released September 2026) | Critical | Possible | Outside this codebase. Open loop first, closed loop only after settings are validated with her endo; keep the official Omnipod 5 app as fallback; report bugs upstream with logs | Process, see `docs/SETUP.md` phases |
 
 ## Review Triggers
 

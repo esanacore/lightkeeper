@@ -16,6 +16,8 @@ Date: 2026-10-17
 - The device build fetches from the real Nightscout, renders every shared vector state correctly on the panel, and survives a 24-hour soak test without freezing.
 - One full sensor session side by side with the primary app with no mismatch, freeze, or missed STALE.
 
+- Gate: Eric runs the validation; Kaitlin decides whether she relies on the device.
+
 ## Context
 
 Eric and Kaitlin want a small dedicated e-ink display. Xteink X4/X3 readers use an ESP32-C3 (Wi-Fi and Bluetooth) and have an open source community firmware, CrossPoint, so custom firmware is realistic. A second implementation of the display rules creates a new risk: the two implementations drifting apart, so the pocket display shows something the Python display wouldn't.
