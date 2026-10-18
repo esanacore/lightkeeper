@@ -17,7 +17,7 @@ Replace the entry below at the end of every push; only the latest handoff is kep
 
 #### Next Steps
 
-**Human action required:** steps 1, 2, 3, 4, 5, 6, and 7.
+**Human action required:** steps 1, 2, 3, 4, 5, 6, 7, and 8.
 
 1. [ ] **HUMAN** — Approve cutting release v0.1.0
    - **Why a human:** a tag and GitHub Release are public, permanent publications.
@@ -40,5 +40,8 @@ Replace the entry below at the end of every push; only the latest handoff is kep
 7. [ ] **HUMAN** — Choose Nightscout hosting and deploy it (Phase 1)
    - **Why a human:** needs accounts, a domain, and a secret only Eric should hold.
    - **Done when:** Nightscout is reachable over HTTPS and a readable-role token exists.
-8. [ ] **AUTOMATED** — CI runs all constitution workflows on the pushed commit; watch for a red run.
-9. [ ] **AGENT** _(suggestion)_ — Propose the env-workflow path fix upstream in the engineering-constitution repo.
+8. [ ] **HUMAN** — Buy the Tier 1 hardware in `docs/HARDWARE.md` (Pi Zero 2 WH + 2.9" e-paper HAT, Xteink X4 Pro, ESP32-S3 bench board)
+   - **Why a human:** hardware purchase, and flashing risks bricking a device.
+   - **Done when:** the parts are on the bench; CrossPoint has been flashed and stock firmware restored once on the Xteink.
+9. [ ] **AUTOMATED** — CI runs all constitution workflows on the pushed commit; watch for a red run.
+10. [ ] **AGENT** _(suggestion)_ — Propose the env-workflow path fix upstream in the engineering-constitution repo.
