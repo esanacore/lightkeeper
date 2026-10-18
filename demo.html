@@ -191,14 +191,14 @@
         <h2 id="stage-title">Try every display state</h2>
         <p>Pick a simulated situation to see exactly what the e-ink panel would show.</p>
         <div class="states" role="group" aria-label="Simulated situations">
-          <button type="button" data-state="inrange">In range</button>
-          <button type="button" data-state="low">Low, falling</button>
-          <button type="button" data-state="urgentlow">Sensor LOW</button>
-          <button type="button" data-state="high">High</button>
-          <button type="button" data-state="stale">40 min old</button>
-          <button type="button" data-state="future">Clock wrong</button>
-          <button type="button" data-state="down">Nightscout down</button>
-          <button type="button" data-state="staledown">Stale and offline</button>
+          <button type="button" data-state="in_range_flat">In range</button>
+          <button type="button" data-state="low_69">Low, falling</button>
+          <button type="button" data-state="sensor_low_sentinel">Sensor LOW</button>
+          <button type="button" data-state="high_181">High</button>
+          <button type="button" data-state="stale_beats_urgent_low">40 min old</button>
+          <button type="button" data-state="future_dated">Clock wrong</button>
+          <button type="button" data-state="no_data_unreachable">Nightscout down</button>
+          <button type="button" data-state="stale_while_unreachable_stays_four_lines">Stale and offline</button>
         </div>
         <output id="result" role="status" aria-live="polite" class="eink"></output>
         <p class="exit" id="exit"></p>
@@ -213,19 +213,195 @@
     </main>
 
     <script>
-      // Each state mirrors render_lines() output from src/lightkeeper/application/monitor.py.
-      // Keep these in sync with spec/display_vectors.json, which both the Python
-      // and firmware tests run.
+      // The states below are generated from spec/display_vectors.json, the same
+      // cases the Python and firmware tests run. Edit the vectors, then run
+      // tools/gen_display_gallery.py; tests/test_gallery.py fails if this drifts.
+      // BEGIN GENERATED STATES (tools/gen_display_gallery.py from spec/display_vectors.json)
       const states = {
-        inrange: { lines: ["IN RANGE", "112 mg/dL ->", "3 min ago"], code: 0 },
-        low: { lines: ["LOW", "64 mg/dL v", "2 min ago"], code: 1 },
-        urgentlow: { lines: ["URGENT LOW", "LOW (<40)", "just now"], code: 1 },
-        high: { lines: ["HIGH", "212 mg/dL /", "4 min ago"], code: 1 },
-        stale: { lines: ["STALE - DO NOT TRUST", "last: 118 mg/dL ->", "40 min ago", "Confirm on primary device"], code: 1 },
-        future: { lines: ["STALE - DO NOT TRUST", "last: 118 mg/dL ->", "time is in the future", "Confirm on primary device"], code: 1 },
-        staledown: { lines: ["STALE - DO NOT TRUST", "last: 120 mg/dL ->", "32 min ago", "Nightscout unreachable"], code: 1 },
-        down: { lines: ["NO DATA", "Check sensor and phone", "Confirm on primary device", "Nightscout unreachable"], code: 1 },
+        "in_range_flat": {
+          "level": "IN RANGE",
+          "lines": [
+            "IN RANGE",
+            "112 mg/dL ->",
+            "3 min ago"
+          ]
+        },
+        "in_range_just_now": {
+          "level": "IN RANGE",
+          "lines": [
+            "IN RANGE",
+            "150 mg/dL ^",
+            "just now"
+          ]
+        },
+        "boundary_low_70_in_range": {
+          "level": "IN RANGE",
+          "lines": [
+            "IN RANGE",
+            "70 mg/dL \\",
+            "1 min ago"
+          ]
+        },
+        "low_69": {
+          "level": "LOW",
+          "lines": [
+            "LOW",
+            "69 mg/dL v",
+            "2 min ago"
+          ]
+        },
+        "urgent_low_55": {
+          "level": "URGENT LOW",
+          "lines": [
+            "URGENT LOW",
+            "55 mg/dL vv",
+            "1 min ago"
+          ]
+        },
+        "sensor_low_sentinel": {
+          "level": "URGENT LOW",
+          "lines": [
+            "URGENT LOW",
+            "LOW (<40)",
+            "just now"
+          ]
+        },
+        "boundary_high_180_in_range": {
+          "level": "IN RANGE",
+          "lines": [
+            "IN RANGE",
+            "180 mg/dL ->",
+            "4 min ago"
+          ]
+        },
+        "high_181": {
+          "level": "HIGH",
+          "lines": [
+            "HIGH",
+            "181 mg/dL /",
+            "4 min ago"
+          ]
+        },
+        "urgent_high_250": {
+          "level": "URGENT HIGH",
+          "lines": [
+            "URGENT HIGH",
+            "250 mg/dL ^^",
+            "2 min ago"
+          ]
+        },
+        "sensor_high_sentinel": {
+          "level": "URGENT HIGH",
+          "lines": [
+            "URGENT HIGH",
+            "HIGH (>400)",
+            "just now"
+          ]
+        },
+        "stale_at_16_minutes": {
+          "level": "STALE",
+          "lines": [
+            "STALE - DO NOT TRUST",
+            "last: 120 mg/dL ->",
+            "16 min ago",
+            "Confirm on primary device"
+          ]
+        },
+        "fresh_at_15_minutes": {
+          "level": "IN RANGE",
+          "lines": [
+            "IN RANGE",
+            "120 mg/dL ->",
+            "15 min ago"
+          ]
+        },
+        "stale_beats_urgent_low": {
+          "level": "STALE",
+          "lines": [
+            "STALE - DO NOT TRUST",
+            "last: 45 mg/dL v",
+            "40 min ago",
+            "Confirm on primary device"
+          ]
+        },
+        "future_dated": {
+          "level": "STALE",
+          "lines": [
+            "STALE - DO NOT TRUST",
+            "last: 120 mg/dL ->",
+            "time is in the future",
+            "Confirm on primary device"
+          ]
+        },
+        "small_clock_skew_ok": {
+          "level": "IN RANGE",
+          "lines": [
+            "IN RANGE",
+            "120 mg/dL ->",
+            "just now"
+          ]
+        },
+        "unknown_direction": {
+          "level": "IN RANGE",
+          "lines": [
+            "IN RANGE",
+            "130 mg/dL ?",
+            "5 min ago"
+          ]
+        },
+        "no_data": {
+          "level": "NO DATA",
+          "lines": [
+            "NO DATA",
+            "Check sensor and phone",
+            "Confirm on primary device"
+          ]
+        },
+        "no_data_unreachable": {
+          "level": "NO DATA",
+          "lines": [
+            "NO DATA",
+            "Check sensor and phone",
+            "Confirm on primary device",
+            "Nightscout unreachable"
+          ]
+        },
+        "last_good_while_unreachable": {
+          "level": "IN RANGE",
+          "lines": [
+            "IN RANGE",
+            "101 mg/dL ->",
+            "7 min ago",
+            "Nightscout unreachable"
+          ]
+        },
+        "stale_while_unreachable_stays_four_lines": {
+          "level": "STALE",
+          "lines": [
+            "STALE - DO NOT TRUST",
+            "last: 120 mg/dL ->",
+            "32 min ago",
+            "Nightscout unreachable"
+          ]
+        },
+        "invalid_value_rejected": {
+          "level": "NO DATA",
+          "lines": [
+            "NO DATA",
+            "Check sensor and phone",
+            "Confirm on primary device"
+          ]
+        },
+        "non_sgv_rejected": {
+          "level": "NO DATA",
+          "lines": [
+            "NO DATA",
+            "Check sensor and phone",
+            "Confirm on primary device"
+          ]
+        }
       };
+      // END GENERATED STATES
 
       const result = document.getElementById("result");
       const exit = document.getElementById("exit");
@@ -233,6 +409,7 @@
 
       function show(name) {
         const state = states[name];
+        state.code = state.level === "IN RANGE" ? 0 : 1;
         result.innerHTML = "";
         state.lines.forEach((line, index) => {
           const div = document.createElement("div");
@@ -245,7 +422,7 @@
       }
 
       buttons.forEach((b) => b.addEventListener("click", () => show(b.dataset.state)));
-      show("inrange");
+      show("in_range_flat");
     </script>
   </body>
 </html>

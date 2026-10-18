@@ -10,12 +10,15 @@ import argparse
 import os
 import sys
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
+from typing import Any
 
 from lightkeeper import __version__
-from lightkeeper.application.monitor import current_status, render_lines
+from lightkeeper.application.monitor import EntrySource, current_status, render_lines
 from lightkeeper.domain.status import Thresholds
 from lightkeeper.infrastructure.nightscout import NightscoutClient
+from lightkeeper.infrastructure.svg_display import render_svg
 
 DISCLAIMER = (
     "lightkeeper is a secondary, read-only display. It is not a medical device. "
@@ -27,12 +30,14 @@ class DemoSource:
     """Canned readings for trying the display with no Nightscout at all."""
 
     def __init__(self, mgdl: int = 112, minutes_ago: int = 3, direction: str = "Flat") -> None:
+        """Serve one reading of `mgdl`, `minutes_ago` minutes old, with `direction`."""
         self._mgdl = mgdl
         self._minutes_ago = minutes_ago
         self._direction = direction
 
-    def fetch_entries(self, count: int = 12) -> list:
-        when = datetime.now(timezone.utc) - timedelta(minutes=self._minutes_ago)
+    def fetch_entries(self, count: int = 12) -> list[Any]:
+        """Return a single Nightscout-shaped entry; `count` is ignored."""
+        when = datetime.now(UTC) - timedelta(minutes=self._minutes_ago)
         return [
             {
                 "type": "sgv",
@@ -67,23 +72,43 @@ def thresholds_from_env() -> Thresholds:
         raise SystemExit(f"invalid threshold settings: {exc}") from None
 
 
+def write_svg(path: str, lines: list[str]) -> None:
+    """Write the screen as SVG, replacing the file in one step.
+
+    Writing to a temporary file and renaming means a dashboard reading the
+    image never sees a half-written file.
+    """
+    target = Path(path)
+    temp = target.with_name(target.name + ".tmp")
+    temp.write_text(render_svg(lines), encoding="utf-8")
+    os.replace(temp, target)
+
+
 def build_parser() -> argparse.ArgumentParser:
+    """Command-line options for `python -m lightkeeper`."""
     parser = argparse.ArgumentParser(prog="lightkeeper", description=DISCLAIMER)
     parser.add_argument("--demo", action="store_true", help="use canned data, no network")
     parser.add_argument("--demo-mgdl", type=int, default=112, help="glucose value for --demo")
     parser.add_argument("--demo-minutes-ago", type=int, default=3, help="reading age for --demo")
     parser.add_argument("--watch", action="store_true", help="refresh until Ctrl+C")
     parser.add_argument("--interval", type=int, default=60, help="seconds between refreshes")
+    parser.add_argument(
+        "--svg", metavar="PATH", help="also write the screen as an SVG image to PATH"
+    )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run once (or with --watch, until stopped) and return the exit code.
+
+    0 means fresh and in range, 1 means someone should look, 2 means bad configuration.
+    """
     args = build_parser().parse_args(argv)
     thresholds = thresholds_from_env()
 
     if args.demo:
-        source = DemoSource(mgdl=args.demo_mgdl, minutes_ago=args.demo_minutes_ago)
+        source: EntrySource = DemoSource(mgdl=args.demo_mgdl, minutes_ago=args.demo_minutes_ago)
     else:
         url = os.environ.get("NIGHTSCOUT_URL")
         if not url:
@@ -97,10 +122,13 @@ def main(argv: list[str] | None = None) -> int:
 
     last_good = None
     while True:
-        status, error = current_status(source, datetime.now(timezone.utc), thresholds, last_good)
+        status, error = current_status(source, datetime.now(UTC), thresholds, last_good)
         if error is None:
             last_good = status
-        print("\n".join(render_lines(status, error)))
+        lines = render_lines(status, error)
+        print("\n".join(lines))
+        if args.svg:
+            write_svg(args.svg, lines)
         if not args.watch:
             # Exit code tells scripts (Home Assistant, cron) whether to pay attention.
             return 1 if status.level.needs_attention else 0

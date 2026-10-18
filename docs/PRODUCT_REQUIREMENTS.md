@@ -78,6 +78,14 @@ An open source stack for managing Kaitlin's type 1 diabetes with community tools
 - Acceptance criteria:
   - `FR-009-AC-1`: The Python suite and the firmware host tests both pass every case in `spec/display_vectors.json`, rendering identical level and lines.
 
+**FR-011** `SHOULD` Draw any screen as an SVG image of the e-paper panel, and keep the docs gallery and demo generated from the shared vectors.
+
+- Level: `SHOULD`
+- Acceptance criteria:
+  - `FR-011-AC-1`: `render_svg` draws every rendered line in order, headline bold and larger, all text inside the panel and XML-escaped.
+  - `FR-011-AC-2`: `--svg PATH` writes the current screen atomically.
+  - `FR-011-AC-3`: `docs/DISPLAY_STATES.md`, its images, and the demo's state table match what `tools/gen_display_gallery.py` produces from `spec/display_vectors.json`.
+
 ## Planned Requirements
 
 These IDs are reserved for work that hasn't started. They are listed here, not declared above, so the traceability gate only enforces requirements the current release commits to. Promote one into Functional Requirements, in bold, in the same change that adds its first verifying test.
