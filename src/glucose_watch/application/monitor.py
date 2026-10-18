@@ -14,6 +14,9 @@ from typing import Protocol
 from glucose_watch.domain.glucose import parse_entries
 from glucose_watch.domain.status import Level, Status, Thresholds, classify
 
+# Small e-ink panels fit four lines at a readable size (FR-004).
+MAX_LINES = 4
+
 
 class EntrySource(Protocol):
     """Anything that can hand back raw Nightscout entries."""
@@ -66,5 +69,10 @@ def render_lines(status: Status, error: str | None = None) -> list[str]:
             lines = [status.level.value, value, age_text]
 
     if error:
-        lines.append("Nightscout unreachable")
+        if len(lines) < MAX_LINES:
+            lines.append("Nightscout unreachable")
+        else:
+            # The four-line STALE screen is full; the warning matters more than
+            # the "confirm" hint, which STALE's first line already implies.
+            lines[-1] = "Nightscout unreachable"
     return lines

@@ -21,8 +21,10 @@ Related documents:
 | FR-002 | MUST | Classify fresh readings with configurable thresholds | FR-002-AC-1 | `tests/test_status.py` (`-k fr002`) | Verified |
 | FR-003 | MUST | Never present stale or future data as current | FR-003-AC-1 to AC-3 | `tests/test_status.py`, `tests/test_monitor.py` (`-k fr003`) | Verified |
 | FR-004 | MUST | Render short ASCII lines for e-ink | FR-004-AC-1 to AC-3 | `tests/test_monitor.py`, `tests/test_glucose.py` (`-k fr004`) | Verified |
-| FR-005 | MUST | Degrade safely when Nightscout fails | FR-005-AC-1, AC-2 | `tests/test_monitor.py`, `tests/test_nightscout.py`, `tests/test_cli.py` (`-k fr005`) | Verified |
+| FR-005 | MUST | Degrade safely when Nightscout fails | FR-005-AC-1, AC-2 | `tests/test_monitor.py`, `tests/test_nightscout.py`, `tests/test_cli.py`, `tests/test_http_integration.py` (`-k fr005`) | Verified |
 | FR-006 | MUST | CLI with demo mode and exit codes | FR-006-AC-1 to AC-3 | `tests/test_cli.py` (`-k fr006`) | Verified |
+| FR-009 | MUST | Display implementations match shared vectors | FR-009-AC-1 | `tests/test_vectors.py`, `firmware/xteink/test/host/test_glucose_rules.cpp` (`make -C firmware/xteink test`) | Verified |
+| FR-010 | SHOULD | Xteink X4/X3 pocket display | FR-010-AC-1 | none, GAP-005 | Not Started |
 | FR-007 | SHOULD | Drive a Raspberry Pi e-ink display | FR-007-AC-1 | none, GAP-001 | Not Started |
 | FR-008 | SHOULD | Publish status to Home Assistant | FR-008-AC-1 | none, GAP-002 | Not Started |
 
@@ -39,8 +41,8 @@ Related documents:
 
 | Metric | Count |
 | --- | --- |
-| Total requirements | 12 |
-| Verified | 10 |
+| Total requirements | 14 |
+| Verified | 11 |
 | In progress | 0 |
-| Not started | 2 |
-| Requirements without a verifying test (gaps) | 2 |
+| Not started | 3 |
+| Requirements without a verifying test (gaps) | 3 |

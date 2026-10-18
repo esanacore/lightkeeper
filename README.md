@@ -15,6 +15,7 @@ An open source type 1 diabetes management stack, built by Eric and Kaitlin along
 - If Nightscout goes down, the display degrades to the last good reading, which then ages into STALE on its own instead of freezing.
 - Exit code `0` means in range and fresh, `1` means someone should look, so scripts like Home Assistant can react.
 - `--demo` mode runs with canned data and no network at all.
+- Firmware groundwork for an Xteink X4/X3 pocket e-ink display: the same safety rules in C++, proven identical to the Python version by shared test vectors.
 
 ## How It Fits Together
 
@@ -98,9 +99,10 @@ Same on every platform:
 
 ```bash
 python -m pytest --cov
+make -C firmware/xteink test   # needs g++ and make (Linux, macOS, WSL, Git Bash)
 ```
 
-The suite enforces a 90% coverage floor (currently about 100%). Test names carry the requirement IDs they verify, for example `test_fr003_staleness_beats_urgent_low`.
+The Python suite enforces a 90% coverage floor (currently 100%). Both suites run every case in `spec/display_vectors.json`. Test names carry the requirement IDs they verify, for example `test_fr003_staleness_beats_urgent_low`.
 
 ## Demo
 
@@ -119,6 +121,8 @@ t1d-open-stack/
 │   ├── infrastructure/  ← Read-only HTTPS Nightscout client
 │   └── cli.py           ← Command-line entry point
 ├── tests/               ← Pytest suite, named by requirement ID
+├── spec/                ← Shared golden display vectors
+├── firmware/xteink/     ← ESP32-C3 pocket e-ink display (C++)
 ├── docs/                ← Requirements, architecture, safety, ADRs, setup
 ├── wiki/                ← Wiki source pages
 ├── demo.html            ← Offline demo of every display state

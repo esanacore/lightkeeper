@@ -21,9 +21,11 @@ The living roadmap. The phased rollout plan is in `docs/MVP_BACKLOG.md`; this fi
 
 - [ ] GAP-001: hardware-in-the-loop check for the e-paper panel (FR-007).
 - [ ] GAP-002: Home Assistant integration tests (FR-008).
-- [ ] GAP-003: end-to-end tests against a disposable Nightscout instance with simulated uploads.
 - [ ] GAP-004: multi-day `--watch` soak test for memory growth and clock drift.
-- [ ] Add a Python setup step to `.github/workflows/constitution-tests.yml` and switch it to `--strict`.
+- [x] Add a Python setup step to `.github/workflows/constitution-tests.yml` and switch it to `--strict`.
+- [~] GAP-003: localhost fake Nightscout covers the HTTP layer; still need a real Nightscout instance.
+- [ ] GAP-005: Xteink device build and on-hardware tests (FR-010).
+- [ ] GAP-006: measure firmware coverage with gcov.
 
 ## Documentation
 
@@ -33,7 +35,7 @@ The living roadmap. The phased rollout plan is in `docs/MVP_BACKLOG.md`; this fi
 
 ## Nice-to-Have
 
-- [ ] ESP32 e-ink firmware port once the rules are proven in Python (ADR-0005). Candidate hardware: Xteink X4 or X3 pocket e-ink reader (ESP32-C3, Wi-Fi and BLE, open source CrossPoint firmware exists to build from). Port the domain rules and their tests first; it reads Nightscout over Wi-Fi only.
+- [~] Xteink X4/X3 pocket display (ADR-0006): safety rules ported to C++ with host tests and shared vectors. Next: buy the device, add the PlatformIO ESP32-C3 project (Wi-Fi, HTTPS, JSON, e-paper, deep sleep).
 - [ ] Decide CGM: stay on Dexcom G7 or move to FreeStyle Libre 3 Plus, which Trio reads directly with no vendor app (see ADR-0002). Kaitlin's call with her endo and insurance.
 - [ ] Contribute test logs and bug reports to the Trio Omnipod 5 beta.
 - [ ] Revisit an Android collector with xDrip+ and AndroidAPS once AndroidAPS supports Omnipod 5.

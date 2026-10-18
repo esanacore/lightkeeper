@@ -13,10 +13,16 @@ This project follows semantic versioning.
 - ADRs 0002 to 0005: Trio on iPhone as dosing controller, self-hosted Nightscout, no insulin delivery code in this repo, Python display layer.
 - Product requirements, traceability matrix, test plan, OTS inventory, and phased rollout backlog.
 - Offline `demo.html` showing every display state.
+- Shared golden display vectors (`spec/display_vectors.json`) run by both Python and firmware tests.
+- `firmware/xteink`: safety rules ported to C++17 for the Xteink X4/X3 (ESP32-C3), with host tests under sanitizers (ADR-0006).
+- HTTP integration tests against a fake Nightscout on localhost.
+- CI installs Python and runs the declared suite in strict mode.
 
 ### Changed
 
 ### Fixed
+
+- STALE while Nightscout is unreachable now renders four lines instead of five, so it fits the e-ink limit (found by the shared vectors).
 
 ### Removed
 

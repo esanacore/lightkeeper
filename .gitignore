@@ -26,3 +26,6 @@ terraform.tfstate
 .DS_Store
 Thumbs.db
 .vscode/settings.json
+
+# Firmware host-test build output
+firmware/xteink/build/

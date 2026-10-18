@@ -73,9 +73,18 @@ def test_fr005_fetch_error_reuses_last_good_and_ages_it_into_stale():
     assert render_lines(later, error)[0] == "STALE - DO NOT TRUST"
 
 
+def test_fr004_stale_while_unreachable_stays_four_lines():
+    good, _ = current_status(FakeSource([entry(120, 2)]), NOW, T)
+    later, error = current_status(FakeSource(error=RuntimeError("down")), NOW + timedelta(minutes=30), T, good)
+    lines = render_lines(later, error)
+    assert lines == ["STALE - DO NOT TRUST", "last: 120 mg/dL ->", "32 min ago", "Nightscout unreachable"]
+
+
 def test_fr004_render_output_is_ascii_and_short():
     for mgdl, ago in [(39, 0), (120, 3), (300, 1), (120, 60)]:
         status, _ = current_status(FakeSource([entry(mgdl, ago)]), NOW, T)
-        for line in render_lines(status, "x"):
+        rendered = render_lines(status, "x")
+        assert len(rendered) <= 4
+        for line in rendered:
             assert line.isascii()
             assert len(line) <= 26  # fits a small e-ink panel at a readable size

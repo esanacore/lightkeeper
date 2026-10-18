@@ -51,7 +51,7 @@ flowchart LR
 - **Therapy (external):** Trio (Swift, OpenAPS oref algorithm), Dexcom G7 app, Omnipod 5 pods via Trio's open beta driver
 - **Data hub (external, self-hosted):** Nightscout (Node.js, MongoDB)
 - **This repo:** Python 3.11+, standard library only at runtime; pytest and pytest-cov for tests
-- **Display targets (planned):** Raspberry Pi with an e-paper HAT, Home Assistant
+- **Display targets:** Xteink X4/X3 pocket e-ink (ESP32-C3, C++17, rules done, device build pending), Raspberry Pi with an e-paper HAT, Home Assistant
 
 ## Repository Structure
 
@@ -60,6 +60,8 @@ flowchart LR
 - `src/glucose_watch/infrastructure/`: the HTTPS Nightscout client.
 - `src/glucose_watch/cli.py`: composition root, wires env config, clock, and client.
 - `tests/`: pytest suite, test names carry requirement IDs.
+- `spec/display_vectors.json`: golden display cases every implementation must pass.
+- `firmware/xteink/`: C++17 port of the domain rules for the ESP32-C3 pocket display, with host tests.
 - `docs/`: requirements, safety, ADRs, setup.
 - `constitution/`: universal engineering rules (git submodule).
 

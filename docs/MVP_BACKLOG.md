@@ -34,4 +34,5 @@ The phased rollout of the whole stack. Phases gate on evidence, not dates. `TODO
 
 - [ ] Raspberry Pi e-paper bedside display (FR-007), side by side with the primary app for one full sensor session.
 - [ ] Home Assistant sensor and alerts (FR-008).
-- [ ] Portable e-ink display or ESP32 port.
+- [x] ESP32 safety rules in C++ with shared-vector parity tests (ADR-0006).
+- [ ] Xteink X4/X3 device build and side-by-side validation (FR-010).

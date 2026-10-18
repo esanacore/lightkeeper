@@ -84,6 +84,18 @@ An open source stack for managing Kaitlin's type 1 diabetes with community tools
 - Acceptance criteria:
   - `FR-008-AC-1`: Home Assistant shows a sensor with the level, value, and age, and can trigger an automation on URGENT LOW or STALE.
 
+**FR-009** `MUST` Keep every display implementation in lockstep with the shared golden vectors.
+
+- Level: `MUST`
+- Acceptance criteria:
+  - `FR-009-AC-1`: The Python suite and the firmware host tests both pass every case in `spec/display_vectors.json`, rendering identical level and lines.
+
+**FR-010** `SHOULD` Run on an Xteink X4/X3 pocket e-ink reader over Wi-Fi.
+
+- Level: `SHOULD`
+- Acceptance criteria:
+  - `FR-010-AC-1`: The device fetches from Nightscout, shows every vector state correctly, and updates at least every 5 minutes (ADR-0006).
+
 ## Non-Functional Requirements
 
 ### Security
@@ -128,7 +140,7 @@ An open source stack for managing Kaitlin's type 1 diabetes with community tools
 
 ## Acceptance Criteria Summary
 
-- [x] All `MUST` requirements for 0.1.0 (FR-001 to FR-006, NFR-001 to NFR-004) have verifying tests and are `Verified` in `docs/REQUIREMENTS_TRACEABILITY.md`.
+- [x] All `MUST` requirements for 0.1.0 (FR-001 to FR-006, FR-009, NFR-001 to NFR-004) have verifying tests and are `Verified` in `docs/REQUIREMENTS_TRACEABILITY.md`.
 - [ ] Kaitlin has reviewed the default thresholds and stale limit.
 
 ## Traceability

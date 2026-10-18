@@ -198,6 +198,7 @@
           <button type="button" data-state="stale">40 min old</button>
           <button type="button" data-state="future">Clock wrong</button>
           <button type="button" data-state="down">Nightscout down</button>
+          <button type="button" data-state="staledown">Stale and offline</button>
         </div>
         <output id="result" role="status" aria-live="polite" class="eink"></output>
         <p class="exit" id="exit"></p>
@@ -213,7 +214,8 @@
 
     <script>
       // Each state mirrors render_lines() output from src/glucose_watch/application/monitor.py.
-      // Keep these in sync with the tests in tests/test_monitor.py.
+      // Keep these in sync with spec/display_vectors.json, which both the Python
+      // and firmware tests run.
       const states = {
         inrange: { lines: ["IN RANGE", "112 mg/dL ->", "3 min ago"], code: 0 },
         low: { lines: ["LOW", "64 mg/dL v", "2 min ago"], code: 1 },
@@ -221,6 +223,7 @@
         high: { lines: ["HIGH", "212 mg/dL /", "4 min ago"], code: 1 },
         stale: { lines: ["STALE - DO NOT TRUST", "last: 118 mg/dL ->", "40 min ago", "Confirm on primary device"], code: 1 },
         future: { lines: ["STALE - DO NOT TRUST", "last: 118 mg/dL ->", "time is in the future", "Confirm on primary device"], code: 1 },
+        staledown: { lines: ["STALE - DO NOT TRUST", "last: 120 mg/dL ->", "32 min ago", "Nightscout unreachable"], code: 1 },
         down: { lines: ["NO DATA", "Check sensor and phone", "Confirm on primary device", "Nightscout unreachable"], code: 1 },
       };
 
