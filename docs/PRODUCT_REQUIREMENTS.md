@@ -86,6 +86,14 @@ An open source stack for managing Kaitlin's type 1 diabetes with community tools
   - `FR-011-AC-2`: `--svg PATH` writes the current screen atomically.
   - `FR-011-AC-3`: `docs/DISPLAY_STATES.md`, its images, and the demo's state table match what `tools/gen_display_gallery.py` produces from `spec/display_vectors.json`.
 
+**FR-012** `SHOULD` Provide a read-only iOS companion app that shows the same status as every other display, using the same rules.
+
+- Level: `SHOULD`
+- Acceptance criteria:
+  - `FR-012-AC-1`: The Swift rules pass every case in `spec/display_vectors.json`.
+  - `FR-012-AC-2`: The app reads Nightscout with a readable token stored in the Keychain, over HTTPS only, refusing redirects that change scheme or host.
+  - `FR-012-AC-3`: The app contains no pump or sensor communication (ADR-0004, ADR-0008).
+
 ## Planned Requirements
 
 These IDs are reserved for work that hasn't started. They are listed here, not declared above, so the traceability gate only enforces requirements the current release commits to. Promote one into Functional Requirements, in bold, in the same change that adds its first verifying test.

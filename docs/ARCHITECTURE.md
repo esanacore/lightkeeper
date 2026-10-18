@@ -53,6 +53,7 @@ Glucose data is **Restricted** (health data) at every step of this flow, and the
 - **Therapy (external):** Trio (Swift, OpenAPS oref algorithm), Dexcom G7 app, Omnipod 5 pods via Trio's OmnipodKit driver (v1.0.0+)
 - **Data hub (external, self-hosted):** Nightscout (Node.js, MongoDB)
 - **This repo:** Python 3.11+, standard library only at runtime; pytest and pytest-cov for tests
+- **Companion app:** Swift 5.9, SwiftUI, iOS 17+, built on GitHub macOS runners via XcodeGen; token in the Keychain
 - **Display targets:** Xteink X4/X3 pocket e-ink (ESP32-C3, C++17, rules done, device build pending), Raspberry Pi with an e-paper HAT, Home Assistant
 
 ## Repository Structure
@@ -64,6 +65,7 @@ Glucose data is **Restricted** (health data) at every step of this flow, and the
 - `tests/`: pytest suite, test names carry requirement IDs.
 - `spec/display_vectors.json`: golden display cases every implementation must pass.
 - `firmware/xteink/`: C++17 port of the domain rules for the ESP32-C3 pocket display, with host tests.
+- `apps/ios/`: Swift package with the same rules and a read-only Nightscout client, plus the SwiftUI companion app (ADR-0008, read-only layer).
 - `docs/`: requirements, safety, ADRs, setup.
 - `constitution/`: universal engineering rules (git submodule).
 

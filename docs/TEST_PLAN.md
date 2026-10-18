@@ -8,6 +8,7 @@ This document defines how this repository is tested, what coverage it targets, a
 - **Integration tests**: the Nightscout client against an injected fetcher, the application layer against fake sources, and the CLI end to end in demo mode. Location: `tests/test_nightscout.py`, `tests/test_monitor.py`, `tests/test_cli.py`.
 - **HTTP integration tests**: a fake Nightscout served on localhost exercises the real urllib fetcher, status codes, timeouts, and bad payloads. Location: `tests/test_http_integration.py`.
 - **Shared vectors (parity)**: `spec/display_vectors.json` is run by `tests/test_vectors.py` and by the firmware host tests, so Python and C++ render identical screens.
+- **iOS core tests**: `LightkeeperCore` runs the shared vectors with XCTest on GitHub's macOS runners (`.github/workflows/ios.yml`), so the Swift rules stay identical too. Location: `apps/ios/LightkeeperCore/Tests/`.
 - **Firmware host tests**: C++17 rules built with AddressSanitizer and UBSan, run on a PC. Location: `firmware/xteink/test/host/`. Command: `make -C firmware/xteink test`.
 - **End-to-end tests**: against a real self-hosted Nightscout instance with simulated uploads, planned once Nightscout is stood up (see GAP-003).
 - **Static analysis**: ruff (pycodestyle, pyflakes, import order, PEP 257 docstrings, bugbear, pyupgrade, bandit security rules), ruff format, strict mypy on `src/`, and clang-format for the firmware. Run in the full suite and as pre-commit hooks.

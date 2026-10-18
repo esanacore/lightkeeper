@@ -25,6 +25,7 @@ Related documents:
 | FR-006 | MUST | CLI with demo mode and exit codes | FR-006-AC-1 to AC-3 | `tests/test_cli.py` (`-k fr006`) | Verified |
 | FR-009 | MUST | Display implementations match shared vectors | FR-009-AC-1 | `tests/test_vectors.py`, `firmware/xteink/test/host/test_glucose_rules.cpp` (`make -C firmware/xteink test`) | Verified |
 | FR-011 | SHOULD | SVG panel image, generated gallery and demo | FR-011-AC-1 to AC-3 | `tests/test_svg_display.py`, `tests/test_gallery.py` (`-k fr011`) | Verified |
+| FR-012 | SHOULD | Read-only iOS companion app on the shared rules | FR-012-AC-1 to AC-3 | `apps/ios/LightkeeperCore/Tests/LightkeeperCoreTests/VectorTests.swift` (`.github/workflows/ios.yml`); AC-3 by code review of `apps/ios/` | Verified |
 
 Planned requirements FR-007, FR-008, and FR-010 are reserved in `docs/PRODUCT_REQUIREMENTS.md` and get rows here when they are promoted (gaps GAP-001, GAP-002, GAP-005 in `docs/TEST_PLAN.md`).
 
@@ -41,8 +42,8 @@ Planned requirements FR-007, FR-008, and FR-010 are reserved in `docs/PRODUCT_RE
 
 | Metric | Count |
 | --- | --- |
-| Total requirements | 12 (plus 3 planned) |
-| Verified | 12 |
+| Total requirements | 13 (plus 3 planned) |
+| Verified | 13 |
 | In progress | 0 |
 | Not started | 0 |
 | Requirements without a verifying test (gaps) | 0 |

@@ -42,7 +42,7 @@ See `docs/ROADMAP.md` for how phases relate and what gates each one.
 
 ## Phase 5: Companion App (ADR-0008)
 
-- [ ] Read-only iOS app: glucose, trend, age, IOB, recent treatments, widgets, watch complication; same staleness rules as the displays.
+- [~] Read-only iOS app: glance screen, settings, Keychain token, CI build (done); IOB, recent treatments, widgets, watch complication (next).
 - [ ] Study LoopFollow's Trio Remote Control implementation; build a fake Trio endpoint for tests.
 - [ ] Hazard analysis for the bolus request screen in `docs/SAFETY.md`.
 - [ ] Bolus request screen, gated behind the promotion criteria in ADR-0008.

@@ -17,6 +17,7 @@ An open source type 1 diabetes management stack, built by Eric and Kaitlin along
 - `--demo` mode runs with canned data and no network at all.
 - `--svg screen.svg` saves each screen as an image of the e-paper panel, for dashboards or previews. Every possible screen is pictured in [`docs/DISPLAY_STATES.md`](docs/DISPLAY_STATES.md).
 - Firmware groundwork for an Xteink X4/X3 pocket e-ink display: the same safety rules in C++, proven identical to the Python version by shared test vectors.
+- An iOS companion app (read-only layer): the same rules in Swift, verified against the same vectors on GitHub's macOS runners, with the Nightscout token kept in the Keychain.
 
 ## How It Fits Together
 
@@ -125,8 +126,10 @@ lightkeeper/
 ├── tests/               ← Pytest suite, named by requirement ID
 ├── spec/                ← Shared golden display vectors
 ├── firmware/xteink/     ← ESP32-C3 pocket e-ink display (C++)
+├── apps/ios/            ← Swift core package and SwiftUI companion app
 ├── tools/               ← Prerequisite check and display-gallery generator
-├── docs/                ← Requirements, architecture, safety, security, ADRs, setup, display gallery
+├── docs/                ← Requirements, architecture, safety, security, ADRs, setup, hardware, brand, display gallery
+├── assets/brand/        ← Mark, app icon, palette, social preview
 ├── wiki/                ← Wiki source pages
 ├── demo.html            ← Offline demo of every display state
 └── constitution/        ← Eric's Engineering Constitution (git submodule)

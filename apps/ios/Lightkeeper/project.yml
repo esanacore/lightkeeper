@@ -1,0 +1,35 @@
+# XcodeGen spec for the Lightkeeper iOS app. CI (and anyone with a Mac) runs
+# `xcodegen generate` to produce Lightkeeper.xcodeproj; the project file is
+# not committed, so the source of truth stays reviewable text.
+name: Lightkeeper
+options:
+  bundleIdPrefix: com.esanacore
+  deploymentTarget:
+    iOS: "17.0"
+  xcodeVersion: "16.0"
+packages:
+  LightkeeperCore:
+    path: ../LightkeeperCore
+targets:
+  Lightkeeper:
+    type: application
+    platform: iOS
+    sources: [Sources]
+    dependencies:
+      - package: LightkeeperCore
+    info:
+      path: Sources/Info.plist
+      properties:
+        CFBundleDisplayName: Lightkeeper
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: false
+    settings:
+      base:
+        SWIFT_VERSION: "5.9"
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
+        PRODUCT_BUNDLE_IDENTIFIER: com.esanacore.lightkeeper
