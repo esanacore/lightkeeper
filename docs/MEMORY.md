@@ -15,7 +15,7 @@ This file contains durable memories, codebase learnings, user preferences, and k
   - "Avoid verbose inline comments; document code using JSDoc type definitions."
 -->
 
-- 
+- README.md is the house style for this project (Eric, 2026-10-18): keep its structure, tone, and order exactly as in commit 57e192e. That means the opening paragraph, the Safety first callout, Current Capabilities, How It Fits Together (Mermaid diagram), Quick Start with collapsed per-platform blocks, Run, Test, Demo, Project Structure, Documentation, Contributing, License. Update the content inside those sections when features change, as the constitution requires, but do not restructure, restyle, or add new top-level sections without asking Eric first. New docs and sub-READMEs (for example firmware/xteink/README.md) follow the same voice.
 
 ## Codebase Learnings & Gotchas
 
