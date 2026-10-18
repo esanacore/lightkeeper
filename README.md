@@ -39,7 +39,7 @@ The left half is community software we configure and test. The right half, after
 **Supported platforms:** Windows 11 (PowerShell 7), macOS 14+, Ubuntu 22.04+ (and Raspberry Pi OS Bookworm for display builds). Requires Python 3.11 or newer. CI runs on Ubuntu.
 
 ```bash
-git clone --recurse-submodules <repository-url> lightkeeper
+git clone --recurse-submodules https://github.com/esanacore/lightkeeper
 cd lightkeeper
 ```
 
@@ -84,6 +84,14 @@ Try it with no Nightscout at all (same on every platform):
 python -m lightkeeper --demo
 python -m lightkeeper --demo --demo-mgdl 62
 python -m lightkeeper --demo --demo-minutes-ago 40
+```
+
+The first command prints the screen an e-ink panel would show and exits 0:
+
+```text
+IN RANGE
+112 mg/dL ->
+3 min ago
 ```
 
 Against a real Nightscout site, set the environment variables from [`docs/ENV_VARS.md`](docs/ENV_VARS.md), then:

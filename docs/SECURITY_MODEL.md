@@ -1,6 +1,6 @@
 # Security Model
 
-Data classification, retention, and the threat model for Lightkeeper, following `constitution/SECURITY.md` ("Data Classification" and "Threat Modeling Triggers"). Safety hazards, the things that could hurt Kaitlin through a wrong or missing number, are in `docs/SAFETY.md`; this document covers who could see, change, or block the data.
+Data classification, retention, and the threat model for Lightkeeper, following `constitution/SECURITY.md` ("Data Classification" and "Threat Modeling Triggers"). Safety hazards, the things that could hurt the person with diabetes through a wrong or missing number, are in `docs/SAFETY.md`; this document covers who could see, change, or block the data.
 
 ## Data Classification
 
@@ -16,7 +16,7 @@ Data classification, retention, and the threat model for Lightkeeper, following 
 
 | Flow | From | To | Classification | Protection |
 | --- | --- | --- | --- | --- |
-| Glucose upload | Trio on Kaitlin's iPhone | Nightscout | Restricted | HTTPS; Nightscout auth (outside this repo) |
+| Glucose upload | Trio on the primary iPhone | Nightscout | Restricted | HTTPS; Nightscout auth (outside this repo) |
 | Glucose fetch | Nightscout | `lightkeeper` | Restricted | HTTPS only, readable token, GET only, bounded count, 10 s timeout |
 | Screen output | `lightkeeper` | Panel, terminal, or `--svg` file | Restricted (one reading) | Local only; no network listener |
 | Firmware fetch (planned) | Nightscout | Xteink over Wi-Fi | Restricted | Same rules as the Python client, enforced in ADR-0006's promotion criteria |

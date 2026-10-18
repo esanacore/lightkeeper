@@ -4,11 +4,11 @@ What to buy to run and develop Lightkeeper's displays, in the order to buy it, w
 
 Nothing here is a medical device. These are secondary displays; the primary CGM app and its alarms stay on the phone. See `docs/SAFETY.md`.
 
-## Tier 1: buy now (about $180)
+## Tier 1: first displays (about $180, prices as of 2026-10)
 
 ### 1. Bedside e-ink display: Raspberry Pi Zero 2 W + 2.9" e-paper HAT
 
-Runs the Python code as it is, so all 139 tests already cover it. This is the first display Kaitlin can use.
+Runs the Python code as it is, so all 139 tests already cover it. This is the first display a household can rely on.
 
 | Part | Exact name to search | Approx. price | Where |
 | --- | --- | --- | --- |
@@ -20,11 +20,11 @@ Runs the Python code as it is, so all 139 tests already cover it. This is the fi
 
 Alternative if you want it readable across the room: **Waveshare 7.5inch e-Paper HAT, 800x480, black/white** (about $65, [Amazon search](https://www.amazon.com/s?k=Waveshare+7.5inch+e-Paper+HAT+800x480)) on the same Pi Zero 2 WH. Same code, bigger panel, needs a frame or stand.
 
-Buy the kit version of the Pi if you don't already have a micro-USB supply, a mini-HDMI adapter, and a card reader lying around.
+Buy the kit version of the Pi unless you already own a micro-USB supply, a mini-HDMI adapter, and a card reader.
 
 ### 2. Pocket display: Xteink X4 Pro
 
-The ESP32-C3 pocket e-ink reader the firmware targets (ADR-0006). Get the Pro: the front light is what a 3 a.m. check needs.
+The ESP32-C3 pocket e-ink reader the firmware targets (ADR-0006). Choose the Pro: its front light suits night-time checks.
 
 | Part | Exact name | Approx. price | Where |
 | --- | --- | --- | --- |
@@ -34,7 +34,7 @@ Before flashing anything: back up the SD card, read the CrossPoint flashing guid
 
 ### 3. Firmware bench board: Waveshare ESP32-S3-ePaper-1.54
 
-Develop and test firmware here, not on the device Kaitlin carries. Same ESP32 family as the Xteink, and the exact board WaveshareMon uses, so there is working prior art for Wi-Fi, TLS, deep sleep, and e-paper refresh.
+Develop and test firmware here, not on the device the person with diabetes carries. Same ESP32 family as the Xteink, and the exact board WaveshareMon uses, so there is working prior art for Wi-Fi, TLS, deep sleep, and e-paper refresh.
 
 | Part | Exact name | Approx. price | Where |
 | --- | --- | --- | --- |

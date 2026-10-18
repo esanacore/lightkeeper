@@ -15,9 +15,11 @@ from lightkeeper.domain.glucose import InvalidReadingError, parse_entry
 from lightkeeper.domain.status import Thresholds, classify
 from tests.helpers import NOW
 
-VECTORS = json.loads((Path(__file__).parent.parent / "spec" / "display_vectors.json").read_text())[
-    "cases"
-]
+SPEC = json.loads((Path(__file__).parent.parent / "spec" / "display_vectors.json").read_text())
+VECTORS = SPEC["cases"]
+
+# Bump this (and the firmware and Swift copies) when an existing vector changes.
+EXPECTED_SPEC_VERSION = 1
 
 
 def run_case(case):
@@ -43,3 +45,11 @@ def test_fr009_python_matches_shared_vectors(case):
 def test_fr009_vector_names_are_unique():
     names = [c["name"] for c in VECTORS]
     assert len(names) == len(set(names))
+
+
+def test_fr009_spec_version_is_the_one_this_suite_was_written_for():
+    """Every implementation asserts the spec version it was built against.
+
+    A changed vector is then a deliberate, visible event in all three suites.
+    """
+    assert SPEC["spec_version"] == EXPECTED_SPEC_VERSION

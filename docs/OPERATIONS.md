@@ -4,7 +4,7 @@ Operational procedures for the parts of the stack we run. Health data is involve
 
 ## Deployment
 
-- **Environments**: local development (demo mode and a test Nightscout), and production (Kaitlin's real Nightscout and display devices). There is no staging for the therapy half; Trio's open-loop phase plays that role (ADR-0002).
+- **Environments**: local development (demo mode and a test Nightscout), and production (the household's real Nightscout and display devices). There is no staging for the therapy half; Trio's open-loop phase plays that role (ADR-0002).
 - **Deployment Procedure**: `lightkeeper` is installed on a display device with `pip install` from a tagged release and run as a service (systemd on a Pi). Nightscout deployment is documented when hosting is chosen (Phase 1).
 - **Approvals / Gates**: tests and constitution checks green in CI; any change touching parsing, classification, rendering, or the client gets a hazard review against `docs/SAFETY.md`; Trio rebuilds happen only after reading release notes and checking community reports.
 - **Rollback**: reinstall the previous `lightkeeper` tag. For Trio, keep the previous build archived; for pods, the official Omnipod 5 app or Controller is the fallback.
@@ -19,12 +19,12 @@ Operational procedures for the parts of the stack we run. Health data is involve
 
 - **Retention**: Lightkeeper keeps only the newest reading, in memory; the optional `--svg` file holds one screen and is overwritten each refresh (delete the file to remove it). Nightscout's retention period and deletion path are set and recorded here when hosting is chosen in Phase 1. Classification details: `docs/SECURITY_MODEL.md`.
 - **Backup/Restore**: back up the Nightscout database on a schedule and test a restore at least once (ADR-0003 promotion criteria).
-- **Maintenance Mode**: before taking Nightscout down, tell Kaitlin; displays will show STALE, which is expected.
+- **Maintenance Mode**: before taking Nightscout down, tell the person with diabetes; displays will show STALE, which is expected.
 - **Stateful Changes**: never edit or delete Nightscout entries by hand; never write treatments from this repo.
 
 ## Incident Response
 
-1. Make sure Kaitlin is safe and using the primary app. Everything else waits.
+1. Make sure the person with diabetes is safe and using the primary app. Everything else waits.
 2. Identify the impact: wrong number, frozen display, missed alert, or therapy issue.
 3. Check Nightscout, the phone, and recent changes.
 4. Roll back the last change if it could be the cause.

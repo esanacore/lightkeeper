@@ -10,6 +10,7 @@ Showing a wrong number is worse than showing no number.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import Enum
@@ -19,6 +20,14 @@ from typing import Any
 # as 39 ("LOW") and 401 ("HIGH") sentinels, so those are valid inputs too.
 SENSOR_MIN_MGDL = 39
 SENSOR_MAX_MGDL = 401
+
+# Plausible window for an entry's `date` (Unix milliseconds). Anything outside
+# is rejected before it reaches the clock library: a value in seconds instead
+# of milliseconds lands in 1970 and would otherwise show as STALE, and a
+# huge value would raise an unexpected error from datetime instead of a clean
+# InvalidReadingError. 2000-01-01T00:00Z to 2100-01-01T00:00Z.
+MIN_DATE_MS = 946_684_800_000
+MAX_DATE_MS = 4_102_444_800_000
 
 
 class Trend(Enum):
@@ -89,15 +98,19 @@ def parse_entry(entry: object) -> GlucoseReading:
     # bool is a subclass of int in Python, so rule it out explicitly.
     if isinstance(sgv, bool) or not isinstance(sgv, (int, float)):
         raise InvalidReadingError(f"sgv missing or not a number: {sgv!r}")
+    # Range-check the raw number before int(): int(nan) and int(inf) raise
+    # ValueError/OverflowError, which would escape as an unexpected failure.
+    if not math.isfinite(sgv) or not SENSOR_MIN_MGDL <= sgv <= SENSOR_MAX_MGDL:
+        raise InvalidReadingError(f"sgv outside sensor range: {sgv!r}")
     if sgv != int(sgv):
         raise InvalidReadingError(f"sgv is not a whole number: {sgv!r}")
     mgdl = int(sgv)
-    if not SENSOR_MIN_MGDL <= mgdl <= SENSOR_MAX_MGDL:
-        raise InvalidReadingError(f"sgv outside sensor range: {mgdl}")
 
     date_ms = entry.get("date")
-    if isinstance(date_ms, bool) or not isinstance(date_ms, (int, float)) or date_ms <= 0:
+    if isinstance(date_ms, bool) or not isinstance(date_ms, (int, float)):
         raise InvalidReadingError(f"date missing or invalid: {date_ms!r}")
+    if not math.isfinite(date_ms) or not MIN_DATE_MS <= date_ms <= MAX_DATE_MS:
+        raise InvalidReadingError(f"date outside plausible range: {date_ms!r}")
     timestamp = datetime.fromtimestamp(date_ms / 1000, tz=UTC)
 
     try:
@@ -110,12 +123,18 @@ def parse_entry(entry: object) -> GlucoseReading:
 
 
 def parse_entries(entries: list[Any] | None) -> list[GlucoseReading]:
-    """Parse a list of entries, skipping bad ones, newest first."""
+    """Parse a list of entries, skipping bad ones, newest first.
+
+    One malformed entry must never take the good ones down with it: whatever
+    parse_entry raises, the rest of the list is still used. When two entries
+    share a timestamp (several uploaders feeding one Nightscout), the lower
+    value wins, which is the conservative choice for a glucose display.
+    """
     readings = []
     for entry in entries or []:
         try:
             readings.append(parse_entry(entry))
-        except InvalidReadingError:
+        except (InvalidReadingError, ValueError, OverflowError, OSError, TypeError):
             continue
-    readings.sort(key=lambda r: r.timestamp, reverse=True)
+    readings.sort(key=lambda r: (-r.timestamp.timestamp(), r.mgdl))
     return readings

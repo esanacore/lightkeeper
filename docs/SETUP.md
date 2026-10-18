@@ -224,7 +224,7 @@ Source is in `apps/ios/` (read `apps/ios/README.md`). The read-only layer builds
 
 1. Development: edit Swift files in any editor; push; `.github/workflows/ios.yml` runs the shared-vector tests and builds the app.
 2. Installing on a phone: TestFlight through the paid Apple Developer account. The signing and upload steps mirror Trio's browser build (App Store Connect API key stored as GitHub secrets); they are added to `ios.yml` when the first TestFlight build is cut, and documented here at that point.
-3. In the app: Settings, enter the Nightscout URL and the **readable** token (it goes to the Keychain), then adjust display thresholds with your care team.
+3. In the app: Settings, enter the Nightscout URL and the **readable** token (it goes to the Keychain), then set the display thresholds. Thresholds change only which word the display shows. They do not affect dosing or the primary app's alarms. Match them to the alert settings already in the primary app.
 
 ## Checking the whole stack
 

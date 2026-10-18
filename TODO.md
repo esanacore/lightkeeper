@@ -11,12 +11,16 @@ From `docs/COMMUNITY_RESEARCH.md` (October 2026):
 - [ ] Night profile for displays: scheduled dimming, silent or haptic-only options, per-display quiet hours.
 - [ ] Show delta from the previous reading, IOB and COB (greyed at zero), loop status, and "next reading in".
 - [ ] Compression-low hint on a sudden single-interval drop, labeled as a hint.
-- [ ] Firmware: exponential backoff on Wi-Fi, visible "offline since", published battery measurements; study WaveshareMon's config schema before inventing one.
+- [ ] Firmware: exponential backoff on Wi-Fi, visible "offline since", published battery measurements (FR-015, reserved); study WaveshareMon's config schema before inventing one.
+- [ ] Extend the vector schema (`seconds_ago`, several entries per case, custom thresholds) so duplicate-timestamp, 15-minutes-plus-one-second, and custom-threshold cases become shared vectors.
+- [ ] Check whether `lightkeeper` is free on PyPI before Phase 6; fallback name `lightkeeper-display`.
+- [ ] iOS: unit tests for `Settings.load()` resetting an invalid set and for `reclassify()` yielding STALE without a fetch (needs a test target in `project.yml`).
+- [ ] Evaluate Nightscout's `AUTH_DEFAULT_ROLES=denied` plus v3 JWT so the token never appears in a URL.
 
 - [ ] Raspberry Pi e-paper display adapter for `lightkeeper` (FR-007).
 - [ ] Home Assistant integration: publish level, value, and age as a sensor, alert on URGENT LOW and STALE (FR-008).
-- [ ] Optional mmol/L display units.
-- [ ] Show a short sparkline or delta from the previous reading.
+- [ ] Optional mmol/L display units (FR-013, reserved).
+- [ ] Show a short sparkline or delta from the previous reading (FR-014, reserved).
 - [ ] Draw `render_svg` output to a real e-paper bitmap for the Pi adapter (FR-007), reusing the gallery layout.
 
 ## Technical Debt

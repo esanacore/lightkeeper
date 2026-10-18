@@ -11,6 +11,11 @@ import Foundation
 public let sensorMinMgdl = 39
 public let sensorMaxMgdl = 401
 
+/// Plausible window for an entry's `date` (Unix ms): 2000-01-01 to 2100-01-01.
+/// Mirrors MIN_DATE_MS / MAX_DATE_MS in the Python implementation.
+public let minDateMs: Double = 946_684_800_000
+public let maxDateMs: Double = 4_102_444_800_000
+
 /// Direction of change, using Nightscout's direction strings.
 public enum Trend: String, CaseIterable, Sendable {
     case doubleUp = "DoubleUp"
@@ -90,13 +95,19 @@ public func parseEntry(_ entry: Any) throws -> GlucoseReading {
     if let type = dict["type"] as? String, type != "sgv" { throw ParseError.notSensorGlucose }
     if dict["type"] != nil, !(dict["type"] is String) { throw ParseError.notSensorGlucose }
 
-    guard let sgv = number(dict["sgv"]), sgv.isFinite, sgv == sgv.rounded(.towardZero) else {
+    // Range-check the Double before Int(): Int(1e30) is a fatal error in Swift,
+    // not a throw, and one such entry would crash the app on every launch.
+    guard let sgv = number(dict["sgv"]), sgv.isFinite,
+          (Double(sensorMinMgdl)...Double(sensorMaxMgdl)).contains(sgv),
+          sgv == sgv.rounded(.towardZero) else {
         throw ParseError.badValue
     }
     let mgdl = Int(sgv)
-    guard (sensorMinMgdl...sensorMaxMgdl).contains(mgdl) else { throw ParseError.badValue }
 
-    guard let dateMs = number(dict["date"]), dateMs.isFinite, dateMs > 0 else {
+    // Same for the date: bounded before Int64(), and the bounds also reject
+    // seconds-instead-of-milliseconds uploads that would read as 1970.
+    guard let dateMs = number(dict["date"]), dateMs.isFinite,
+          (minDateMs...maxDateMs).contains(dateMs) else {
         throw ParseError.badDate
     }
 
@@ -106,5 +117,9 @@ public func parseEntry(_ entry: Any) throws -> GlucoseReading {
 
 /// Parse a list of entries, skipping bad ones, newest first.
 public func parseEntries(_ entries: [Any]?) -> [GlucoseReading] {
-    (entries ?? []).compactMap { try? parseEntry($0) }.sorted { $0.timestampMs > $1.timestampMs }
+    // Newest first; when two uploaders share a timestamp the lower value wins,
+    // the conservative choice for a glucose display (matches the Python rule).
+    (entries ?? []).compactMap { try? parseEntry($0) }.sorted {
+        $0.timestampMs != $1.timestampMs ? $0.timestampMs > $1.timestampMs : $0.mgdl < $1.mgdl
+    }
 }

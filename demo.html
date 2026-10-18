@@ -6,14 +6,37 @@
     <title>Lightkeeper demo</title>
     <style>
       :root {
-        color-scheme: dark;
-        --bg: #0b1020;
-        --surface: #141c30;
-        --border: #27334d;
-        --text: #f2f5fa;
-        --muted: #9aa8bc;
-        --accent: #7dd3fc;
-        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        color-scheme: light dark;
+        --bg: #ECEBE5;
+        --surface: #F6F5F0;
+        --border: #CFCDC4;
+        --text: #15171C;
+        --muted: #5B6068;
+        --accent: #B8730A;
+        --paper: #E6E5DF;
+        --paper-edge: #B9B9B3;
+        --paper-ink: #121212;
+        font-family: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          --bg: #0E1116;
+          --surface: #161A21;
+          --border: #262B33;
+          --text: #E6E5DE;
+          --muted: #9AA0A9;
+          --accent: #E0A526;
+        }
+      }
+
+      :root[data-theme="dark"] {
+        --bg: #0E1116;
+        --surface: #161A21;
+        --border: #262B33;
+        --text: #E6E5DE;
+        --muted: #9AA0A9;
+        --accent: #E0A526;
       }
 
       * {
@@ -22,7 +45,7 @@
 
       body {
         margin: 0;
-        padding: clamp(24px, 5vw, 64px);
+        padding: clamp(24px, 5vw, 64px) 16px;
         color: var(--text);
         background: var(--bg);
         line-height: 1.65;
@@ -33,15 +56,38 @@
         margin: 0 auto;
       }
 
+      .masthead {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin: 0 0 8px;
+      }
+
+      .masthead svg {
+        width: 40px;
+        height: 40px;
+        flex: none;
+      }
+
       h1 {
-        margin: 0 0 12px;
-        font-size: clamp(2rem, 5vw, 3rem);
+        margin: 0;
+        font-size: clamp(2rem, 5vw, 2.75rem);
         letter-spacing: -0.03em;
+        font-weight: 700;
+      }
+
+      .kicker {
+        margin: 0 0 20px;
+        color: var(--accent);
+        font-size: 0.8rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        font-weight: 600;
       }
 
       .tagline {
-        margin: 0 0 32px;
-        max-width: 60ch;
+        margin: 0 0 28px;
+        max-width: 62ch;
         color: var(--muted);
         font-size: 1.1rem;
       }
@@ -51,25 +97,47 @@
         padding: 14px 16px;
         border: 1px solid var(--border);
         border-left: 3px solid var(--accent);
-        border-radius: 10px;
         background: var(--surface);
         color: var(--muted);
         font-size: 0.92rem;
       }
 
+      .sec-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 16px;
+        margin: 0 0 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .sec-head h2 {
+        margin: 0;
+        font-size: 1.15rem;
+        letter-spacing: -0.01em;
+      }
+
+      .sec-head .n {
+        color: var(--muted);
+        font-family: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+        font-size: 0.75rem;
+        letter-spacing: 0.1em;
+      }
+
       .panels {
         display: grid;
-        gap: 16px;
+        gap: 1px;
         grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        margin: 0 0 32px;
+        margin: 0 0 36px;
         padding: 0;
         list-style: none;
+        border: 1px solid var(--border);
+        background: var(--border);
       }
 
       .panels li {
         padding: 18px;
-        border: 1px solid var(--border);
-        border-radius: 12px;
         background: var(--surface);
       }
 
@@ -86,34 +154,111 @@
       .stage {
         padding: 20px;
         border: 1px solid var(--border);
-        border-radius: 12px;
         background: var(--surface);
       }
 
-      .stage output {
-        display: block;
-        min-height: 4.5rem;
-        margin-top: 14px;
-        white-space: pre-wrap;
-        font-family: ui-monospace, Consolas, monospace;
-        font-size: 0.9rem;
+      .stage p {
+        margin: 0 0 12px;
+        color: var(--muted);
+      }
+
+      .group {
+        margin: 14px 0 0;
+      }
+
+      .group h3 {
+        margin: 0 0 6px;
+        font-size: 0.75rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+        font-weight: 600;
+      }
+
+      .states {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
       }
 
       button {
-        padding: 10px 16px;
-        color: #07101e;
-        border: 0;
-        border-radius: 10px;
-        background: var(--accent);
+        padding: 8px 14px;
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        background: transparent;
         font: inherit;
-        font-weight: 650;
+        font-size: 0.92rem;
         cursor: pointer;
+      }
+
+      button:hover {
+        border-color: var(--accent);
+      }
+
+      button[aria-pressed="true"] {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: #0E1116;
+        font-weight: 650;
       }
 
       button:focus-visible,
       a:focus-visible {
         outline: 2px solid var(--accent);
         outline-offset: 3px;
+      }
+
+      .screen {
+        position: relative;
+        width: min(100%, 380px);
+        margin: 20px 0 0;
+      }
+
+      .eink {
+        display: block;
+        padding: 18px 20px 26px;
+        border: 2px solid var(--paper-edge);
+        border-radius: 6px;
+        background: var(--paper);
+        color: var(--paper-ink);
+        font-family: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+        font-size: 1.05rem;
+        line-height: 1.5;
+        min-height: 7rem;
+      }
+
+      .eink .first {
+        font-weight: 700;
+        font-size: 1.25rem;
+      }
+
+      .sim {
+        position: absolute;
+        right: 10px;
+        bottom: 8px;
+        color: #5b5b57;
+        font-family: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+        font-size: 0.62rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .exit {
+        margin: 12px 0 0;
+        color: var(--muted);
+        font-family: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+        font-size: 0.85rem;
+      }
+
+      .exit-key {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      .exit-key code {
+        font-family: "IBM Plex Mono", ui-monospace, Consolas, monospace;
       }
 
       footer {
@@ -125,53 +270,23 @@
       a {
         color: var(--accent);
       }
-      .eink {
-        display: block;
-        width: min(100%, 360px);
-        margin: 14px 0 0;
-        padding: 18px 20px;
-        border: 2px solid #c9c9c4;
-        border-radius: 6px;
-        background: #e8e8e3;
-        color: #111;
-        font-family: ui-monospace, Consolas, monospace;
-        font-size: 1.05rem;
-        line-height: 1.5;
-      }
-
-      .eink .first {
-        font-weight: 800;
-        font-size: 1.25rem;
-      }
-
-      .states {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 8px;
-      }
-
-      button[aria-pressed="true"] {
-        outline: 2px solid var(--text);
-      }
-
-      .exit {
-        margin-top: 10px;
-        color: var(--muted);
-        font-size: 0.9rem;
-      }
     </style>
   </head>
   <body>
     <main>
-      <h1>Lightkeeper</h1>
-      <p class="tagline">A read-only glucose display for e-ink screens and bedside clocks, fed from a self-hosted Nightscout site. Built for Kaitlin, shared with the type 1 diabetes open source community.</p>
+      <p class="kicker">Interactive demo · simulated data</p>
+      <div class="masthead">
+        <svg viewBox="0 0 256 256" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs><clipPath id="sector"><path d="M96 120 L256 27.6 L256 212.4 Z"/></clipPath></defs><g clip-path="url(#sector)"><circle cx="96" cy="120" r="152" fill="var(--accent)" opacity="0.16"/><circle cx="96" cy="120" r="108" fill="var(--accent)" opacity="0.42"/><circle cx="96" cy="120" r="66" fill="var(--accent)"/></g><rect x="88" y="120" width="16" height="104" rx="3" fill="var(--text)"/><rect x="60" y="222" width="72" height="10" rx="3" fill="var(--text)"/><circle cx="96" cy="120" r="24" fill="var(--text)"/><circle cx="96" cy="120" r="11" fill="var(--accent)"/></svg>
+        <h1>Lightkeeper</h1>
+      </div>
+      <p class="tagline">Read-only glucose displays for e-ink screens, bedside clocks, and iOS, fed from a self-hosted Nightscout site. Built for one household first, shared with the type 1 open source community.</p>
 
       <p class="notice">
         Everything on this page is simulated in your browser with made-up readings. The real tool needs a Nightscout site and a read-only token (see the README).
         It is a secondary display, not a medical device: always confirm on the primary CGM app.
       </p>
 
+      <div class="sec-head"><h2>Three promises</h2><span class="n">01 · RULES</span></div>
       <ul class="panels">
         <li>
           <strong>Never shows old data as current</strong>
@@ -187,26 +302,21 @@
         </li>
       </ul>
 
+      <div class="sec-head"><h2 id="stage-title">Every display state</h2><span class="n">02 · STATES</span></div>
       <section class="stage" aria-labelledby="stage-title">
-        <h2 id="stage-title">Try every display state</h2>
-        <p>Pick a simulated situation to see exactly what the e-ink panel would show.</p>
-        <div class="states" role="group" aria-label="Simulated situations">
-          <button type="button" data-state="in_range_flat">In range</button>
-          <button type="button" data-state="low_69">Low, falling</button>
-          <button type="button" data-state="sensor_low_sentinel">Sensor LOW</button>
-          <button type="button" data-state="high_181">High</button>
-          <button type="button" data-state="stale_beats_urgent_low">40 min old</button>
-          <button type="button" data-state="future_dated">Clock wrong</button>
-          <button type="button" data-state="no_data_unreachable">Nightscout down</button>
-          <button type="button" data-state="stale_while_unreachable_stays_four_lines">Stale and offline</button>
+        <p>Each button is one of the shared golden vectors that the Python tool, the C++ firmware, and the Swift app must all render identically. Pick one to see exactly what the panel shows.</p>
+        <div id="groups"></div>
+        <div class="screen">
+          <output id="result" role="status" aria-live="polite" class="eink"></output>
+          <span class="sim" aria-hidden="true">Simulated</span>
         </div>
-        <output id="result" role="status" aria-live="polite" class="eink"></output>
         <p class="exit" id="exit"></p>
+        <p class="exit-key">Exit codes: <code>0</code> fresh and in range · <code>1</code> someone should look · <code>2</code> configuration error (never shown here; the program refuses to start)</p>
       </section>
 
       <footer>
         <p>
-          Source and setup: <a href="README.md">README</a>. Safety boundary: <a href="docs/SAFETY.md">docs/SAFETY.md</a>.
+          Source and setup: <a href="README.md">README</a>. Safety boundary: <a href="docs/SAFETY.md">docs/SAFETY.md</a>. Every state as an image: <a href="docs/DISPLAY_STATES.md">docs/DISPLAY_STATES.md</a>.
           Built to <a href="constitution/DOCUMENTATION.md">Eric's Engineering Constitution</a>.
         </p>
       </footer>
@@ -399,17 +509,77 @@
             "Check sensor and phone",
             "Confirm on primary device"
           ]
+        },
+        "huge_value_rejected": {
+          "level": "NO DATA",
+          "lines": [
+            "NO DATA",
+            "Check sensor and phone",
+            "Confirm on primary device"
+          ]
         }
       };
       // END GENERATED STATES
 
+      // Button labels and grouping. Any vector not listed here still gets a
+      // button, under "Other", so a new case is never silently hidden.
+      const groups = [
+        ["In range", {
+          in_range_flat: "In range, flat", in_range_just_now: "Just now, rising",
+          boundary_low_70_in_range: "70, lower edge", boundary_high_180_in_range: "180, upper edge",
+          fresh_at_15_minutes: "15 min old, still fresh", small_clock_skew_ok: "Small clock skew",
+          unknown_direction: "Unknown arrow",
+        }],
+        ["Low and high", {
+          low_69: "Low, falling", urgent_low_55: "Urgent low", sensor_low_sentinel: "Sensor LOW (<40)",
+          high_181: "High", urgent_high_250: "Urgent high", sensor_high_sentinel: "Sensor HIGH (>400)",
+        }],
+        ["Stale", {
+          stale_at_16_minutes: "16 min old", stale_beats_urgent_low: "40 min old, was 45",
+          future_dated: "Clock wrong",
+        }],
+        ["Missing data and outages", {
+          no_data: "No data", no_data_unreachable: "Nightscout down",
+          last_good_while_unreachable: "Last good, offline",
+          stale_while_unreachable_stays_four_lines: "Stale and offline",
+          invalid_value_rejected: "Bad value rejected", huge_value_rejected: "Huge value rejected",
+          non_sgv_rejected: "Non-glucose entry rejected",
+        }],
+      ];
+
       const result = document.getElementById("result");
       const exit = document.getElementById("exit");
+      const container = document.getElementById("groups");
+      const listed = new Set(groups.flatMap(([, m]) => Object.keys(m)));
+      const other = Object.fromEntries(Object.keys(states).filter((k) => !listed.has(k)).map((k) => [k, k]));
+      if (Object.keys(other).length) groups.push(["Other", other]);
+
+      groups.forEach(([title, map]) => {
+        const section = document.createElement("div");
+        section.className = "group";
+        const h = document.createElement("h3");
+        h.textContent = title;
+        const row = document.createElement("div");
+        row.className = "states";
+        row.setAttribute("role", "group");
+        row.setAttribute("aria-label", title);
+        Object.entries(map).forEach(([name, label]) => {
+          if (!states[name]) return;
+          const b = document.createElement("button");
+          b.type = "button";
+          b.dataset.state = name;
+          b.textContent = label;
+          row.appendChild(b);
+        });
+        section.append(h, row);
+        container.appendChild(section);
+      });
+
       const buttons = document.querySelectorAll("button[data-state]");
 
       function show(name) {
         const state = states[name];
-        state.code = state.level === "IN RANGE" ? 0 : 1;
+        const code = state.level === "IN RANGE" ? 0 : 1;
         result.innerHTML = "";
         state.lines.forEach((line, index) => {
           const div = document.createElement("div");
@@ -417,7 +587,7 @@
           if (index === 0) div.className = "first";
           result.appendChild(div);
         });
-        exit.textContent = `Simulated exit code: ${state.code} (${state.code === 0 ? "all good" : "someone should look"})`;
+        exit.textContent = `python -m lightkeeper exit code ${code} (${code === 0 ? "fresh and in range" : "someone should look"}) · vector: ${name}`;
         buttons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.state === name)));
       }
 

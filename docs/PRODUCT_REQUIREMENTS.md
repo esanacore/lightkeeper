@@ -17,7 +17,7 @@ This document translates product intent into concrete implementation requirement
 
 ## Product Summary
 
-An open source stack for managing Kaitlin's type 1 diabetes with community tools (Trio, Nightscout) instead of the stock Dexcom and Omnipod experience, plus our own read-only displays. Users: Kaitlin first, Eric as builder and secondary viewer, and later anyone in the community. Current release goal (0.1.0): a trustworthy, tested `lightkeeper` that can drive a text display from Nightscout, and the documentation to stand up Nightscout and Trio.
+An open source stack for managing one person's type 1 diabetes (built first for a real household) with community tools (Trio, Nightscout) instead of the stock Dexcom and Omnipod experience, plus our own read-only displays. Users: the person with diabetes first, the builder as secondary viewer, and later anyone in the community. Current release goal (0.1.0): a trustworthy, tested `lightkeeper` that can drive a text display from Nightscout, and the documentation to stand up Nightscout and Trio.
 
 ## Functional Requirements
 
@@ -101,6 +101,9 @@ These IDs are reserved for work that hasn't started. They are listed here, not d
 - FR-007 (SHOULD): Drive a physical e-ink display on a Raspberry Pi. Acceptance: the four rendered lines appear on the panel and refresh at least every 5 minutes.
 - FR-008 (SHOULD): Publish status to Home Assistant. Acceptance: Home Assistant shows a sensor with level, value, and age, and can trigger an automation on URGENT LOW or STALE.
 - FR-010 (SHOULD): Run on an Xteink X4/X3 pocket e-ink reader over Wi-Fi. Acceptance: the device fetches from Nightscout, shows every vector state correctly, and updates at least every 5 minutes (ADR-0006).
+- FR-013 (SHOULD): Display in mmol/L when configured. Acceptance: one setting switches every implementation to mmol/L with one decimal, the thresholds are entered in the same unit, and the shared vectors cover both units.
+- FR-014 (COULD): Show the change since the previous reading (delta). Acceptance: a signed delta appears beside the arrow when two consecutive fresh readings exist, and is omitted otherwise.
+- FR-015 (COULD): Show device status on hardware displays: battery level and time since the display itself last reached Nightscout. Acceptance: a low battery and an offline display are each visible on the panel without hiding the glucose line.
 
 ## Non-Functional Requirements
 
@@ -147,7 +150,7 @@ These IDs are reserved for work that hasn't started. They are listed here, not d
 ## Acceptance Criteria Summary
 
 - [x] All `MUST` requirements for 0.1.0 (FR-001 to FR-006, FR-009, NFR-001 to NFR-004) have verifying tests and are `Verified` in `docs/REQUIREMENTS_TRACEABILITY.md`.
-- [ ] Kaitlin has reviewed the default thresholds and stale limit.
+- [ ] The person with diabetes has reviewed the default thresholds and stale limit.
 
 ## Traceability
 

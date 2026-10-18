@@ -351,6 +351,22 @@
         "Check sensor and phone",
         "Confirm on primary device"
       ]
+    },
+    {
+      "name": "huge_value_rejected",
+      "entry": {
+        "type": "sgv",
+        "sgv": 1e+30,
+        "direction": "Flat"
+      },
+      "minutes_ago": 1,
+      "error": null,
+      "level": "NO DATA",
+      "lines": [
+        "NO DATA",
+        "Check sensor and phone",
+        "Confirm on primary device"
+      ]
     }
   ]
 }

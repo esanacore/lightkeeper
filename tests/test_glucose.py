@@ -46,6 +46,13 @@ def test_fr001_sentinel_flags():
         entry(date=0),
         entry(date="yesterday"),
         entry(date=False),
+        entry(mgdl=float("nan")),
+        entry(mgdl=float("inf")),
+        entry(mgdl=1e30),
+        entry(date=float("nan")),
+        entry(date=1e300),
+        entry(date=10**18),
+        entry(date=NOW.timestamp()),  # seconds, not milliseconds
     ],
 )
 def test_fr001_rejects_untrustworthy_entries(bad):
@@ -84,3 +91,34 @@ def test_fr001_parse_entries_handles_empty_and_none():
 def test_fr004_every_trend_has_a_plain_ascii_arrow():
     for trend in Trend:
         assert trend.arrow and trend.arrow.isascii()
+
+
+def test_haz011_one_poisoned_entry_never_hides_the_good_ones():
+    """HAZ-011: one malformed entry must not blank the display.
+
+    NaN and huge numbers used to raise ValueError/OverflowError past
+    parse_entries, turning eleven good readings into "Nightscout unreachable"
+    for a whole sliding window.
+    """
+    readings = parse_entries(
+        [
+            entry(mgdl=float("nan")),
+            entry(120, 1),
+            entry(date=1e300),
+            entry(date=10**18),
+            entry(mgdl=float("inf")),
+            entry(118, 6),
+        ]
+    )
+    assert [r.mgdl for r in readings] == [120, 118]
+
+
+def test_fr001_same_timestamp_picks_the_lower_value():
+    """Two uploaders, one timestamp: the conservative (lower) value wins.
+
+    The result is independent of the order Nightscout returned them.
+    """
+    forward = parse_entries([entry(130, 0), entry(68, 0), entry(110, 5)])
+    backward = parse_entries([entry(68, 0), entry(130, 0), entry(110, 5)])
+    assert [r.mgdl for r in forward] == [68, 130, 110]
+    assert [r.mgdl for r in backward] == [68, 130, 110]

@@ -10,12 +10,22 @@ import SwiftUI
 @main
 struct LightkeeperApp: App {
     @StateObject private var model = GlucoseModel()
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(model)
                 .task { await model.start() }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            // Coming back from the background: age the last reading against
+            // the clock immediately, then fetch. The screen must never show a
+            // pre-background "3 min ago" while the network round trip runs.
+            if phase == .active {
+                model.reclassify()
+                Task { await model.refresh() }
+            }
         }
     }
 }

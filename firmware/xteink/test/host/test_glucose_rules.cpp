@@ -47,7 +47,14 @@ const Vector kVectors[] = {
 #include "vectors.inc"
 };
 
+// Bump when an existing vector changes (Python and Swift carry the same check).
+const int kExpectedSpecVersion = 1;
+const int kSpecVersion =
+#include "vectors_version.inc"
+    ;
+
 void run_vectors() {
+  CHECK(kSpecVersion == kExpectedSpecVersion, "spec_version matches the one these tests target");
   for (const Vector& v : kVectors) {
     lk::Reading reading;
     bool ok = false;
@@ -128,6 +135,18 @@ void test_parse_edges() {
   e = good_entry();
   e.date_ms = 0;
   CHECK(!lk::parse_entry(e, &r), "zero date rejected");
+
+  e = good_entry();
+  e.date_ms = 1e300;
+  CHECK(!lk::parse_entry(e, &r), "huge date rejected before the int64 cast");
+
+  e = good_entry();
+  e.date_ms = static_cast<double>(kNowMs) / 1000.0;  // seconds, not milliseconds
+  CHECK(!lk::parse_entry(e, &r), "date in seconds rejected instead of reading as 1970");
+
+  e = good_entry();
+  e.sgv = 1e30;
+  CHECK(!lk::parse_entry(e, &r), "sgv 1e30 rejected without a cast");
 
   e = good_entry();
   e.direction = nullptr;

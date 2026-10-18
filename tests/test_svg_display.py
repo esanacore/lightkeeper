@@ -55,8 +55,22 @@ def test_fr011_cli_writes_svg_atomically(tmp_path, monkeypatch, capsys):
         monkeypatch.delenv(name, raising=False)
     target = tmp_path / "screen.svg"
     assert cli.main(["--demo", "--demo-mgdl", "64", "--svg", str(target)]) == 1
-    assert texts(target.read_text(encoding="utf-8"))[:2] == ["LOW", "64 mg/dL ->"]
+    drawn = texts(target.read_text(encoding="utf-8"))
+    assert drawn[:2] == ["LOW", "64 mg/dL ->"]
+    # HAZ-011: the file says when it was written, so a dashboard can tell a
+    # live writer from one that died and left its last image behind.
+    assert drawn[-1].startswith("written ") and drawn[-1].endswith(" UTC")
     assert not (tmp_path / "screen.svg.tmp").exists()
+
+
+def test_haz011_written_stamp_is_optional_and_utc():
+    from datetime import UTC, datetime, timedelta, timezone
+
+    plain = render_svg(["IN RANGE", "120 mg/dL ->"])
+    assert "written" not in plain
+    local = datetime(2026, 10, 18, 7, 5, tzinfo=timezone(timedelta(hours=-5)))
+    assert "written 12:05 UTC" in render_svg(["IN RANGE"], written_at=local)
+    assert "written 12:05 UTC" in render_svg(["IN RANGE"], written_at=local.astimezone(UTC))
 
 
 def test_fr011_longest_lines_fit_the_panel_width():

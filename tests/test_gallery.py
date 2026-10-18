@@ -39,6 +39,11 @@ def test_fr011_demo_buttons_point_at_real_vectors():
         c["name"]
         for c in json.loads((ROOT / "spec" / "display_vectors.json").read_text())["cases"]
     }
-    buttons = re.findall(r'data-state="([a-z0-9_]+)"', page)
-    assert buttons, "demo has no state buttons"
-    assert set(buttons) <= vectors
+    # Buttons are built from the label map in the page script: `name: "Label"`.
+    script = page[page.index("const groups = [") : page.index("const result =")]
+    labelled = set(re.findall(r"\b([a-z0-9_]+): \"", script))
+    assert labelled, "demo has no state buttons"
+    # Every labelled button is a real vector, and every vector has a hand-written
+    # label (a new vector would otherwise fall into the "Other" group unnamed).
+    assert labelled <= vectors
+    assert vectors <= labelled, f"add demo labels for: {sorted(vectors - labelled)}"

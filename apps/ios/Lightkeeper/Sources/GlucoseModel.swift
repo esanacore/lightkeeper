@@ -27,6 +27,17 @@ final class GlucoseModel: ObservableObject {
         }
     }
 
+    /// Re-run the pure rules against the clock without a network round trip.
+    ///
+    /// Called when the app returns to the foreground: after hours in the
+    /// background the last screen would otherwise sit there reading "3 min
+    /// ago" until the first fetch completes (HAZ-008). This is instant.
+    func reclassify() {
+        let now = Int64(Date().timeIntervalSince1970 * 1000)
+        status = classify(lastGood?.reading, nowMs: now, thresholds: settings.thresholds)
+        lines = renderLines(status, fetchError: fetchError)
+    }
+
     func refresh() async {
         let now = Int64(Date().timeIntervalSince1970 * 1000)
         let thresholds = settings.thresholds
@@ -56,9 +67,47 @@ struct Settings {
     var urgentHigh = 250
     var staleMinutes = 15
 
+    /// The validated thresholds, or nil with the reason when the combination
+    /// is impossible (for example low above high). The settings screen
+    /// refuses to save an invalid set, and `load()` resets one it finds on
+    /// disk, so the display never silently runs on numbers other than the
+    /// ones the settings screen shows (HAZ-006).
+    var validation: Result<Thresholds, Error> {
+        Result {
+            try Thresholds(urgentLow: urgentLow, low: low, high: high, urgentHigh: urgentHigh,
+                           staleAfterMs: Int64(staleMinutes) * 60_000)
+        }
+    }
+
+    var isValid: Bool {
+        if case .success = validation { return true }
+        return false
+    }
+
+    var validationMessage: String? {
+        guard case .failure(let error) = validation else { return nil }
+        switch error as? Thresholds.ValidationError {
+        case .outOfOrder:
+            return "Thresholds must increase: urgent low < low < high < urgent high."
+        case .staleLimitNotPositive:
+            return "Stale limit must be at least one minute."
+        case nil:
+            return "Thresholds are not valid."
+        }
+    }
+
     var thresholds: Thresholds {
-        (try? Thresholds(urgentLow: urgentLow, low: low, high: high, urgentHigh: urgentHigh,
-                         staleAfterMs: Int64(staleMinutes) * 60_000)) ?? .defaults
+        // Only reachable with a valid set: save() refuses invalid ones and
+        // load() resets them. The fallback is for a tampered UserDefaults.
+        (try? validation.get()) ?? .defaults
+    }
+
+    func resettingThresholds() -> Settings {
+        var s = self
+        let d = Settings()
+        s.urgentLow = d.urgentLow; s.low = d.low; s.high = d.high
+        s.urgentHigh = d.urgentHigh; s.staleMinutes = d.staleMinutes
+        return s
     }
 
     func makeClient() -> NightscoutClient? {
@@ -74,10 +123,17 @@ struct Settings {
                             ("urgentHigh", \.urgentHigh), ("staleMinutes", \.staleMinutes)] {
             if d.object(forKey: key) != nil { s[keyPath: path] = d.integer(forKey: key) }
         }
+        // Never start on an invalid set: reset to defaults so the screen and
+        // the rules agree, rather than showing one thing and using another.
+        if !s.isValid { s = s.resettingThresholds(); s.save() }
         return s
     }
 
-    func save() {
+    /// Persist the settings. Returns false, writing nothing, when the
+    /// thresholds are invalid.
+    @discardableResult
+    func save() -> Bool {
+        guard isValid else { return false }
         let d = UserDefaults.standard
         d.set(nightscoutURL, forKey: "nightscoutURL")
         d.set(urgentLow, forKey: "urgentLow")
@@ -85,5 +141,6 @@ struct Settings {
         d.set(high, forKey: "high")
         d.set(urgentHigh, forKey: "urgentHigh")
         d.set(staleMinutes, forKey: "staleMinutes")
+        return true
     }
 }

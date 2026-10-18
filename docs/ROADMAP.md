@@ -46,4 +46,4 @@ Phases 1 to 3 are mostly about the therapy half and belong to Kaitlin and her ca
 
 ## Versioning
 
-Semantic versioning for the Python package and the repository as a whole. The display vectors carry their own `spec_version` inside `spec/display_vectors.json`; any change to an existing case bumps it, and both implementations assert the version they were built against.
+Semantic versioning for the Python package and the repository as a whole. The display vectors carry their own `spec_version` inside `spec/display_vectors.json`; any change to an existing case bumps it, and all three implementations assert the version they were built against (`tests/test_vectors.py`, `firmware/xteink/test/host/test_glucose_rules.cpp`, `VectorTests.swift`).

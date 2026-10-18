@@ -6,7 +6,7 @@ This document describes how the whole stack is wired, and how the code in this r
 
 The stack has two halves with a one-way boundary between them.
 
-The **therapy half** is community software running on Kaitlin's iPhone: the Dexcom G7 app (kept only as a Bluetooth radio), Trio (the open source automated insulin delivery app, built from source), and Omnipod 5 pods paired to Trio. Trio uploads glucose, insulin, and loop status to Nightscout. We configure, test, and contribute upstream to these projects, but no code for them lives here.
+The **therapy half** is community software running on the person with diabetes's iPhone: the Dexcom G7 app (kept only as a Bluetooth radio), Trio (the open source automated insulin delivery app, built from source), and Omnipod 5 pods paired to Trio. Trio uploads glucose, insulin, and loop status to Nightscout. We configure, test, and contribute upstream to these projects, but no code for them lives here.
 
 The **display half** is what this repository builds: read-only consumers of Nightscout data, starting with `lightkeeper`, which renders a short status for e-ink screens, bedside displays, and Home Assistant.
 
@@ -16,7 +16,7 @@ Data only flows from the therapy half into the display half. Nothing in the disp
 
 ```mermaid
 flowchart LR
-    subgraph iPhone["Kaitlin's iPhone (therapy half)"]
+    subgraph iPhone["Primary iPhone (therapy half)"]
         DexApp[Dexcom G7 app]
         Trio[Trio]
     end

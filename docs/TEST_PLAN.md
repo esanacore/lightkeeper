@@ -12,7 +12,7 @@ This document defines how this repository is tested, what coverage it targets, a
 - **Firmware host tests**: C++17 rules built with AddressSanitizer and UBSan, run on a PC. Location: `firmware/xteink/test/host/`. Command: `make -C firmware/xteink test`.
 - **End-to-end tests**: against a real self-hosted Nightscout instance with simulated uploads, planned once Nightscout is stood up (see GAP-003).
 - **Static analysis**: ruff (pycodestyle, pyflakes, import order, PEP 257 docstrings, bugbear, pyupgrade, bandit security rules), ruff format, strict mypy on `src/`, and clang-format for the firmware. Run in the full suite and as pre-commit hooks.
-- **Manual validation**: before Kaitlin relies on any display, run it side by side with the primary app for at least one full sensor session and log any mismatch, freeze, or missed STALE.
+- **Manual validation**: before anyone relies on any display, run it side by side with the primary app for at least one full sensor session and log any mismatch, freeze, or missed STALE.
 
 ## How to Run Tests
 

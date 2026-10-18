@@ -41,7 +41,8 @@ class Thresholds:
     """Alert thresholds in mg/dL plus the staleness limit.
 
     Defaults follow common clinical targets (70-180 mg/dL range). They are
-    display settings only and must be agreed with Kaitlin and her care team.
+    display settings only: they change which word the display shows, never
+    dosing or the primary app's alarms, and should match the primary app's alerts.
     """
 
     urgent_low: int = 55

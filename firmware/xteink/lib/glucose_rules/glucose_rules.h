@@ -23,6 +23,12 @@ namespace lk {
 constexpr int kSensorMinMgdl = 39;
 constexpr int kSensorMaxMgdl = 401;
 
+// Plausible window for an entry's `date` (Unix ms): 2000-01-01 to 2100-01-01.
+// Rejects seconds-instead-of-milliseconds uploads and values that would be
+// undefined behaviour to cast to int64_t. Mirrors MIN_DATE_MS/MAX_DATE_MS.
+constexpr double kMinDateMs = 946684800000.0;
+constexpr double kMaxDateMs = 4102444800000.0;
+
 // A reading this far in the future means a clock is wrong somewhere.
 constexpr int64_t kMaxFutureSkewMs = 2LL * 60 * 1000;
 

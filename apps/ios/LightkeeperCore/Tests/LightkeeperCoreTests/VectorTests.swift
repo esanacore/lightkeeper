@@ -64,6 +64,35 @@ final class VectorTests: XCTestCase {
         XCTAssertThrowsError(try parseEntry(["sgv": 120, "date": false]))
     }
 
+    /// HAZ-012: numbers too large for Int must throw, never trap.
+    func testHugeNumbersThrowInsteadOfCrashing() {
+        XCTAssertThrowsError(try parseEntry(["sgv": 1e30, "date": Double(nowMs)]))
+        XCTAssertThrowsError(try parseEntry(["sgv": 120, "date": 1e20]))
+        XCTAssertThrowsError(try parseEntry(["sgv": 120, "date": Double(nowMs) / 1000]),
+                             "a date in seconds is rejected, not read as 1970")
+        XCTAssertNoThrow(try parseEntry(["sgv": 120, "date": Double(nowMs)]))
+    }
+
+    /// One malformed entry never hides the good ones around it.
+    func testPoisonedEntryDoesNotBlankTheList() {
+        let readings = parseEntries([
+            ["sgv": Double.nan, "date": Double(nowMs)],
+            ["sgv": 120, "date": Double(nowMs - 60_000)],
+            ["sgv": 1e30, "date": Double(nowMs)],
+        ])
+        XCTAssertEqual(readings.map(\.mgdl), [120])
+    }
+
+    /// Same timestamp from two uploaders: the lower value wins.
+    func testSameTimestampPicksLowerValue() {
+        let readings = parseEntries([
+            ["sgv": 130, "date": Double(nowMs)],
+            ["sgv": 68, "date": Double(nowMs)],
+            ["sgv": 110, "date": Double(nowMs - 300_000)],
+        ])
+        XCTAssertEqual(readings.map(\.mgdl), [68, 130, 110])
+    }
+
     func testThresholdValidation() {
         XCTAssertThrowsError(try Thresholds(urgentLow: 70, low: 70))
         XCTAssertThrowsError(try Thresholds(urgentHigh: 450))

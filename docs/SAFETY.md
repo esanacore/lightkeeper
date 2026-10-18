@@ -2,15 +2,30 @@
 
 This project touches type 1 diabetes care for a real person. This document sets the hard boundary for what the repository may do, and records the hazards we have thought about. It is a lightweight analysis in the spirit of ISO 14971, not a regulatory submission, and nothing here is a medical device.
 
+## Intended Use and Classification
+
+Lightkeeper displays glucose values that have already been published to Nightscout, for awareness only. It is intended for a person with type 1 diabetes, and the people around them, who already run a CGM and its official app. It is not intended to diagnose, to alarm, or to inform a treatment decision: the primary CGM app and its alarms remain the sole source for action, and every Lightkeeper screen is documented to mean "confirm on the primary device."
+
+Classification rationale. No Lightkeeper output drives therapy, and no code in this repository communicates with a pump or a sensor (see The Boundary). The worst-case failure of the software alone is a wrong or missing number on a secondary screen that always carries, in the device label, the CLI help, and the documentation, an instruction to confirm on the primary device. The project therefore treats itself as the equivalent of IEC 62304 Class A (no injury or damage to health is possible from a software failure alone), and it is not submitted, registered, or marketed as a medical device. Should any future feature change that reasoning (an alarm, or the bolus request path in ADR-0008), this section and the classification are re-evaluated first.
+
+Limitations a user must know:
+
+- Wi-Fi and Nightscout dependent: no network, no new numbers.
+- Latency: the CGM reports every 5 minutes and the uploader adds its own delay; a fresh screen can still be several minutes behind the sensor.
+- Staleness: after 15 minutes without a new reading (configurable) the screen says STALE - DO NOT TRUST; it does not try to guess.
+- No alarms: Lightkeeper never sounds, vibrates, or pushes a notification. Alarms stay with the primary app.
+- mg/dL only for now (mmol/L is a reserved requirement, FR-013).
+- Display thresholds change only which word the display shows. They do not affect dosing or the primary app's alarms, and they should match the alert settings already in the primary app.
+
 ## The Boundary
 
 1. **No insulin delivery code lives here.** This repository never sends commands to a pump, never calculates a dose, and never changes therapy settings. Dosing is done only by Trio, an established community project with its own review and testing culture. Improvements to dosing go upstream to Trio, through its process, not into this repo. The one planned exception is narrow and gated: the companion app may *request* a bolus through Trio's own remote protocol, where Trio applies its limits and decides (ADR-0008, not yet accepted).
 2. **No custom insulin delivery hardware.** We do not build pumps, pump controllers, or radio bridges that talk to pumps.
-3. **No sensor communication.** We do not talk to the Dexcom G7 directly. The sensor stays paired to the Dexcom G7 app and Trio on Kaitlin's iPhone.
+3. **No sensor communication.** We do not talk to the Dexcom G7 directly. The sensor stays paired to the Dexcom G7 app and Trio on the primary iPhone.
 4. **Read-only, secondary displays only.** Everything we build reads from Nightscout and shows data. Every display says, or is documented to mean, "confirm on the primary device."
-5. **Therapy settings belong to Kaitlin and her care team.** Basal rates, carb ratios, sensitivity factors, and targets are decided with her endocrinologist, not in code review.
+5. **Therapy settings belong to the person with diabetes and their care team.** Basal rates, carb ratios, sensitivity factors, and targets are decided with their endocrinologist, not in code review.
 
-A change that would cross this boundary needs a new ADR, a hazard review, and Kaitlin's explicit agreement before any code is written.
+A change that would cross this boundary needs a new ADR, a hazard review, and the explicit agreement of the person whose data it shows before any code is written.
 
 ## Hazard Log
 
@@ -25,15 +40,18 @@ Severity: how bad the outcome could be. Likelihood: before mitigation. Each miti
 | HAZ-005 | Out-of-range sensor value shown as a precise number | Sensor reports LOW/HIGH sentinels (39/401) | Serious | Likely | Sentinels render as "LOW (<40)" and "HIGH (>400)" | FR-004, `test_fr004_sentinels_render_as_words_not_numbers` |
 | HAZ-006 | Misconfigured thresholds hide a low | Typo in env vars, inverted ranges | Serious | Possible | Thresholds validated at startup, invalid config stops the program | NFR-002, `test_nfr002_invalid_thresholds_are_rejected` |
 | HAZ-007 | Health data or Nightscout credentials exposed | Plain HTTP, token in logs or errors | Moderate | Possible | HTTPS required; read-only token only; token redacted from all errors | NFR-001, `test_nfr001_network_errors_redact_the_token` |
-| HAZ-008 | Someone trusts the secondary display over the primary app | Display looks authoritative | Serious | Possible | Disclaimer in CLI help and README; STALE and NO DATA states tell the user to confirm on the primary device | FR-004, manual review |
+| HAZ-008 | Someone trusts the secondary display over the primary app | Display looks authoritative | Serious | Possible | Disclaimer in CLI help and README; STALE and NO DATA states tell the user to confirm on the primary device. Fresh screens deliberately omit the confirm line so the number stays large; the instruction is carried by the device label, the CLI help, and the docs. The iOS app re-ages the last reading the instant it returns to the foreground, and shrinks and strikes through a STALE number so a glance cannot read it as current | FR-004, manual review |
+| HAZ-009 | Trio misconfiguration causes over or under delivery | Wrong therapy settings, pump driver bug (Omnipod 5 support is new, released September 2026) | Critical | Possible | Outside this codebase. Open loop first, closed loop only after settings are validated with the endocrinologist; keep the official Omnipod 5 app as fallback; report bugs upstream with logs | Process, see `docs/SETUP.md` phases |
 | HAZ-010 | Companion app bolus request delivers the wrong amount or delivers twice (planned feature) | Typo, double tap, retry after timeout, stale glucose shown at request time | Critical | Possible | Request-only design: Trio enforces max bolus, max IOB, and a 10-minute duplicate guard and rejects stale or future-dated requests; app requires an explicit confirm step, shows a pending state until Trio answers, never marks anything delivered on its own, and disables the screen when its own glucose display is STALE | ADR-0008 promotion criteria; tests against a fake Trio (not yet written) |
-| HAZ-009 | Trio misconfiguration causes over or under delivery | Wrong therapy settings, pump driver bug (Omnipod 5 support is new, released September 2026) | Critical | Possible | Outside this codebase. Open loop first, closed loop only after settings are validated with her endo; keep the official Omnipod 5 app as fallback; report bugs upstream with logs | Process, see `docs/SETUP.md` phases |
+| HAZ-011 | One malformed entry, or one failed file write, blanks or freezes the display for a long time | A single `NaN`, `Infinity`, or absurd timestamp in the Nightscout window raised an unexpected error past the parser, so eleven good readings were discarded and the screen said "Nightscout unreachable" for up to an hour; a full disk or locked SVG file killed the watch process, leaving the last image on a dashboard looking fresh | Critical | Possible | Parser range-checks numbers before converting them and bounds timestamps to 2000-2100; `parse_entries` survives any exception from one entry; the watch loop logs a failed write and continues; the SVG carries a "written HH:MM UTC" stamp; stdout is flushed each cycle so logs are live under systemd | FR-001, `test_haz011_one_poisoned_entry_never_hides_the_good_ones`, `test_haz011_watch_survives_svg_write_failure`, `test_haz011_written_stamp_is_optional_and_utc`, shared vector `huge_value_rejected` |
+| HAZ-012 | Companion app crashes on launch, or runs on thresholds other than the ones it shows | A number too large for `Int` trapped instead of throwing; an impossible threshold combination silently fell back to defaults while the settings screen kept showing the user's numbers | Serious | Possible | Swift range-checks the `Double` before `Int()`; settings edits land in a draft, Save is disabled with the reason shown while the set is invalid, and an invalid set found on disk is reset to defaults so screen and rules always agree | FR-012, `testHugeNumbersThrowInsteadOfCrashing`, `testPoisonedEntryDoesNotBlankTheList`, manual review of `SettingsView` |
 
 ## Review Triggers
 
 Re-review this log when:
 
 - any change touches parsing, classification, rendering, or the Nightscout client;
+- the display host's clock is found to be wrong (a wrong clock fails in the safe direction, toward STALE, but it is still an incident worth recording);
 - a new display device or alert path is added;
 - the upstream stack changes (new Trio release, Nightscout major version, sensor or pump change);
 - a real-world incident or near miss happens. Record it here with a new HAZ ID.

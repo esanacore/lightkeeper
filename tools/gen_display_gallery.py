@@ -64,6 +64,7 @@ GROUPS = [
             "last_good_while_unreachable",
             "stale_while_unreachable_stays_four_lines",
             "invalid_value_rejected",
+            "huge_value_rejected",
             "non_sgv_rejected",
         ],
     ),

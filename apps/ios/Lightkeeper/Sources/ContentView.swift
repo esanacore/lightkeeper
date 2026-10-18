@@ -59,6 +59,8 @@ struct ContentView: View {
                 .font(.system(size: 96, weight: .heavy, design: .default))
                 .monospacedDigit()
                 .foregroundStyle(model.status.level == .stale ? Palette.statusStale : Palette.ink)
+                .strikethrough(model.status.level == .stale, color: Palette.statusStale)
+                .scaleEffect(model.status.level == .stale ? 0.6 : 1, anchor: .bottomLeading)
                 .minimumScaleFactor(0.5)
                 .lineLimit(1)
             if let r = model.status.reading, !r.isSensorLowSentinel, !r.isSensorHighSentinel {
@@ -115,34 +117,48 @@ struct SettingsView: View {
     @EnvironmentObject var model: GlucoseModel
     @Environment(\.dismiss) private var dismiss
     @State private var token = Keychain.readToken() ?? ""
+    // Edits land in a draft, so swiping the sheet away never applies
+    // half-finished thresholds to the live display (HAZ-006).
+    @State private var draft = Settings()
 
     var body: some View {
         NavigationStack {
             Form {
                 Section("Nightscout") {
-                    TextField("https://your-site.example", text: $model.settings.nightscoutURL)
+                    TextField("https://your-site.example", text: $draft.nightscoutURL)
                         .keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
                     SecureField("Readable token (never the API secret)", text: $token)
                 }
                 Section("Display thresholds (mg/dL)") {
-                    Stepper("Urgent low: \(model.settings.urgentLow)", value: $model.settings.urgentLow, in: 40...100)
-                    Stepper("Low: \(model.settings.low)", value: $model.settings.low, in: 41...150)
-                    Stepper("High: \(model.settings.high)", value: $model.settings.high, in: 100...350)
-                    Stepper("Urgent high: \(model.settings.urgentHigh)", value: $model.settings.urgentHigh, in: 101...400)
-                    Stepper("Stale after: \(model.settings.staleMinutes) min", value: $model.settings.staleMinutes, in: 6...60)
-                    Text("These change what the display says, not what the pump does. Agree them with your care team.")
+                    Stepper("Urgent low: \(draft.urgentLow)", value: $draft.urgentLow, in: 40...100)
+                    Stepper("Low: \(draft.low)", value: $draft.low, in: 41...150)
+                    Stepper("High: \(draft.high)", value: $draft.high, in: 100...350)
+                    Stepper("Urgent high: \(draft.urgentHigh)", value: $draft.urgentHigh, in: 101...400)
+                    Stepper("Stale after: \(draft.staleMinutes) min", value: $draft.staleMinutes, in: 6...60)
+                    if let message = draft.validationMessage {
+                        Label(message, systemImage: "exclamationmark.triangle")
+                            .font(.footnote).foregroundStyle(Palette.statusLow)
+                            .accessibilityLabel("Invalid thresholds: \(message)")
+                    }
+                    Text("Thresholds change only which word the display shows. They do not affect dosing or the primary app's alarms. Match them to the alert settings already in the primary app.")
                         .font(.footnote).foregroundStyle(Palette.muted)
                 }
             }
             .navigationTitle("Settings")
+            .onAppear { draft = model.settings }
             .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
+                        guard draft.save() else { return }
                         Keychain.writeToken(token)
-                        model.settings.save()
+                        model.settings = draft
                         dismiss()
                         Task { await model.refresh() }
                     }
+                    .disabled(!draft.isValid)
                 }
             }
         }

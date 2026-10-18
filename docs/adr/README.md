@@ -10,5 +10,5 @@ Every significant architecture or safety decision, numbered in the order it was 
 | [0004](0004-no-insulin-delivery-code-in-this-repo.md) | No Insulin Delivery Code or Hardware in This Repository | Accepted | 2026-10-17 |
 | [0005](0005-read-only-display-layer-in-python.md) | Read-Only Display Layer in Python, Standard Library at Runtime | Accepted | 2026-10-17 |
 | [0006](0006-xteink-esp32-display-with-shared-vectors.md) | Xteink ESP32-C3 Pocket Display, Kept in Lockstep with Python by Shared Vectors | Proposed | 2026-10-17 |
-| [0008](0008-companion-app-and-bolus-requests-via-trio.md) | Companion App, with Bolus Requests Only Through Trio's Remote Protocol | Proposed | 2026-10-18 |
 | [0007](0007-cpp-style-google-base-mirrored-naming.md) | C++ Style, Google Base with Naming That Mirrors the Python | Proposed | 2026-10-18 |
+| [0008](0008-companion-app-and-bolus-requests-via-trio.md) | Companion App, with Bolus Requests Only Through Trio's Remote Protocol | Proposed | 2026-10-18 |

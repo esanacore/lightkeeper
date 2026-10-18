@@ -6,7 +6,22 @@ This project follows semantic versioning.
 
 ## Unreleased
 
+Pre-release: `VERSION` and `pyproject.toml` already read 0.1.0, but no tag has been cut; everything below ships in the first tagged release.
+
+### Fixed
+
+- A single malformed Nightscout entry (`NaN`, `Infinity`, an absurd timestamp) no longer discards the good readings around it or reports "Nightscout unreachable"; timestamps are bounded to 2000-2100 so a seconds-instead-of-milliseconds upload is rejected instead of reading as 1970 (HAZ-011, all three implementations).
+- `--watch` survives a failed `--svg` write (full disk, locked file) and logs it instead of exiting; Ctrl+C exits cleanly; output is flushed each cycle so `journalctl -f` is live under systemd. Run-once returns exit code 2 on a failed write.
+- The SVG written by `--svg` carries a small `written HH:MM UTC` stamp so a dashboard can tell a live writer from a dead one.
+- Readings that share a timestamp (several uploaders) resolve to the lower value in every implementation, independent of upload order.
+- iOS: numbers too large for `Int` now throw instead of crashing the app; settings edits land in a draft, Save is disabled with the reason while thresholds are invalid, and an invalid set on disk resets to defaults; the app re-ages the last reading the instant it returns to the foreground and shrinks and strikes through a STALE number (HAZ-012).
+- Firmware: NaN values are rejected before any cast (previously undefined behaviour that happened to pass).
+
 ### Added
+
+- `docs/SAFETY.md`: Intended Use and Classification section (IEC 62304 Class A-equivalent rationale, limitations list), HAZ-011 and HAZ-012.
+- Shared vector `huge_value_rejected`; every implementation now asserts the vector `spec_version` it was written for.
+- Reserved requirements FR-013 (mmol/L), FR-014 (delta), FR-015 (device status) in the PRD's Planned section.
 
 - `lightkeeper` read-only Nightscout display: strict entry parsing, configurable thresholds, staleness and future-timestamp protection, short ASCII rendering for e-ink, safe degradation when Nightscout fails, and a CLI with `--demo` and `--watch`.
 - `--svg PATH` writes each screen as an SVG image of the e-paper panel (FR-011).

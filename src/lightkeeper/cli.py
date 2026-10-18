@@ -72,15 +72,16 @@ def thresholds_from_env() -> Thresholds:
         raise SystemExit(f"invalid threshold settings: {exc}") from None
 
 
-def write_svg(path: str, lines: list[str]) -> None:
+def write_svg(path: str, lines: list[str], written_at: datetime | None = None) -> None:
     """Write the screen as SVG, replacing the file in one step.
 
     Writing to a temporary file and renaming means a dashboard reading the
-    image never sees a half-written file.
+    image never sees a half-written file. The optional `written_at` stamp
+    lets a viewer tell a live writer from a dead one (see HAZ-011).
     """
     target = Path(path)
     temp = target.with_name(target.name + ".tmp")
-    temp.write_text(render_svg(lines), encoding="utf-8")
+    temp.write_text(render_svg(lines, written_at=written_at), encoding="utf-8")
     os.replace(temp, target)
 
 
@@ -122,18 +123,31 @@ def main(argv: list[str] | None = None) -> int:
 
     last_good = None
     while True:
-        status, error = current_status(source, datetime.now(UTC), thresholds, last_good)
+        now = datetime.now(UTC)
+        status, error = current_status(source, now, thresholds, last_good)
         if error is None:
             last_good = status
         lines = render_lines(status, error)
-        print("\n".join(lines))
+        # flush=True: under systemd stdout is block-buffered, and a buffered
+        # screen that only appears hours later is useless in `journalctl -f`.
+        print("\n".join(lines), flush=True)
         if args.svg:
-            write_svg(args.svg, lines)
+            try:
+                write_svg(args.svg, lines, written_at=now)
+            except OSError as exc:
+                # A full disk or a locked file must not kill the watch loop
+                # (HAZ-011); the next cycle retries. Run-once reports it.
+                print(f"Could not write {args.svg}: {exc}", file=sys.stderr, flush=True)
+                if not args.watch:
+                    return 2
         if not args.watch:
             # Exit code tells scripts (Home Assistant, cron) whether to pay attention.
             return 1 if status.level.needs_attention else 0
-        print("-" * 24)
-        time.sleep(max(args.interval, 15))
+        print("-" * 24, flush=True)
+        try:
+            time.sleep(max(args.interval, 15))
+        except KeyboardInterrupt:
+            return 0
 
 
 if __name__ == "__main__":  # pragma: no cover

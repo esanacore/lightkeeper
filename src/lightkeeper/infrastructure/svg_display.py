@@ -10,6 +10,7 @@ and every line of text is XML-escaped, so it is safe to embed anywhere.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from xml.sax.saxutils import escape
 
 # A common small e-paper panel size (Waveshare 2.9"), in pixels.
@@ -19,6 +20,7 @@ DEFAULT_HEIGHT = 128
 PAPER = "#e8e8e3"
 INK = "#111111"
 EDGE = "#b9b9b3"
+STAMP = "#5b5b57"
 
 
 # Monospace glyphs are about 0.6 of the font size wide.
@@ -38,10 +40,14 @@ def render_svg(
     width: int = DEFAULT_WIDTH,
     height: int = DEFAULT_HEIGHT,
     title: str = "Lightkeeper display",
+    written_at: datetime | None = None,
 ) -> str:
     """Return an SVG document showing `lines` the way the panel would.
 
     The first line is the status headline, so it is drawn larger and bold.
+    When `written_at` is given, a small "written HH:MM UTC" stamp is drawn
+    in the bottom-right corner so a dashboard viewer can tell a live writer
+    from one that died and left its last image behind.
     """
     if width < 100 or height < 60:
         raise ValueError("panel must be at least 100x60 pixels")
@@ -76,6 +82,14 @@ def render_svg(
             f'<text x="{margin}" y="{baseline}" fill="{INK}" '
             f'font-family="DejaVu Sans Mono, Consolas, monospace" font-size="{body_size}">'
             f"{escape(line)}</text>"
+        )
+    if written_at is not None:
+        stamp = "written " + written_at.astimezone(UTC).strftime("%H:%M UTC")
+        stamp_size = max(7, round(height * 0.07))
+        parts.append(
+            f'<text x="{width - margin}" y="{height - round(margin * 0.4)}" fill="{STAMP}" '
+            f'font-family="DejaVu Sans Mono, Consolas, monospace" font-size="{stamp_size}" '
+            f'text-anchor="end">{escape(stamp)}</text>'
         )
     parts.append("</svg>")
     return "\n".join(parts) + "\n"

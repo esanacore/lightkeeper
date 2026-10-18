@@ -6,32 +6,28 @@ This document records the current session's planned work before implementation b
 
 ## Session
 
-- **Date/Time**: 2026-10-18 07:20 UTC
+- **Date/Time**: 2026-10-18 19:30 UTC
 - **Agent**: Claude
-- **Previous Session**: Completed and pushed (repository created, CI green). Handoff in `docs/AGENT_HANDOFF.md`.
+- **Previous Session**: Compliance push completed and pushed. Handoff in `docs/AGENT_HANDOFF.md`.
 
 ## Goal
 
-Bring Lightkeeper to full compliance with Eric's Engineering Constitution 1.54.0 and add visuals and demos: an SVG display renderer, a generated display-state gallery, and a demo page driven by the shared vectors.
+Apply the two review reports (adversarial safety review, docs/product review), expand the wiki, and keep the professional polish pass going.
 
 ## Approach
 
-1. Visuals: `render_svg`, `--svg` CLI option, `tools/gen_display_gallery.py`, drift tests (FR-011).
-2. Declare FR-011 and update traceability.
-3. Fix CI workflows: env check path and permissions, wiki workflow permissions, Dependabot pip entry.
-4. Add lint, format, and type checking (ruff, mypy, clang-format) and fix what they find.
-5. Fill template leftovers: wiki, CODEOWNERS, `.github/SECURITY.md`, `docs/HELP.md`, CONTRIBUTING links, devcontainer, `.python-version`, prerequisite check.
-6. Security docs: data classification, retention, STRIDE threat model.
-7. ADR index and promotion gatekeepers; OTS and TODO/CHANGELOG hygiene; remove `.constitution-bootstrap/`.
-8. Prepare the 0.1.0 release in CHANGELOG; tagging and publishing wait for Eric's approval.
-9. Run every constitution checker, push, confirm CI.
+1. Safety review: poisoned-entry isolation, watch-loop resilience, SVG stamp, duplicate tiebreak (Python); NaN/date bounds (firmware); crash-safe parsing, draft settings, foreground re-classification (iOS). Tests and a shared vector for each.
+2. Docs review: Intended Use section, HAZ-008 note, threshold wording, hazard order, ADR index, reserved FR-013..015, ENV_VARS token note, HARDWARE heading, ROADMAP versioning claim, demo page restyle.
+3. Wiki build-out (background agent) with `tests/test_wiki.py`.
+4. Traceability, CHANGELOG, TODO, handoff; run every checker; push; confirm CI including the iOS workflow.
+
+## Status
+
+Steps 1, 2, and 4 done in this session; step 3 committed when the wiki agent reported. See `docs/AGENT_HANDOFF.md` for what is next.
 
 ## Files Expected to Change
 
-- `src/lightkeeper/**`, `tests/**`, `tools/gen_display_gallery.py`, `firmware/xteink/**`: create/modify
-- `docs/**`, `wiki/**`, `README.md` (content only, house style kept), `CHANGELOG.md`, `TODO.md`: modify
-- `.github/**`, `.devcontainer/devcontainer.json`, `.pre-commit-config.yaml`, `pyproject.toml`: modify
-- `.constitution-bootstrap/`: delete
+- `src/lightkeeper/**`, `tests/**`, `firmware/xteink/**`, `apps/ios/**`, `spec/display_vectors.json`, `demo.html`, `docs/**`, `wiki/**`, `CHANGELOG.md`, `TODO.md`.
 
 ## Risks and Dependencies
 

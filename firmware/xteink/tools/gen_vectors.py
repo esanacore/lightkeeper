@@ -19,8 +19,12 @@ def c_str(value):
 def main(src, dst):
     """Write one C++ Vector initializer per case in `src` to `dst`."""
     with open(src, encoding="utf-8") as fh:
-        cases = json.load(fh)["cases"]
-    out = ["// Generated from spec/display_vectors.json by tools/gen_vectors.py. Do not edit."]
+        spec = json.load(fh)
+    cases = spec["cases"]
+    out = [
+        "// Generated from spec/display_vectors.json by tools/gen_vectors.py. Do not edit.",
+        f"// spec_version {int(spec['spec_version'])}",
+    ]
     for case in cases:
         entry = case["entry"]
         has_entry = "true" if entry is not None else "false"
@@ -39,6 +43,9 @@ def main(src, dst):
         )
     with open(dst, "w", encoding="utf-8", newline="\n") as fh:
         fh.write("\n".join(out) + "\n")
+    version_path = dst.rsplit(".", 1)[0] + "_version.inc"
+    with open(version_path, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write(f"{int(spec['spec_version'])}\n")
 
 
 if __name__ == "__main__":

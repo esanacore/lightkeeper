@@ -85,11 +85,16 @@ bool parse_entry(const RawEntry& entry, Reading* out) {
 
   if (!entry.has_sgv) return false;
   // Range check on the double first, so the int conversion below is safe.
-  if (entry.sgv < kSensorMinMgdl || entry.sgv > kSensorMaxMgdl) return false;
+  // Written as a negated conjunction so NaN (every comparison false) is
+  // rejected here instead of reaching static_cast, which is UB for NaN.
+  if (!(entry.sgv >= kSensorMinMgdl && entry.sgv <= kSensorMaxMgdl)) return false;
   int mgdl = static_cast<int>(entry.sgv);
   if (static_cast<double>(mgdl) != entry.sgv) return false;  // fractional value
 
-  if (!entry.has_date || !(entry.date_ms > 0)) return false;  // also rejects NaN
+  // Same shape for the date: NaN, 1e300 and seconds-not-milliseconds all fail.
+  if (!entry.has_date || !(entry.date_ms >= kMinDateMs && entry.date_ms <= kMaxDateMs)) {
+    return false;
+  }
 
   out->mgdl = mgdl;
   out->timestamp_ms = static_cast<int64_t>(entry.date_ms);

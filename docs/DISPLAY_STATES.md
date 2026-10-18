@@ -39,4 +39,5 @@ Rules worth noticing: anything older than 15 minutes or dated in the future show
 | sgv 101 mg/dL, Flat, 7 min old, Nightscout unreachable | ![IN RANGE](img/display-states/last_good_while_unreachable.svg) |
 | sgv 120 mg/dL, Flat, 32 min old, Nightscout unreachable | ![STALE](img/display-states/stale_while_unreachable_stays_four_lines.svg) |
 | sgv 402 mg/dL, Flat, 1 min old | ![NO DATA](img/display-states/invalid_value_rejected.svg) |
+| sgv 1e+30 mg/dL, Flat, 1 min old | ![NO DATA](img/display-states/huge_value_rejected.svg) |
 | mbg 120 mg/dL, Flat, 1 min old | ![NO DATA](img/display-states/non_sgv_rejected.svg) |

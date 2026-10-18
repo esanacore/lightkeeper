@@ -95,6 +95,33 @@ def test_fr006_watch_mode_loops_until_interrupted(monkeypatch, capsys):
             raise KeyboardInterrupt
 
     monkeypatch.setattr(cli.time, "sleep", fake_sleep)
-    with pytest.raises(KeyboardInterrupt):
-        cli.main(["--demo", "--watch", "--interval", "1"])
+    # Ctrl+C is a clean exit (code 0), not a traceback.
+    assert cli.main(["--demo", "--watch", "--interval", "1"]) == 0
     assert capsys.readouterr().out.count("IN RANGE") == 2
+
+
+def test_haz011_watch_survives_svg_write_failure(monkeypatch, capsys, tmp_path):
+    """HAZ-011: a full disk or locked file must not kill the writer process.
+
+    systemd would restart-loop it; without systemd the last image would sit
+    on the dashboard looking fresh forever.
+    """
+    calls = {"n": 0}
+
+    def fake_sleep(seconds):
+        calls["n"] += 1
+        if calls["n"] >= 2:
+            raise KeyboardInterrupt
+
+    monkeypatch.setattr(cli.time, "sleep", fake_sleep)
+    missing_dir = tmp_path / "does-not-exist" / "screen.svg"
+    assert cli.main(["--demo", "--watch", "--svg", str(missing_dir)]) == 0
+    out, err = capsys.readouterr()
+    assert out.count("IN RANGE") == 2  # both cycles still rendered
+    assert err.count("Could not write") == 2
+
+
+def test_haz011_run_once_svg_write_failure_is_a_config_error(capsys, tmp_path):
+    missing_dir = tmp_path / "does-not-exist" / "screen.svg"
+    assert cli.main(["--demo", "--svg", str(missing_dir)]) == 2
+    assert "Could not write" in capsys.readouterr().err
