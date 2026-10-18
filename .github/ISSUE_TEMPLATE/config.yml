@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security report
+    url: https://github.com/esanacore/lightkeeper/security/advisories/new
+    about: Report a vulnerability privately.
+  - name: Questions about Nightscout or Trio
+    url: https://triodocs.org
+    about: Those projects have their own docs and support channels.

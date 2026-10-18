@@ -154,7 +154,7 @@ lightkeeper/
 
 ## Contributing
 
-Before completing work:
+See `CODE_OF_CONDUCT.md` and `SUPPORT.md`. Before completing work:
 
 - Update tests, named with the requirement IDs they verify.
 - Update documentation, including per-platform instructions.

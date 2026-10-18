@@ -24,6 +24,8 @@
 - [ ] `TODO.md` updated with discovered or completed work.
 - [ ] `CHANGELOG.md` updated for user-facing changes.
 - [ ] Security impact considered; secrets sweep (`constitution/scripts/check_secrets.sh`) run.
+- [ ] Safety: if parsing, classification, rendering, the Nightscout client, firmware rules, or the iOS core changed, `docs/SAFETY.md` was reviewed and the shared vectors, Python, C++, and Swift were updated together.
+- [ ] No real glucose data, Nightscout URLs, or tokens anywhere in this change.
 - [ ] Release discipline evaluated (`constitution/RELEASES.md`): release cut, or reason stated below.
 - [ ] `docs/MEMORY.md` proposals surfaced to the user (if any).
 - [ ] Next Steps procedure below filled in, and copied into `docs/AGENT_HANDOFF.md`.

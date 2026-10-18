@@ -91,6 +91,7 @@ const char* level_name(Level level);
 bool needs_attention(Level level);
 
 // reading may be nullptr (no data). now_ms is Unix time in milliseconds.
+// Invalid thresholds yield NoData: a number is never judged against bad limits.
 Status classify(const Reading* reading, int64_t now_ms, const Thresholds& thresholds);
 
 // Floor of age in whole minutes, matching Python's `seconds // 60`.

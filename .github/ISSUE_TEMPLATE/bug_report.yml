@@ -1,0 +1,42 @@
+name: Bug report
+description: Something Lightkeeper showed or did that was wrong.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Do not include real glucose data, your Nightscout URL, or any token. Use the synthetic values from `spec/display_vectors.json` or made-up numbers.
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Could this mislead someone?
+      description: A display that showed a wrong or old number as current is a safety issue and is triaged first.
+      options:
+        - "Yes: a wrong, stale, or missing status looked trustworthy"
+        - "No: cosmetic, docs, tooling, or build"
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options: [Python display tool, iOS app, Firmware, Demo page or docs, CI or tooling]
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What the screen showed, what it should have shown, and how old the data actually was.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. ... 2. ... (use --demo flags or a synthetic entry where you can)"
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: "python -m lightkeeper --version, or the commit"

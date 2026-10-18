@@ -21,6 +21,7 @@ This project follows semantic versioning.
 - Offline `demo.html` showing every display state.
 - `docs/ROADMAP.md` and ADR-0008 (proposed): a companion iOS app, read-only first, with bolus requests only through Trio's remote protocol.
 - `spec_version` field in `spec/display_vectors.json`.
+- Project hygiene: `CODE_OF_CONDUCT.md`, `SUPPORT.md`, `CITATION.cff`, issue templates with a safety triage question, safety line in the PR template.
 - iOS companion app, read-only layer: `LightkeeperCore` Swift package (rules + Nightscout client) tested against the shared vectors, SwiftUI app with Keychain-held token, built in CI on macOS runners (FR-012, ADR-0008 Phase 5a).
 - Brand kit: lighthouse mark (light, dark, mono), app icon, palette, social preview, and `docs/BRAND.md`.
 - `docs/HARDWARE.md`: buyer's guide for the bedside Pi display, the Xteink X4 Pro, and an ESP32-S3 bench board.
@@ -33,6 +34,8 @@ This project follows semantic versioning.
 - CI: Python set up and declared suite run in strict mode; env-contract check now actually runs; wiki workflow write access limited to its publish job; Dependabot watches pip.
 
 ### Fixed
+
+- Firmware: `age_minutes` now floors milliseconds exactly like Python for negative ages; `classify` returns NO DATA when thresholds are invalid instead of judging a number against bad limits.
 
 - STALE while Nightscout is unreachable now renders four lines instead of five, so it fits the e-ink limit (found by the shared vectors).
 

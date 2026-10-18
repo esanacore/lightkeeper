@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you reference Lightkeeper, please cite it as below."
+title: "Lightkeeper: read-only glucose displays for type 1 diabetes"
+type: software
+authors:
+  - family-names: Sanacore
+    given-names: Eric
+repository-code: "https://github.com/esanacore/lightkeeper"
+license: Apache-2.0
+version: 0.1.0
+date-released: 2026-10-18
+keywords:
+  - type 1 diabetes
+  - Nightscout
+  - continuous glucose monitoring
+  - e-paper
+  - open source

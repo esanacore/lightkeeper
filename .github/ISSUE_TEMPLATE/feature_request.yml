@@ -1,0 +1,22 @@
+name: Feature request
+description: Something a display, the app, or the firmware should do.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The situation
+      description: What were you trying to see or do, and when (night, away from home, during a sensor warm-up)?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you'd like
+  - type: checkboxes
+    id: boundary
+    attributes:
+      label: Boundary check
+      options:
+        - label: This feature only reads and shows data, or asks Trio to act through its own remote protocol. It does not talk to a pump or sensor (ADR-0004, ADR-0008).
+          required: true

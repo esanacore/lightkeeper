@@ -168,6 +168,20 @@ void test_age_floor() {
   CHECK(lk::age_minutes(s) == -1, "negative age floors like Python");
   s.age_ms = 119 * 1000;
   CHECK(lk::age_minutes(s) == 1, "positive age floors");
+  s.age_ms = -120500;
+  CHECK(lk::age_minutes(s) == -3, "sub-second negative age floors like Python (-120.5 s // 60)");
+  s.age_ms = 59999;
+  CHECK(lk::age_minutes(s) == 0, "59.999 s is still 0 minutes");
+}
+
+void test_invalid_thresholds_never_classify() {
+  lk::Reading r;
+  r.mgdl = 45;
+  r.timestamp_ms = kNowMs;
+  lk::Thresholds bad;
+  bad.low = bad.urgent_low;  // inverted: would hide lows
+  lk::Status s = lk::classify(&r, kNowMs, bad);
+  CHECK(s.level == lk::Level::NoData && !s.has_reading, "invalid thresholds give NO DATA");
 }
 
 }  // namespace
@@ -178,6 +192,7 @@ int main() {
   test_thresholds();
   test_render_limits();
   test_age_floor();
+  test_invalid_thresholds_never_classify();
   printf("%d checks, %d failures (%d shared vectors)\n", g_checks, g_failures,
          static_cast<int>(sizeof(kVectors) / sizeof(kVectors[0])));
   return g_failures == 0 ? 0 : 1;

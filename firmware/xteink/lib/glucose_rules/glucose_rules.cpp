@@ -99,7 +99,9 @@ bool parse_entry(const RawEntry& entry, Reading* out) {
 
 Status classify(const Reading* reading, int64_t now_ms, const Thresholds& t) {
   Status status;
-  if (reading == nullptr) {
+  // Python validates thresholds at construction; here the device config is the
+  // caller's. Never classify a number against limits that could hide a low.
+  if (!t.valid() || reading == nullptr) {
     status.level = Level::NoData;
     return status;
   }
@@ -131,7 +133,9 @@ Status classify(const Reading* reading, int64_t now_ms, const Thresholds& t) {
   return status;
 }
 
-int64_t age_minutes(const Status& status) { return floor_div(status.age_ms / 1000, 60); }
+// Floor of the whole age in minutes, exactly like Python's `total_seconds() // 60`
+// (dividing milliseconds by 1000 first would truncate toward zero for negative ages).
+int64_t age_minutes(const Status& status) { return floor_div(status.age_ms, 60 * 1000); }
 
 void render(const Status& status, bool fetch_error, Lines* out) {
   if (out == nullptr) return;
