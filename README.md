@@ -129,7 +129,7 @@ The Python suite enforces a 90% coverage floor (currently 100%). Both suites run
 
 ## Demo
 
-Open [`demo.html`](demo.html) to see every display state with simulated data, no install needed.
+See every display state with simulated data, no install needed: [live demo](https://esanacore.github.io/lightkeeper/), or open [`demo.html`](demo.html) locally.
 
 ## Project Structure
 

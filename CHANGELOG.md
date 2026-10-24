@@ -9,6 +9,7 @@ This project follows semantic versioning.
 ### Changed
 
 - README: a version line under the badge, and the How It Fits Together diagram as a top-down image rendered from `assets/diagrams/`, so it also shows in GitHub's mobile apps.
+- The demo page is published at https://esanacore.github.io/lightkeeper/ by a new `pages.yml` workflow, and the README links it. Its links to repository docs are now absolute, so they work from the published page.
 
 ### Fixed
 

@@ -34,7 +34,7 @@ Yes, for anything beyond demo mode. Nightscout is the single data hub every disp
 A token for a Nightscout subject with the `readable` role only, created under Admin Tools, Subjects. Never the `API_SECRET`; it grants write access and Lightkeeper has nothing to write. See [[Security and Privacy]].
 
 **Can I try it without any of that?**
-Yes. `python -m lightkeeper --demo` serves one made-up reading and never touches the network; `--demo-mgdl` and `--demo-minutes-ago` let you see each state. `demo.html` in the repository shows every screen in a browser, with a button for every vector. See [[Getting Started]].
+Yes. `python -m lightkeeper --demo` serves one made-up reading and never touches the network; `--demo-mgdl` and `--demo-minutes-ago` let you see each state. The [live demo](https://esanacore.github.io/lightkeeper/) (`demo.html` in the repository) shows every screen in a browser, with a button for every vector. See [[Getting Started]].
 
 **Does it support mmol/L?**
 Not yet. Thresholds and screens are in mg/dL. mmol/L is reserved requirement FR-013, alongside delta (FR-014) and device status (FR-015). See [[Roadmap]].

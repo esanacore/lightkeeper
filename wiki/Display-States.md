@@ -1,6 +1,6 @@
 # Display States
 
-Every screen Lightkeeper can show, drawn at the size of a 2.9 inch e-paper panel (296 by 128 pixels). These images are generated from `spec/display_vectors.json` by `tools/gen_display_gallery.py`, the same 39 cases the Python, C++, and Swift tests run, so the pictures always match real behavior. A test fails if the committed gallery in `docs/DISPLAY_STATES.md` drifts from the generator's output. The images below are served from the repository's `main` branch; `demo.html` shows the same screens with a button for every vector.
+Every screen Lightkeeper can show, drawn at the size of a 2.9 inch e-paper panel (296 by 128 pixels). These images are generated from `spec/display_vectors.json` by `tools/gen_display_gallery.py`, the same 39 cases the Python, C++, and Swift tests run, so the pictures always match real behavior. A test fails if the committed gallery in `docs/DISPLAY_STATES.md` drifts from the generator's output. The images below are served from the repository's `main` branch; the [live demo](https://esanacore.github.io/lightkeeper/) (`demo.html`) shows the same screens with a button for every vector.
 
 Lightkeeper is a secondary display and not a medical device. Always confirm on the primary CGM app before acting.
 

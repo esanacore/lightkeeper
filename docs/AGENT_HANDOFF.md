@@ -18,7 +18,7 @@ Replace the entry below at the end of every push; only the latest handoff is kep
 
 #### Next Steps
 
-**Human action required:** steps 1 (done), 2 (done), 3, 4, 5, 6, 7, and 8.
+**Human action required:** steps 1 (done), 2 (done), 3 (done), 4, 5, 6, 7, and 8.
 
 1. [x] **HUMAN** — Approve cutting release v0.1.0 (approved 2026-10-24; tagged and published)
    - **Why a human:** a tag and GitHub Release are public, permanent publications.
@@ -26,7 +26,7 @@ Replace the entry below at the end of every push; only the latest handoff is kep
 2. [x] **HUMAN** — Decide on README presentation changes the constitution asks for (approved 2026-10-24: version line and top-down rendered diagram added; the demo link lands with step 3)
    - **Why a human:** the README layout is locked by Eric's house-style rule.
    - **Done when:** Eric has approved or declined a version line, a top-to-bottom (TD) diagram with a committed rendered image, and a published demo link.
-3. [ ] **HUMAN** — Turn on GitHub Pages (Settings, Pages, Source: GitHub Actions) if the demo should be published
+3. [x] **HUMAN** — Turn on GitHub Pages (Settings, Pages, Source: GitHub Actions) if the demo should be published (approved 2026-10-24; enabled via the API, `pages.yml` deploys it, README links it)
    - **Why a human:** repository settings change.
    - **Done when:** Pages is enabled; an agent then adds the deploy workflow and links the URL.
 4. [ ] **HUMAN** — Approve or reject ADR-0007 (C++ naming mirrors Python, 100 columns)
