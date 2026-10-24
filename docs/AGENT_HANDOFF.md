@@ -18,7 +18,7 @@ Replace the entry below at the end of every push; only the latest handoff is kep
 
 #### Next Steps
 
-**Human action required:** steps 1 (done), 2 (done), 3 (done), 4 (done), 5, 6, 7, and 8.
+**Human action required:** steps 1 (done), 2 (done), 3 (done), 4 (done), 5 (done), 6, 7, and 8.
 
 1. [x] **HUMAN** — Approve cutting release v0.1.0 (approved 2026-10-24; tagged and published)
    - **Why a human:** a tag and GitHub Release are public, permanent publications.
@@ -32,7 +32,7 @@ Replace the entry below at the end of every push; only the latest handoff is kep
 4. [x] **HUMAN** — Approve or reject ADR-0007 (C++ naming mirrors Python, 100 columns) (accepted as written 2026-10-24)
    - **Why a human:** style deviations from the constitution need the owner's approval.
    - **Done when:** ADR-0007 is Accepted or replaced, and the decision is recorded in `docs/MEMORY.md`.
-5. [ ] **HUMAN** — Confirm the Apache-2.0 license and decide on the gstack section in `CLAUDE.md`
+5. [x] **HUMAN** — Confirm the Apache-2.0 license and decide on the gstack section in `CLAUDE.md` (2026-10-24: Apache-2.0 kept, gstack section kept)
    - **Why a human:** licensing and tooling choices are the owner's.
    - **Done when:** `LICENSE` is confirmed and the gstack section is kept (with gstack installed) or deleted.
 6. [ ] **HUMAN** — Kaitlin reviews `docs/SAFETY.md` and the default thresholds

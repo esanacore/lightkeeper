@@ -38,4 +38,6 @@ This file contains durable memories, codebase learnings, user preferences, and k
   - "Adopted the Compliance Validation Triad to gate pull requests."
 -->
 
-- ADR-0007 accepted (Eric, 2026-10-24): firmware C++ uses clang-format on a Google base, but function names and enum values mirror the Python (`parse_entry`, `Level::Stale`), the column limit is 100, and `#pragma once` is fine. Do not rename toward strict Google style. 
+- ADR-0007 accepted (Eric, 2026-10-24): firmware C++ uses clang-format on a Google base, but function names and enum values mirror the Python (`parse_entry`, `Level::Stale`), the column limit is 100, and `#pragma once` is fine. Do not rename toward strict Google style.
+- License confirmed (Eric, 2026-10-24): Apache-2.0. Trio and Nightscout are AGPL-3.0, but this repository only reads Nightscout over HTTP and vendors none of their code.
+- gstack section in `CLAUDE.md` kept (Eric, 2026-10-24). Where gstack is missing (cloud sessions), run `bash constitution/scripts/setup-machine.sh` or work without it. 
