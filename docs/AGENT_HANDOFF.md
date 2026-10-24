@@ -18,9 +18,9 @@ Replace the entry below at the end of every push; only the latest handoff is kep
 
 #### Next Steps
 
-**Human action required:** steps 1, 2, 3, 4, 5, 6, 7, and 8.
+**Human action required:** steps 1 (done), 2, 3, 4, 5, 6, 7, and 8.
 
-1. [ ] **HUMAN** — Approve cutting release v0.1.0
+1. [x] **HUMAN** — Approve cutting release v0.1.0 (approved 2026-10-24; tagged and published)
    - **Why a human:** a tag and GitHub Release are public, permanent publications.
    - **Done when:** Eric says go; then an agent moves Unreleased to `## [0.1.0] - <date>`, tags `v0.1.0`, and publishes the GitHub Release, and `check_release_tag_alignment.sh` passes.
 2. [ ] **HUMAN** — Decide on README presentation changes the constitution asks for

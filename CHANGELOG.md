@@ -6,7 +6,11 @@ This project follows semantic versioning.
 
 ## Unreleased
 
-Pre-release: `VERSION` and `pyproject.toml` already read 0.1.0, but no tag has been cut; everything below ships in the first tagged release.
+Nothing yet.
+
+## [0.1.0] - 2026-10-24
+
+First tagged release (Phase 0, the foundation).
 
 ### Fixed
 
