@@ -10,7 +10,7 @@ Firmware for a pocket e-ink glucose display on the Xteink X4 or X3 (ESP32-C3, Wi
 
 ## Run the tests
 
-Needs `g++` (or `clang++`), `make`, and Python 3. Linux, macOS, WSL, or Git Bash on Windows:
+Needs `g++` (or `clang++`), `make`, and Python 3. Linux, macOS, or WSL on Windows (MinGW toolchains (MSYS2, WinLibs, Git Bash) cannot link AddressSanitizer):
 
 ```bash
 cd firmware/xteink

@@ -85,7 +85,11 @@ public enum ParseError: Error, Equatable {
 private func number(_ value: Any?) -> Double? {
     if value is Bool { return nil }
     guard let num = value as? NSNumber else { return nil }
+    #if canImport(Darwin)
+    // On Apple platforms a JSON boolean is a CFBoolean that also casts to any
+    // numeric type, so `is Bool` alone is not enough.
     if num === kCFBooleanTrue || num === kCFBooleanFalse { return nil }
+    #endif
     return num.doubleValue
 }
 

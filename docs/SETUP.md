@@ -27,7 +27,9 @@ Python 3.11 or newer, Git, and for the firmware host tests a C++17 compiler and 
 ```powershell
 winget install --id Python.Python.3.12 -e
 winget install --id Git.Git -e
-# Firmware host tests need g++ and make: install MSYS2 or use WSL (Ubuntu) for that part.
+# Firmware host tests need g++ and make with AddressSanitizer: use WSL (Ubuntu), since
+# MinGW toolchains (MSYS2, WinLibs, Git Bash) cannot link AddressSanitizer.
+# Run them with: wsl -- make -C firmware/xteink test
 winget install --id MSYS2.MSYS2 -e
 ```
 

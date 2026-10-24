@@ -28,7 +28,7 @@ Display behavior is implemented in four places that must agree, and the vectors 
 4. `spec/display_vectors.json`: add a case that pins the new behavior, or update an existing one and bump `spec_version`, then update the version assertion in all three suites.
 5. Run `python tools/gen_display_gallery.py` to regenerate `docs/DISPLAY_STATES.md`, the SVGs under `docs/img/display-states/`, and the state table in `demo.html`, and commit the result.
 
-The suites enforce this: the three vector tests fail if an implementation disagrees, and `tests/test_gallery.py` fails if the gallery or demo drifts. If you cannot build one of the three locally (no Swift toolchain, say), say so in the pull request; CI's macOS runner will run the Swift tests, but the code still has to change. [[How It Works]] explains why there are four places; [[Testing and Quality]] describes the parity tests.
+The suites enforce this: the three vector tests fail if an implementation disagrees, and `tests/test_gallery.py` fails if the gallery or demo drifts. If you cannot build one of the three locally (no Swift toolchain, say), say so in the pull request; CI runs the Swift tests on macOS and Linux, but the code still has to change. The Swift package also builds with the Windows Swift toolchain. [[How It Works]] explains why there are four places; [[Testing and Quality]] describes the parity tests.
 
 ## Hazard review
 

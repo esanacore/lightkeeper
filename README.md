@@ -110,7 +110,7 @@ Same on every platform:
 ```bash
 python tools/doctor.py          # checks prerequisites and names anything missing
 python -m pytest --cov
-make -C firmware/xteink test   # needs g++ and make (Linux, macOS, WSL, Git Bash)
+make -C firmware/xteink test   # needs g++ and make (Linux, macOS, or WSL on Windows)
 ```
 
 The Python suite enforces a 90% coverage floor (currently 100%). Both suites run every case in `spec/display_vectors.json`. The full suite, including ruff, strict mypy, and clang-format, is listed in [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md). Test names carry the requirement IDs they verify, for example `test_fr003_staleness_beats_urgent_low`.

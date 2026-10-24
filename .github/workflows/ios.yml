@@ -1,7 +1,8 @@
 name: iOS
 
 # Builds and tests the Swift package and the iOS app on GitHub's macOS
-# runners, so the project needs no Mac. Runs only when iOS code or the shared
+# runners, so the project needs no Mac. The package tests also run on Linux
+# to keep the rules free of Apple-only APIs. Runs only when iOS code or the shared
 # vectors change. (Public repository: macOS minutes are free.)
 
 on:
@@ -34,6 +35,20 @@ jobs:
           # through the API even where raw logs are not.
           grep -E "(error:|failed|XCTAssert)" test.log | head -40 | sed 's/^/::error::/' || true
           exit ${status:-0}
+
+  core-tests-linux:
+    name: LightkeeperCore tests on Linux (portability)
+    # The rules must not quietly come to depend on Apple-only Foundation, so
+    # the package also builds and runs its tests with the open-source toolchain.
+    runs-on: ubuntu-24.04
+    container: swift:6.1-noble
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Swift version
+        run: swift --version
+      - name: Run package tests
+        working-directory: apps/ios/LightkeeperCore
+        run: swift test
 
   app-build:
     name: Build the app for the simulator

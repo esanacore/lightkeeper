@@ -64,8 +64,8 @@ By design (FR-006), so a display never hammers a Nightscout site.
 
 ## Development environment
 
-- `python tools/doctor.py` names the missing piece: Python 3.11+, the `constitution/` submodule (`git submodule update --init --recursive`), pytest, ruff, mypy, or the C++ toolchain (MSYS2 or WSL on Windows; only the firmware host tests need it).
-- `make -C firmware/xteink test` needs `g++` or `clang++`, `make`, and Python 3. On Windows, run it from Git Bash or WSL. A missing `clang-format` skips `format-check` with a note rather than failing.
+- `python tools/doctor.py` names the missing piece: Python 3.11+, the `constitution/` submodule (`git submodule update --init --recursive`), pytest, ruff, mypy, or the C++ toolchain (on Windows it looks inside WSL; only the firmware host tests need it).
+- `make -C firmware/xteink test` needs `g++` or `clang++`, `make`, and Python 3. On Windows, run it in WSL (`wsl -- make -C firmware/xteink test`): MinGW toolchains (MSYS2, WinLibs, Git Bash) cannot link AddressSanitizer. A missing `clang-format` skips `format-check` with a note rather than failing.
 - `tests/test_gallery.py` fails after editing the vectors until you run `python tools/gen_display_gallery.py` and commit the result. See [[Display States]].
 
 Full environment reset:

@@ -1,4 +1,5 @@
-// Read-only Nightscout client for Apple platforms.
+// Read-only Nightscout client. Ships on Apple platforms; also builds with the
+// Linux and Windows Swift toolchains so the package tests run anywhere.
 //
 // Same contract as the Python client: HTTPS only, a readable-role token,
 // GET on the sgv entries endpoint only, a bounded count, a response size
@@ -6,6 +7,9 @@
 // would send the token in the clear).
 
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 public enum NightscoutError: Error, Equatable {
     case badURL(String)

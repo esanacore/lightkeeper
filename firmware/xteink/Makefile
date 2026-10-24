@@ -3,8 +3,9 @@
 #   make format-check  confirm the C++ matches .clang-format
 #   make clean
 #
-# On Windows, run from Git Bash or WSL with g++ and make installed, or use
-# the PlatformIO "native" environment once the device project is added.
+# On Windows, run in WSL (`wsl -- make -C firmware/xteink test`): MinGW
+# toolchains cannot link the sanitizers. The PlatformIO "native" environment
+# is another option once the device project is added.
 
 CXX ?= g++
 PYTHON ?= python3

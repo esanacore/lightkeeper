@@ -7,6 +7,7 @@ Fails fast and names exactly what's missing. Run from the repo root:
 from __future__ import annotations
 
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -38,8 +39,33 @@ def checks() -> list[tuple[str, bool, str]]:
         ("g++", "install a C++17 compiler (needed for the firmware host tests)"),
         ("make", "install make (needed for the firmware host tests)"),
     ]:
-        results.append((tool, shutil.which(tool) is not None, fix))
+        if shutil.which(tool) is not None:
+            results.append((tool, True, fix))
+        elif _in_wsl(tool, "g++"):
+            # MinGW has no AddressSanitizer, so on Windows the firmware tests run in
+            # WSL, which then needs the compiler as well as the tool.
+            results.append((f"{tool} (in WSL: wsl -- make -C firmware/xteink test)", True, fix))
+        else:
+            results.append((tool, False, fix))
     return results
+
+
+def _in_wsl(*tools: str) -> bool:
+    """Report whether, on Windows, the default WSL distribution has every one of `tools`."""
+    wsl = shutil.which("wsl")
+    if sys.platform != "win32" or wsl is None:
+        return False
+    try:
+        # Fixed tool names from this file, never user input.
+        found = subprocess.run(  # noqa: S603
+            [wsl, "-e", "sh", "-c", " && ".join(f"command -v {t}" for t in tools)],
+            capture_output=True,
+            timeout=30,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return found.returncode == 0
 
 
 def _importable(module: str) -> bool:

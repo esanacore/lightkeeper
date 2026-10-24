@@ -26,3 +26,35 @@ def test_doctor_flags_old_python(monkeypatch):
     monkeypatch.setattr(doctor.sys, "version_info", (3, 9, 0))
     names = {name: ok for name, ok, _ in doctor.checks()}
     assert names["Python 3.11+"] is False
+
+
+def test_doctor_accepts_firmware_tools_in_wsl_on_windows(monkeypatch):
+    """MinGW lacks AddressSanitizer, so a Windows machine runs the firmware tests in WSL."""
+    monkeypatch.setattr(doctor.sys, "platform", "win32")
+    monkeypatch.setattr(doctor.shutil, "which", lambda tool: "wsl.exe" if tool == "wsl" else None)
+    calls = []
+
+    def fake_run(cmd, **kwargs):
+        calls.append(cmd)
+        # This WSL has make and g++ but the probe for g++ alone is made to fail,
+        # so only the make row can turn OK, and only because it checked g++ too.
+        return doctor.subprocess.CompletedProcess(cmd, 0 if "make" in cmd[-1] else 1)
+
+    monkeypatch.setattr(doctor.subprocess, "run", fake_run)
+    results = {name: ok for name, ok, _ in doctor.checks()}
+    assert results["make (in WSL: wsl -- make -C firmware/xteink test)"] is True
+    assert results["g++"] is False
+    assert calls[-1][-1] == "command -v make && command -v g++"
+
+
+def test_doctor_ignores_wsl_off_windows_or_when_it_fails(monkeypatch):
+    monkeypatch.setattr(doctor.shutil, "which", lambda tool: "wsl" if tool == "wsl" else None)
+    monkeypatch.setattr(doctor.sys, "platform", "linux")
+    assert doctor._in_wsl("make") is False
+
+    def broken(cmd, **kwargs):
+        raise doctor.subprocess.TimeoutExpired(cmd, 30)
+
+    monkeypatch.setattr(doctor.sys, "platform", "win32")
+    monkeypatch.setattr(doctor.subprocess, "run", broken)
+    assert doctor._in_wsl("make") is False

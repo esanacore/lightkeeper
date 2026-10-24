@@ -101,6 +101,18 @@ final class VectorTests: XCTestCase {
         XCTAssertThrowsError(try parseEntry(["sgv": 120, "date": false]))
     }
 
+    /// The real path: booleans decoded by JSONSerialization, on every platform.
+    func testJSONBooleansAreNotNumbers() throws {
+        let date = nowMs
+        for body in ["{\"sgv\": true, \"date\": \(date)}",
+                     "{\"sgv\": 120, \"date\": false}"] {
+            let entry = try JSONSerialization.jsonObject(with: Data(body.utf8))
+            XCTAssertThrowsError(try parseEntry(entry), body)
+        }
+        let good = try JSONSerialization.jsonObject(with: Data("{\"sgv\": 120, \"date\": \(date)}".utf8))
+        XCTAssertEqual(try parseEntry(good).mgdl, 120)
+    }
+
     /// HAZ-012: numbers too large for Int must throw, never trap.
     func testHugeNumbersThrowInsteadOfCrashing() {
         XCTAssertThrowsError(try parseEntry(["sgv": 1e30, "date": Double(nowMs)]))

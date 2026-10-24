@@ -12,7 +12,7 @@ This document records the current session's planned work before implementation b
 
 ## Goal
 
-Extend the shared vector schema (`seconds_ago`, several entries per case, custom thresholds) so boundary, tie-break, poisoned-entry, and custom-threshold cases are shared across Python, firmware, and Swift.
+Extend the shared vector schema, then make the Swift package portable and teach `tools/doctor.py` about WSL. First goal: (`seconds_ago`, several entries per case, custom thresholds) so boundary, tie-break, poisoned-entry, and custom-threshold cases are shared across Python, firmware, and Swift.
 
 ## Status
 
@@ -20,5 +20,5 @@ Complete. Outcomes and next steps are in `docs/AGENT_HANDOFF.md`.
 
 ## Resumption Notes
 
-- **Last completed step**: all planned work done and verified locally; not yet committed or pushed.
-- **Known issues**: none in the change. `tools/doctor.py` reports `make` missing on Windows (TODO).
+- **Last completed step**: all planned work done and verified locally; see the handoff for push and CI status.
+- **Known issues**: none.
