@@ -50,7 +50,7 @@ From `docs/COMMUNITY_RESEARCH.md` (October 2026):
 - [ ] Record Trio build and settings notes from the first build.
 - [ ] Kaitlin reviews `docs/SAFETY.md` and the default thresholds.
 - [ ] Publish `demo.html` on GitHub Pages and link it from the README's Demo section.
-- [ ] Add a version line to the README (needs Eric's OK per the README house style in `docs/MEMORY.md`).
+- [x] Add a version line to the README (approved and added 2026-10-24).
 
 ## Nice-to-Have
 

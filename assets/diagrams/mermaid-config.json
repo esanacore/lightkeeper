@@ -1,0 +1,21 @@
+{
+  "theme": "base",
+  "themeVariables": {
+    "background": "#ffffff",
+    "primaryColor": "#F6F5F0",
+    "primaryBorderColor": "#CFCDC4",
+    "primaryTextColor": "#15171C",
+    "lineColor": "#5B6068",
+    "edgeLabelBackground": "#ffffff",
+    "fontFamily": "system-ui, -apple-system, Segoe UI, sans-serif",
+    "fontSize": "16px"
+  },
+  "flowchart": {
+    "htmlLabels": false,
+    "curve": "linear",
+    "padding": 24,
+    "nodeSpacing": 45,
+    "rankSpacing": 55,
+    "diagramPadding": 24
+  }
+}

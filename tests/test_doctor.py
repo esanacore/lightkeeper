@@ -53,7 +53,7 @@ def test_doctor_ignores_wsl_off_windows_or_when_it_fails(monkeypatch):
     assert doctor._in_wsl("make") is False
 
     def broken(cmd, **kwargs):
-        raise doctor.subprocess.TimeoutExpired(cmd, 30)
+        raise doctor.subprocess.TimeoutExpired(cmd, 120)
 
     monkeypatch.setattr(doctor.sys, "platform", "win32")
     monkeypatch.setattr(doctor.subprocess, "run", broken)

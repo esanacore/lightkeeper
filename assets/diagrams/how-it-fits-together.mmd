@@ -1,0 +1,11 @@
+flowchart TD
+    G7[Dexcom G7 sensor] -- BLE --> DexApp[Dexcom G7 app<br/>background radio]
+    DexApp --> Trio[Trio on iPhone<br/>dosing decisions]
+    Trio -- BLE --> Pod[Omnipod 5 pod]
+    Trio -- upload --> NS[(Nightscout<br/>self-hosted)]
+    NS -- read-only token --> LK[Lightkeeper<br/>this repo]
+    LK --> Eink[E-ink / bedside display]
+    LK --> HA[Home Assistant alerts]
+
+    classDef ours fill:#F1DDB4,stroke:#B8730A,color:#15171C
+    class LK,Eink,HA ours

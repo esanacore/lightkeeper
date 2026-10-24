@@ -6,7 +6,13 @@ This project follows semantic versioning.
 
 ## Unreleased
 
-Nothing yet.
+### Changed
+
+- README: a version line under the badge, and the How It Fits Together diagram as a top-down image rendered from `assets/diagrams/`, so it also shows in GitHub's mobile apps.
+
+### Fixed
+
+- `tools/doctor.py` no longer hangs on Windows when run under pytest: the WSL probe closes stdin and allows for a cold WSL start.
 
 ## [0.1.0] - 2026-10-24
 

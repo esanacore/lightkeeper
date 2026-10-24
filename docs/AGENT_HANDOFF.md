@@ -18,12 +18,12 @@ Replace the entry below at the end of every push; only the latest handoff is kep
 
 #### Next Steps
 
-**Human action required:** steps 1 (done), 2, 3, 4, 5, 6, 7, and 8.
+**Human action required:** steps 1 (done), 2 (done), 3, 4, 5, 6, 7, and 8.
 
 1. [x] **HUMAN** — Approve cutting release v0.1.0 (approved 2026-10-24; tagged and published)
    - **Why a human:** a tag and GitHub Release are public, permanent publications.
    - **Done when:** Eric says go; then an agent moves Unreleased to `## [0.1.0] - <date>`, tags `v0.1.0`, and publishes the GitHub Release, and `check_release_tag_alignment.sh` passes.
-2. [ ] **HUMAN** — Decide on README presentation changes the constitution asks for
+2. [x] **HUMAN** — Decide on README presentation changes the constitution asks for (approved 2026-10-24: version line and top-down rendered diagram added; the demo link lands with step 3)
    - **Why a human:** the README layout is locked by Eric's house-style rule.
    - **Done when:** Eric has approved or declined a version line, a top-to-bottom (TD) diagram with a committed rendered image, and a published demo link.
 3. [ ] **HUMAN** — Turn on GitHub Pages (Settings, Pages, Source: GitHub Actions) if the demo should be published

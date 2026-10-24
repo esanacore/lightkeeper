@@ -56,11 +56,13 @@ def _in_wsl(*tools: str) -> bool:
     if sys.platform != "win32" or wsl is None:
         return False
     try:
-        # Fixed tool names from this file, never user input.
+        # Fixed tool names from this file, never user input. The generous timeout
+        # covers a cold WSL start, which can take well over 30 seconds.
         found = subprocess.run(  # noqa: S603
             [wsl, "-e", "sh", "-c", " && ".join(f"command -v {t}" for t in tools)],
+            stdin=subprocess.DEVNULL,  # wsl.exe can block reading an inherited stdin
             capture_output=True,
-            timeout=30,
+            timeout=120,
             check=False,
         )
     except (OSError, subprocess.SubprocessError):

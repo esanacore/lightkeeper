@@ -4,6 +4,8 @@
 [![Eric's Engineering Constitution](https://img.shields.io/badge/Eric's%20Engineering%20Constitution-Adopted-blue)](https://github.com/esanacore/engineering-constitution)
 <!-- CONSTITUTION_END -->
 
+**Version [0.1.0](https://github.com/esanacore/lightkeeper/releases/tag/v0.1.0)** · [Changelog](CHANGELOG.md) · [Roadmap](docs/ROADMAP.md)
+
 An open source type 1 diabetes management stack, built by Eric and Kaitlin alongside the #WeAreNotWaiting community. It wires together existing community projects (Trio, Nightscout) around Kaitlin's real setup, a Dexcom G7 and Omnipod 5 pods on an iPhone, and adds our own read-only hardware and software layer on top: e-ink displays, bedside alerts, and Home Assistant integration.
 
 > **Safety first.** Nothing in this repository sends commands to an insulin pump or a sensor. Insulin dosing is handled only by Trio, an established community project, configured with Kaitlin's care team. Everything we build here is a *secondary, read-only display* and is not a medical device. Always confirm on the primary CGM app before acting. See [`docs/SAFETY.md`](docs/SAFETY.md).
@@ -21,8 +23,13 @@ An open source type 1 diabetes management stack, built by Eric and Kaitlin along
 
 ## How It Fits Together
 
+![Data flows from the Dexcom G7 sensor through the Dexcom app and Trio, which drives the Omnipod 5 pod and uploads to Nightscout. Lightkeeper reads Nightscout with a read-only token and feeds the e-ink display and Home Assistant.](assets/diagrams/how-it-fits-together.svg)
+
+<details>
+<summary>Diagram source (Mermaid)</summary>
+
 ```mermaid
-flowchart LR
+flowchart TD
     G7[Dexcom G7 sensor] -- BLE --> DexApp[Dexcom G7 app<br/>background radio]
     DexApp --> Trio[Trio on iPhone<br/>dosing decisions]
     Trio -- BLE --> Pod[Omnipod 5 pod]
@@ -30,9 +37,14 @@ flowchart LR
     NS -- read-only token --> LK[Lightkeeper<br/>this repo]
     LK --> Eink[E-ink / bedside display]
     LK --> HA[Home Assistant alerts]
+
+    classDef ours fill:#F1DDB4,stroke:#B8730A,color:#15171C
+    class LK,Eink,HA ours
 ```
 
-The left half is community software we configure and test. The right half, after Nightscout, is what this repository builds. Data only flows rightward into our code. Details in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+</details>
+
+The top half is community software we configure and test. The highlighted boxes, after Nightscout, are what this repository builds. Data only flows down into our code. Details in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Quick Start
 
@@ -138,6 +150,7 @@ lightkeeper/
 ├── tools/               ← Prerequisite check and display-gallery generator
 ├── docs/                ← Requirements, architecture, safety, security, ADRs, setup, hardware, brand, display gallery
 ├── assets/brand/        ← Mark, app icon, palette, social preview
+├── assets/diagrams/     ← README diagram source and its rendered image
 ├── wiki/                ← Wiki source pages
 ├── demo.html            ← Offline demo of every display state
 └── constitution/        ← Eric's Engineering Constitution (git submodule)
