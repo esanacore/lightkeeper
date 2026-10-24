@@ -102,6 +102,23 @@ bool parse_entry(const RawEntry& entry, Reading* out) {
   return true;
 }
 
+bool newest_reading(const RawEntry* entries, int count, Reading* out) {
+  if (out == nullptr || (entries == nullptr && count > 0)) return false;
+  bool found = false;
+  Reading best;
+  for (int i = 0; i < count; i++) {
+    Reading r;
+    if (!parse_entry(entries[i], &r)) continue;  // one bad entry never hides the rest
+    if (!found || r.timestamp_ms > best.timestamp_ms ||
+        (r.timestamp_ms == best.timestamp_ms && r.mgdl < best.mgdl)) {
+      best = r;
+      found = true;
+    }
+  }
+  if (found) *out = best;
+  return found;
+}
+
 Status classify(const Reading* reading, int64_t now_ms, const Thresholds& t) {
   Status status;
   // Python validates thresholds at construction; here the device config is the

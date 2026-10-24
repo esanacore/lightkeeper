@@ -29,6 +29,32 @@ Rules worth noticing: anything older than 15 minutes, or more than 2 minutes in 
 | sgv 45 mg/dL, SingleDown, 40 min old | ![STALE](img/display-states/stale_beats_urgent_low.svg) |
 | sgv 120 mg/dL, Flat, 10 min in the future | ![STALE](img/display-states/future_dated.svg) |
 | sgv 120 mg/dL, Flat, 1 min in the future | ![IN RANGE](img/display-states/small_clock_skew_ok.svg) |
+| sgv 120 mg/dL, Flat, 899s old | ![IN RANGE](img/display-states/fresh_at_14_minutes_59_seconds.svg) |
+| sgv 120 mg/dL, Flat, 901s old | ![STALE](img/display-states/stale_at_15_minutes_1_second.svg) |
+| sgv 120 mg/dL, Flat, 120s in the future | ![IN RANGE](img/display-states/future_skew_exactly_2_minutes_ok.svg) |
+| sgv 120 mg/dL, Flat, 121s in the future | ![STALE](img/display-states/future_skew_2_minutes_1_second_stale.svg) |
+
+## Several entries at once
+
+| Situation | Screen |
+| --- | --- |
+| sgv 130 mg/dL, Flat, 0 min old; sgv 68 mg/dL, SingleDown, 0 min old; sgv 110 mg/dL, Flat, 5 min old | ![LOW](img/display-states/same_timestamp_lower_value_wins.svg) |
+| sgv 100 mg/dL, Flat, 10 min old; sgv 140 mg/dL, FortyFiveUp, 1 min old; sgv 90 mg/dL, Flat, 5 min old | ![IN RANGE](img/display-states/newest_entry_wins_in_any_order.svg) |
+| sgv 1e+30 mg/dL, Flat, 0 min old; sgv 402 mg/dL, Flat, 0 min old; sgv 120.5 mg/dL, Flat, 0 min old; mbg 50 mg/dL, Flat, 0 min old; sgv 115 mg/dL, Flat, 2 min old | ![IN RANGE](img/display-states/poisoned_entries_skipped.svg) |
+| sgv 402 mg/dL, Flat, 0 min old; sgv 110 mg/dL, Flat, 20 min old | ![STALE](img/display-states/rejected_newest_does_not_freshen_older.svg) |
+| sgv 402 mg/dL, Flat, 0 min old; mbg 120 mg/dL, Flat, 0 min old | ![NO DATA](img/display-states/all_entries_rejected_is_no_data.svg) |
+
+## Custom thresholds (60 / 80 / 160 / 220 mg/dL, stale after 10 minutes)
+
+| Situation | Screen |
+| --- | --- |
+| sgv 60 mg/dL, SingleDown, 1 min old | ![URGENT LOW](img/display-states/custom_urgent_low_60.svg) |
+| sgv 79 mg/dL, FortyFiveDown, 2 min old | ![LOW](img/display-states/custom_low_79.svg) |
+| sgv 160 mg/dL, Flat, 3 min old | ![IN RANGE](img/display-states/custom_in_range_160.svg) |
+| sgv 161 mg/dL, FortyFiveUp, 3 min old | ![HIGH](img/display-states/custom_high_161.svg) |
+| sgv 220 mg/dL, SingleUp, 2 min old | ![URGENT HIGH](img/display-states/custom_urgent_high_220.svg) |
+| sgv 120 mg/dL, Flat, 10 min old | ![IN RANGE](img/display-states/custom_fresh_at_10_minutes.svg) |
+| sgv 120 mg/dL, Flat, 11 min old | ![STALE](img/display-states/custom_stale_after_10_minutes.svg) |
 
 ## Missing data and outages
 

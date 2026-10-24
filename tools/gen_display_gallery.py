@@ -54,6 +54,32 @@ GROUPS = [
             "stale_beats_urgent_low",
             "future_dated",
             "small_clock_skew_ok",
+            "fresh_at_14_minutes_59_seconds",
+            "stale_at_15_minutes_1_second",
+            "future_skew_exactly_2_minutes_ok",
+            "future_skew_2_minutes_1_second_stale",
+        ],
+    ),
+    (
+        "Several entries at once",
+        [
+            "same_timestamp_lower_value_wins",
+            "newest_entry_wins_in_any_order",
+            "poisoned_entries_skipped",
+            "rejected_newest_does_not_freshen_older",
+            "all_entries_rejected_is_no_data",
+        ],
+    ),
+    (
+        "Custom thresholds (60 / 80 / 160 / 220 mg/dL, stale after 10 minutes)",
+        [
+            "custom_urgent_low_60",
+            "custom_low_79",
+            "custom_in_range_160",
+            "custom_high_161",
+            "custom_urgent_high_220",
+            "custom_fresh_at_10_minutes",
+            "custom_stale_after_10_minutes",
         ],
     ),
     (
@@ -71,16 +97,30 @@ GROUPS = [
 ]
 
 
+def describe_age(item: dict) -> str:
+    """How old an entry is, in the unit the vector gives it."""
+    if "seconds_ago" in item:
+        ago, unit = item["seconds_ago"], "s"
+    else:
+        ago, unit = item["minutes_ago"], " min"
+    return f"{abs(ago)}{unit} in the future" if ago < 0 else f"{ago}{unit} old"
+
+
+def describe_entry(item: dict) -> str:
+    """One entry as `type value mg/dL, direction, age`."""
+    entry = item["entry"]
+    kind = entry.get("type", "sgv")
+    return f"{kind} {entry.get('sgv')} mg/dL, {entry.get('direction')}, {describe_age(item)}"
+
+
 def describe(case: dict) -> str:
     """One-line plain-English description of a vector's situation."""
-    entry = case["entry"]
-    if entry is None:
+    if "entries" in case:
+        situation = "; ".join(describe_entry(item) for item in case["entries"])
+    elif case["entry"] is None:
         situation = "No reading in Nightscout"
     else:
-        ago = case["minutes_ago"]
-        when = f"{abs(ago)} min in the future" if ago < 0 else f"{ago} min old"
-        kind = entry.get("type", "sgv")
-        situation = f"{kind} {entry.get('sgv')} mg/dL, {entry.get('direction')}, {when}"
+        situation = describe_entry(case)
     if case["error"]:
         situation += ", Nightscout unreachable"
     return situation

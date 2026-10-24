@@ -91,6 +91,12 @@ struct Lines {
 // Returns true and fills *out only when the entry can be trusted.
 bool parse_entry(const RawEntry& entry, Reading* out);
 
+// Parses every entry, skips the bad ones, and fills *out with the newest
+// survivor. On a timestamp tie (several uploaders) the lower value wins, the
+// conservative choice. Returns false when no entry can be trusted. Mirrors
+// Python's parse_entries(...)[0].
+bool newest_reading(const RawEntry* entries, int count, Reading* out);
+
 Trend trend_from_string(const char* direction);
 const char* trend_arrow(Trend trend);
 const char* level_name(Level level);

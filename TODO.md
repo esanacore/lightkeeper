@@ -12,7 +12,9 @@ From `docs/COMMUNITY_RESEARCH.md` (October 2026):
 - [ ] Show delta from the previous reading, IOB and COB (greyed at zero), loop status, and "next reading in".
 - [ ] Compression-low hint on a sudden single-interval drop, labeled as a hint.
 - [ ] Firmware: exponential backoff on Wi-Fi, visible "offline since", published battery measurements (FR-015, reserved); study WaveshareMon's config schema before inventing one.
-- [ ] Extend the vector schema (`seconds_ago`, several entries per case, custom thresholds) so duplicate-timestamp, 15-minutes-plus-one-second, and custom-threshold cases become shared vectors.
+- [x] Extend the vector schema (`seconds_ago`, several entries per case, custom thresholds) so duplicate-timestamp, 15-minutes-plus-one-second, and custom-threshold cases become shared vectors (2026-10-23: 16 new cases, firmware `newest_reading`).
+- [ ] Let `LightkeeperCore` build with the Windows and Linux Swift toolchains: guard `FoundationNetworking` in `NightscoutClient.swift` and replace the `kCFBooleanTrue` identity check, which only exists on Apple platforms. Then the vector tests can run outside macOS CI.
+- [ ] `tools/doctor.py`: accept `mingw32-make` on Windows, or point at WSL, so a Windows machine with WinLibs passes.
 - [ ] Check whether `lightkeeper` is free on PyPI before Phase 6; fallback name `lightkeeper-display`.
 - [ ] iOS: unit tests for `Settings.load()` resetting an invalid set and for `reclassify()` yielding STALE without a fetch (needs a test target in `project.yml`).
 - [ ] Evaluate Nightscout's `AUTH_DEFAULT_ROLES=denied` plus v3 JWT so the token never appears in a URL.

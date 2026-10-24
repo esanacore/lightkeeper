@@ -6,36 +6,19 @@ This document records the current session's planned work before implementation b
 
 ## Session
 
-- **Date/Time**: 2026-10-18 19:30 UTC
+- **Date/Time**: 2026-10-23
 - **Agent**: Claude
-- **Previous Session**: Compliance push completed and pushed. Handoff in `docs/AGENT_HANDOFF.md`.
+- **Previous Session**: 2026-10-18 reviews, wiki, and iOS hardening; handoff in `docs/AGENT_HANDOFF.md`.
 
 ## Goal
 
-Apply the two review reports (adversarial safety review, docs/product review), expand the wiki, and keep the professional polish pass going.
-
-## Approach
-
-1. Safety review: poisoned-entry isolation, watch-loop resilience, SVG stamp, duplicate tiebreak (Python); NaN/date bounds (firmware); crash-safe parsing, draft settings, foreground re-classification (iOS). Tests and a shared vector for each.
-2. Docs review: Intended Use section, HAZ-008 note, threshold wording, hazard order, ADR index, reserved FR-013..015, ENV_VARS token note, HARDWARE heading, ROADMAP versioning claim, demo page restyle.
-3. Wiki build-out (background agent) with `tests/test_wiki.py`.
-4. Traceability, CHANGELOG, TODO, handoff; run every checker; push; confirm CI including the iOS workflow.
+Extend the shared vector schema (`seconds_ago`, several entries per case, custom thresholds) so boundary, tie-break, poisoned-entry, and custom-threshold cases are shared across Python, firmware, and Swift.
 
 ## Status
 
-Steps 1, 2, and 4 done in this session; step 3 committed when the wiki agent reported. See `docs/AGENT_HANDOFF.md` for what is next.
-
-## Files Expected to Change
-
-- `src/lightkeeper/**`, `tests/**`, `firmware/xteink/**`, `apps/ios/**`, `spec/display_vectors.json`, `demo.html`, `docs/**`, `wiki/**`, `CHANGELOG.md`, `TODO.md`.
-
-## Risks and Dependencies
-
-- Release tag, GitHub Release, GitHub Pages, and constitution upstream fixes need Eric's approval.
-- README structure is locked by Eric's house-style rule (`docs/MEMORY.md`); only content inside existing sections changes.
+Complete. Outcomes and next steps are in `docs/AGENT_HANDOFF.md`.
 
 ## Resumption Notes
 
-- **Last completed step**: 9. All planned work done; release tag, Pages, and README layout wait on Eric (see `docs/AGENT_HANDOFF.md`).
-- **Uncommitted changes**: none at time of writing.
-- **Known issues**: none.
+- **Last completed step**: all planned work done and verified locally; not yet committed or pushed.
+- **Known issues**: none in the change. `tools/doctor.py` reports `make` missing on Windows (TODO).

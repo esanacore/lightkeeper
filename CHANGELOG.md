@@ -22,6 +22,8 @@ Pre-release: `VERSION` and `pyproject.toml` already read 0.1.0, but no tag has b
 - `docs/SAFETY.md`: Intended Use and Classification section (IEC 62304 Class A-equivalent rationale, limitations list), HAZ-011 and HAZ-012.
 - Shared vector `huge_value_rejected`; every implementation now asserts the vector `spec_version` it was written for.
 - Reserved requirements FR-013 (mmol/L), FR-014 (delta), FR-015 (device status) in the PRD's Planned section.
+- Shared vector schema: an age can be given in `seconds_ago`, a case can hold several `entries` (each with its own age), and a case can carry custom `thresholds`. Sixteen new cases pin the 15-minutes-plus-one-second and 2-minute future-skew boundaries to the second, same-timestamp ties, poisoned entries next to good ones, a rejected newest entry that must not make an older one look fresh, and custom thresholds, in Python, firmware, and Swift alike. Existing cases are unchanged, so `spec_version` stays 1.
+- Firmware: `newest_reading` picks the newest trustworthy entry from a fetch, with the same lower-value tie-break as Python and Swift.
 
 - `lightkeeper` read-only Nightscout display: strict entry parsing, configurable thresholds, staleness and future-timestamp protection, short ASCII rendering for e-ink, safe degradation when Nightscout fails, and a CLI with `--demo` and `--watch`.
 - `--svg PATH` writes each screen as an SVG image of the e-paper panel (FR-011).

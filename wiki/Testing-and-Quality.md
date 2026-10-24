@@ -1,6 +1,6 @@
 # Testing and Quality
 
-How the repository is tested, what it promises about coverage, and how a reader can check those promises. The source documents are `docs/TEST_PLAN.md`, `docs/REQUIREMENTS_TRACEABILITY.md`, and `docs/PRODUCT_REQUIREMENTS.md` in the repository. Numbers are from the current 0.1.0 tree: 158 Python tests, 100% line and branch coverage, 23 shared vectors, 153 firmware checks.
+How the repository is tested, what it promises about coverage, and how a reader can check those promises. The source documents are `docs/TEST_PLAN.md`, `docs/REQUIREMENTS_TRACEABILITY.md`, and `docs/PRODUCT_REQUIREMENTS.md` in the repository. Numbers are from the current 0.1.0 tree: 175 Python tests, 100% line and branch coverage, 39 shared vectors, 287 firmware checks.
 
 ## The pyramid
 
@@ -21,7 +21,7 @@ Test names carry the requirement or hazard ID they verify, for example `test_fr0
 
 ## Shared vectors and three-way parity
 
-`spec/display_vectors.json` holds 23 cases. Each is one raw Nightscout entry (or none), the minutes since that entry, an optional fetch error, and the exact expected level and lines. The file carries a `spec_version` (currently 1) that increments whenever an existing case changes; adding a case does not bump it.
+`spec/display_vectors.json` holds 39 cases. Each is either one raw Nightscout entry (or none) with its age in `minutes_ago` or `seconds_ago`, or an `entries` list in which every entry has its own age, so the same file covers the 15-minutes-plus-one-second boundary, same-timestamp ties, poisoned entries next to good ones, and newest-wins selection. A case can also carry custom `thresholds`. Each gives an optional fetch error and the exact expected level and lines. The file carries a `spec_version` (currently 1) that increments whenever an existing case changes; adding a case or an optional field does not bump it.
 
 Three suites run every case, must produce identical output, and assert the spec version: `tests/test_vectors.py` (Python), the firmware host tests (C++, with the vectors compiled into a header by the Makefile), and `VectorTests.swift`. This is FR-009 for Python and C++ and FR-012 for Swift. Parity is enforced by tests rather than by discipline, and the vectors have caught real divergences: Python once rendered five lines for STALE while Nightscout was unreachable (`stale_while_unreachable_stays_four_lines`), and the firmware once passed a NaN through a cast by luck (`huge_value_rejected`, HAZ-011). Pictures are in [[Display States]].
 
@@ -32,7 +32,7 @@ Three suites run every case, must produce identical output, and assert the spec 
 | Repository default | Line and branch | 90% (`fail_under` in `pyproject.toml`) | 100% |
 | Domain layer (the safety rules) | Line and branch | 100% | 100% |
 | Nightscout client | Line and branch | 95% | 100% |
-| Firmware `glucose_rules` | Every shared vector plus edge cases | 100% of vectors | 153 checks pass |
+| Firmware `glucose_rules` | Every shared vector plus edge cases | 100% of vectors | 287 checks pass |
 
 Firmware line and branch coverage is not yet measured with gcov (GAP-006). The coverage history is a dated table in `docs/TEST_PLAN.md`.
 

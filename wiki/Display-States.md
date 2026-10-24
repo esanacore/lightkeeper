@@ -1,6 +1,6 @@
 # Display States
 
-Every screen Lightkeeper can show, drawn at the size of a 2.9 inch e-paper panel (296 by 128 pixels). These images are generated from `spec/display_vectors.json` by `tools/gen_display_gallery.py`, the same 23 cases the Python, C++, and Swift tests run, so the pictures always match real behavior. A test fails if the committed gallery in `docs/DISPLAY_STATES.md` drifts from the generator's output. The images below are served from the repository's `main` branch; `demo.html` shows the same screens with a button for every vector.
+Every screen Lightkeeper can show, drawn at the size of a 2.9 inch e-paper panel (296 by 128 pixels). These images are generated from `spec/display_vectors.json` by `tools/gen_display_gallery.py`, the same 39 cases the Python, C++, and Swift tests run, so the pictures always match real behavior. A test fails if the committed gallery in `docs/DISPLAY_STATES.md` drifts from the generator's output. The images below are served from the repository's `main` branch; `demo.html` shows the same screens with a button for every vector.
 
 Lightkeeper is a secondary display and not a medical device. Always confirm on the primary CGM app before acting.
 
@@ -40,8 +40,12 @@ The boundaries are exact: 70 and 180 are IN RANGE, 69 is LOW, 181 is HIGH, 55 is
 | sgv 45 mg/dL, SingleDown, 40 min old | ![STALE](https://raw.githubusercontent.com/esanacore/lightkeeper/main/docs/img/display-states/stale_beats_urgent_low.svg) |
 | sgv 120 mg/dL, Flat, 10 min in the future | ![STALE](https://raw.githubusercontent.com/esanacore/lightkeeper/main/docs/img/display-states/future_dated.svg) |
 | sgv 120 mg/dL, Flat, 1 min in the future | ![IN RANGE](https://raw.githubusercontent.com/esanacore/lightkeeper/main/docs/img/display-states/small_clock_skew_ok.svg) |
+| sgv 120 mg/dL, Flat, 899s old | ![IN RANGE](https://raw.githubusercontent.com/esanacore/lightkeeper/main/docs/img/display-states/fresh_at_14_minutes_59_seconds.svg) |
+| sgv 120 mg/dL, Flat, 901s old | ![STALE](https://raw.githubusercontent.com/esanacore/lightkeeper/main/docs/img/display-states/stale_at_15_minutes_1_second.svg) |
+| sgv 120 mg/dL, Flat, 120s in the future | ![IN RANGE](https://raw.githubusercontent.com/esanacore/lightkeeper/main/docs/img/display-states/future_skew_exactly_2_minutes_ok.svg) |
+| sgv 120 mg/dL, Flat, 121s in the future | ![STALE](https://raw.githubusercontent.com/esanacore/lightkeeper/main/docs/img/display-states/future_skew_2_minutes_1_second_stale.svg) |
 
-Exactly 15 minutes old is still fresh; 16 is STALE. The third row is the most important case in the project: a 45 mg/dL reading that is 40 minutes old shows STALE, not URGENT LOW, because an old low is not evidence of a current low. One minute in the future is tolerated as normal clock skew; ten minutes is not, and the age line reads "time is in the future" so the cause is obvious.
+Exactly 15 minutes old is still fresh; 16 is STALE. The third row is the most important case in the project: a 45 mg/dL reading that is 40 minutes old shows STALE, not URGENT LOW, because an old low is not evidence of a current low. One minute in the future is tolerated as normal clock skew; ten minutes is not, and the age line reads "time is in the future" so the cause is obvious. The last four rows pin both limits to the second: 14 minutes 59 seconds is fresh and 15 minutes 1 second is STALE (still reading "15 min ago", because the age is floored), and exactly 2 minutes in the future is tolerated while 2 minutes 1 second is not.
 
 ## Missing data and outages
 
@@ -58,6 +62,32 @@ Exactly 15 minutes old is still fresh; 16 is STALE. The third row is the most im
 When Nightscout cannot be reached, the display does not freeze. A good earlier reading is shown with "Nightscout unreachable" appended and keeps aging; the fourth row shows it passing the stale limit while the site is still down. The STALE screen is already four lines, so "Nightscout unreachable" replaces the "Confirm on primary device" line, which the STALE headline already implies. The first Python version rendered five lines here; the shared vectors caught it.
 
 The last three rows show rejection rather than repair. A 402 is outside the sensor range; an `mbg` entry is a manual meter reading, not a sensor entry; a `1e+30` is a value that once raised an error past the parser and blanked the whole window (HAZ-011). Each is dropped, and with nothing valid left the screen says NO DATA rather than guessing.
+
+## Several entries at once
+
+| Situation | Screen |
+| --- | --- |
+| sgv 130 mg/dL, Flat, 0 min old; sgv 68 mg/dL, SingleDown, 0 min old; sgv 110 mg/dL, Flat, 5 min old | ![LOW](https://raw.githubusercontent.com/esanacore/lightkeeper/main/docs/img/display-states/same_timestamp_lower_value_wins.svg) |
+| sgv 100 mg/dL, Flat, 10 min old; sgv 140 mg/dL, FortyFiveUp, 1 min old; sgv 90 mg/dL, Flat, 5 min old | ![IN RANGE](https://raw.githubusercontent.com/esanacore/lightkeeper/main/docs/img/display-states/newest_entry_wins_in_any_order.svg) |
+| sgv 1e+30 mg/dL, Flat, 0 min old; sgv 402 mg/dL, Flat, 0 min old; sgv 120.5 mg/dL, Flat, 0 min old; mbg 50 mg/dL, Flat, 0 min old; sgv 115 mg/dL, Flat, 2 min old | ![IN RANGE](https://raw.githubusercontent.com/esanacore/lightkeeper/main/docs/img/display-states/poisoned_entries_skipped.svg) |
+| sgv 402 mg/dL, Flat, 0 min old; sgv 110 mg/dL, Flat, 20 min old | ![STALE](https://raw.githubusercontent.com/esanacore/lightkeeper/main/docs/img/display-states/rejected_newest_does_not_freshen_older.svg) |
+| sgv 402 mg/dL, Flat, 0 min old; mbg 120 mg/dL, Flat, 0 min old | ![NO DATA](https://raw.githubusercontent.com/esanacore/lightkeeper/main/docs/img/display-states/all_entries_rejected_is_no_data.svg) |
+
+Nightscout returns several entries per fetch. Every one is parsed, bad ones are dropped without taking the rest down, and the newest survivor is shown. Two uploaders writing the same timestamp resolve to the lower value, the conservative choice, whatever order they arrive in. The fourth row matters most: a rejected newest entry must not make a 20-minute-old reading look current, so the screen says STALE.
+
+## Custom thresholds (60 / 80 / 160 / 220 mg/dL, stale after 10 minutes)
+
+| Situation | Screen |
+| --- | --- |
+| sgv 60 mg/dL, SingleDown, 1 min old | ![URGENT LOW](https://raw.githubusercontent.com/esanacore/lightkeeper/main/docs/img/display-states/custom_urgent_low_60.svg) |
+| sgv 79 mg/dL, FortyFiveDown, 2 min old | ![LOW](https://raw.githubusercontent.com/esanacore/lightkeeper/main/docs/img/display-states/custom_low_79.svg) |
+| sgv 160 mg/dL, Flat, 3 min old | ![IN RANGE](https://raw.githubusercontent.com/esanacore/lightkeeper/main/docs/img/display-states/custom_in_range_160.svg) |
+| sgv 161 mg/dL, FortyFiveUp, 3 min old | ![HIGH](https://raw.githubusercontent.com/esanacore/lightkeeper/main/docs/img/display-states/custom_high_161.svg) |
+| sgv 220 mg/dL, SingleUp, 2 min old | ![URGENT HIGH](https://raw.githubusercontent.com/esanacore/lightkeeper/main/docs/img/display-states/custom_urgent_high_220.svg) |
+| sgv 120 mg/dL, Flat, 10 min old | ![IN RANGE](https://raw.githubusercontent.com/esanacore/lightkeeper/main/docs/img/display-states/custom_fresh_at_10_minutes.svg) |
+| sgv 120 mg/dL, Flat, 11 min old | ![STALE](https://raw.githubusercontent.com/esanacore/lightkeeper/main/docs/img/display-states/custom_stale_after_10_minutes.svg) |
+
+Thresholds are display settings and can be changed. These rows use 60 / 80 / 160 / 220 mg/dL with a 10-minute stale limit and show that every boundary and the stale limit move with them.
 
 ## Regenerating the gallery
 

@@ -76,7 +76,7 @@ An open source stack for managing one person's type 1 diabetes (built first for 
 
 - Level: `MUST`
 - Acceptance criteria:
-  - `FR-009-AC-1`: The Python suite and the firmware host tests both pass every case in `spec/display_vectors.json`, rendering identical level and lines.
+  - `FR-009-AC-1`: The Python suite and the firmware host tests both pass every case in `spec/display_vectors.json`, rendering identical level and lines, including cases with several entries per fetch and custom thresholds.
 
 **FR-011** `SHOULD` Draw any screen as an SVG image of the e-paper panel, and keep the docs gallery and demo generated from the shared vectors.
 

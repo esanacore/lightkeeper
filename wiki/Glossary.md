@@ -44,7 +44,7 @@ Terms used across this wiki and the repository's documentation, in alphabetical 
 
 **sgv.** Sensor glucose value, the only Nightscout entry type Lightkeeper accepts; `mbg` (meter) and `cal` (calibration) are rejected.
 
-**Shared vectors.** `spec/display_vectors.json`: 23 golden cases that the Python, C++, and Swift implementations must all pass identically. See [[Testing and Quality]].
+**Shared vectors.** `spec/display_vectors.json`: 39 golden cases that the Python, C++, and Swift implementations must all pass identically. See [[Testing and Quality]].
 
 **SMB (super micro bolus).** An oref algorithm feature in Trio and AndroidAPS that delivers small automatic boluses instead of only adjusting basal. A Trio setting decided with the care team; nothing in Lightkeeper touches it.
 

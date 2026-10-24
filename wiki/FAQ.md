@@ -51,10 +51,10 @@ Today through the exit code and the `--svg` file (a `command_line` sensor and a 
 ## About the project
 
 **Why are the rules written three times?**
-Because a Raspberry Pi runs Python, an ESP32-C3 cannot, and an iPhone wants Swift. Drift is handled by `spec/display_vectors.json`, 23 cases that all three implementations must pass identically, and by the rule that a change touches all of them in one commit. See [[How It Works]] and [[Testing and Quality]].
+Because a Raspberry Pi runs Python, an ESP32-C3 cannot, and an iPhone wants Swift. Drift is handled by `spec/display_vectors.json`, 39 cases that all three implementations must pass identically, and by the rule that a change touches all of them in one commit. See [[How It Works]] and [[Testing and Quality]].
 
 **How tested is it?**
-158 Python tests at 100% line and branch coverage against a 90% floor, 153 firmware checks under AddressSanitizer and UBSan, the Swift vector tests in CI, and a traceability matrix in which every declared requirement has a verifying test named with its ID. See [[Testing and Quality]].
+175 Python tests at 100% line and branch coverage against a 90% floor, 287 firmware checks under AddressSanitizer and UBSan, the Swift vector tests in CI, and a traceability matrix in which every declared requirement has a verifying test named with its ID. See [[Testing and Quality]].
 
 **Why Trio and not Loop or AndroidAPS?**
 Trio for its oref algorithm features, active community, and Omnipod 5 support since v1.0.0. Loop remains a fallback; AndroidAPS lacked Omnipod 5 support as of October 2026. See [[Architecture Decisions]].

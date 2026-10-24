@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="296" height="128" viewBox="0 0 296 128" role="img" aria-label="STALE: rejected_newest_does_not_freshen_older">
+<title>STALE: rejected_newest_does_not_freshen_older</title>
+<rect x="0.5" y="0.5" width="295" height="127" rx="4" fill="#e8e8e3" stroke="#b9b9b3"/>
+<text x="12" y="34" fill="#111111" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="22" font-weight="700">STALE - DO NOT TRUST</text>
+<text x="12" y="55" fill="#111111" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="15">last: 110 mg/dL -&gt;</text>
+<text x="12" y="82" fill="#111111" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="15">20 min ago</text>
+<text x="12" y="110" fill="#111111" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="15">Confirm on primary device</text>
+</svg>

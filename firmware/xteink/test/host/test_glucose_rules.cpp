@@ -29,23 +29,34 @@ int g_checks = 0;
 const int64_t kNowMs = 1792324800000LL;  // 2026-10-18T12:00:00Z
 const int64_t kMinute = 60LL * 1000;
 
-struct Vector {
-  const char* name;
-  bool has_entry;
+// One raw entry in a vector, dated seconds_ago before kNowMs.
+struct VectorEntry {
   const char* type;
   bool has_sgv;
   double sgv;
   const char* direction;
-  int minutes_ago;
+  long long seconds_ago;
+};
+
+struct Vector {
+  const char* name;
+  int entry_count;
+  const VectorEntry* entries;  // nullptr when entry_count is 0
   bool error;
+  bool custom_thresholds;  // false: use lk::Thresholds() defaults
+  int urgent_low;
+  int low;
+  int high;
+  int urgent_high;
+  int stale_after_minutes;
   const char* level;
   int line_count;
   const char* lines[4];
 };
 
-const Vector kVectors[] = {
 #include "vectors.inc"
-};
+
+const int kMaxVectorEntries = 8;
 
 // Bump when an existing vector changes (Python and Swift carry the same check).
 const int kExpectedSpecVersion = 1;
@@ -56,19 +67,30 @@ const int kSpecVersion =
 void run_vectors() {
   CHECK(kSpecVersion == kExpectedSpecVersion, "spec_version matches the one these tests target");
   for (const Vector& v : kVectors) {
-    lk::Reading reading;
-    bool ok = false;
-    if (v.has_entry) {
-      lk::RawEntry raw;
-      raw.type = v.type;
-      raw.has_sgv = v.has_sgv;
-      raw.sgv = v.sgv;
-      raw.has_date = true;
-      raw.date_ms = static_cast<double>(kNowMs - v.minutes_ago * kMinute);
-      raw.direction = v.direction;
-      ok = lk::parse_entry(raw, &reading);
+    lk::RawEntry raws[kMaxVectorEntries];
+    CHECK(v.entry_count <= kMaxVectorEntries, "vector fits the entry buffer");
+    int count = v.entry_count < kMaxVectorEntries ? v.entry_count : kMaxVectorEntries;
+    for (int i = 0; i < count; i++) {
+      const VectorEntry& e = v.entries[i];
+      raws[i].type = e.type;
+      raws[i].has_sgv = e.has_sgv;
+      raws[i].sgv = e.sgv;
+      raws[i].has_date = true;
+      raws[i].date_ms = static_cast<double>(kNowMs - e.seconds_ago * 1000);
+      raws[i].direction = e.direction;
     }
-    lk::Status status = lk::classify(ok ? &reading : nullptr, kNowMs, lk::Thresholds());
+    lk::Thresholds thresholds;
+    if (v.custom_thresholds) {
+      thresholds.urgent_low = v.urgent_low;
+      thresholds.low = v.low;
+      thresholds.high = v.high;
+      thresholds.urgent_high = v.urgent_high;
+      thresholds.stale_after_ms = v.stale_after_minutes * kMinute;
+      CHECK(thresholds.valid(), "vector thresholds are valid");
+    }
+    lk::Reading reading;
+    bool ok = lk::newest_reading(raws, count, &reading);
+    lk::Status status = lk::classify(ok ? &reading : nullptr, kNowMs, thresholds);
     lk::Lines lines;
     lk::render(status, v.error, &lines);
 
@@ -155,6 +177,19 @@ void test_parse_edges() {
   CHECK(!lk::parse_entry(good_entry(), nullptr), "null output pointer is safe");
 }
 
+void test_newest_reading_edges() {
+  lk::Reading r;
+  CHECK(!lk::newest_reading(nullptr, 0, &r), "no entries is no reading");
+  CHECK(!lk::newest_reading(nullptr, 3, &r), "null entries with a count is safe");
+  lk::RawEntry one[1] = {good_entry()};
+  CHECK(!lk::newest_reading(one, 1, nullptr), "null output pointer is safe");
+  r.mgdl = 77;
+  lk::RawEntry bad = good_entry();
+  bad.sgv = NAN;
+  lk::RawEntry only_bad[1] = {bad};
+  CHECK(!lk::newest_reading(only_bad, 1, &r) && r.mgdl == 77, "output untouched when none parse");
+}
+
 void test_thresholds() {
   lk::Thresholds t;
   CHECK(t.valid(), "defaults are valid");
@@ -208,6 +243,7 @@ void test_invalid_thresholds_never_classify() {
 int main() {
   run_vectors();
   test_parse_edges();
+  test_newest_reading_edges();
   test_thresholds();
   test_render_limits();
   test_age_floor();

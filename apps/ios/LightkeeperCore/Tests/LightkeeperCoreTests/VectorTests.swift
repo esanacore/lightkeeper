@@ -6,18 +6,44 @@ import XCTest
 @testable import LightkeeperCore
 
 final class VectorTests: XCTestCase {
-    struct Vector: Decodable {
-        struct Entry: Decodable {
-            let type: String?
-            let sgv: Double?
-            let direction: String?
+    struct Entry: Decodable {
+        let type: String?
+        let sgv: Double?
+        let direction: String?
+    }
+    /// One entry plus its age; exactly one of the two age fields is present.
+    struct Item: Decodable {
+        let entry: Entry?
+        let minutes_ago: Int?
+        let seconds_ago: Int?
+
+        var ageMs: Int64? {
+            if let s = seconds_ago { return Int64(s) * 1000 }
+            return minutes_ago.map { Int64($0) * 60_000 }
         }
+    }
+    struct CustomThresholds: Decodable {
+        let urgent_low: Int
+        let low: Int
+        let high: Int
+        let urgent_high: Int
+        let stale_after_minutes: Int
+    }
+    struct Vector: Decodable {
         let name: String
         let entry: Entry?
-        let minutes_ago: Int
+        let minutes_ago: Int?
+        let seconds_ago: Int?
+        let entries: [Item]?
+        let thresholds: CustomThresholds?
         let error: String?
         let level: String
         let lines: [String]
+
+        /// Every entry in the case, in either form.
+        var items: [Item] {
+            entries ?? [Item(entry: entry, minutes_ago: minutes_ago, seconds_ago: seconds_ago)]
+        }
     }
     struct Spec: Decodable {
         let spec_version: Int
@@ -41,18 +67,29 @@ final class VectorTests: XCTestCase {
     func testEveryVectorMatches() throws {
         let spec = try loadSpec()
         XCTAssertEqual(spec.spec_version, 1, "bump this assertion when an existing vector changes")
-        XCTAssertGreaterThan(spec.cases.count, 20)
+        XCTAssertGreaterThan(spec.cases.count, 35)
 
         for v in spec.cases {
-            var reading: GlucoseReading? = nil
-            if let e = v.entry {
-                var raw: [String: Any] = ["date": Double(nowMs - Int64(v.minutes_ago) * 60_000)]
+            var raws: [Any] = []
+            for item in v.items {
+                guard let e = item.entry else { continue }
+                guard let ageMs = item.ageMs else {
+                    XCTFail("vector \(v.name): entry without an age")
+                    continue
+                }
+                var raw: [String: Any] = ["date": Double(nowMs - ageMs)]
                 if let t = e.type { raw["type"] = t }
                 if let s = e.sgv { raw["sgv"] = s }
                 if let d = e.direction { raw["direction"] = d }
-                reading = try? parseEntry(raw)
+                raws.append(raw)
             }
-            let status = classify(reading, nowMs: nowMs, thresholds: .defaults)
+            var thresholds = Thresholds.defaults
+            if let c = v.thresholds {
+                thresholds = try Thresholds(urgentLow: c.urgent_low, low: c.low, high: c.high,
+                                            urgentHigh: c.urgent_high,
+                                            staleAfterMs: Int64(c.stale_after_minutes) * 60_000)
+            }
+            let status = classify(parseEntries(raws).first, nowMs: nowMs, thresholds: thresholds)
             let lines = renderLines(status, fetchError: v.error != nil)
             XCTAssertEqual(status.level.rawValue, v.level, "vector \(v.name): level")
             XCTAssertEqual(lines, v.lines, "vector \(v.name): lines")

@@ -1,6 +1,6 @@
 {
   "spec_version": 1,
-  "description": "Shared golden test vectors for every lightkeeper implementation (Python, ESP32 firmware, and Swift). Each case is one raw Nightscout entry (or none), the minutes since that entry when the display updates, an optional fetch error, and the exact expected level and display lines. All three test suites must pass every case, which keeps the implementations in lockstep. Default thresholds: 55 / 70 / 180 / 250 mg/dL, stale after 15 minutes. spec_version increments whenever an existing case changes; adding a case does not bump it.",
+  "description": "Shared golden test vectors for every lightkeeper implementation (Python, ESP32 firmware, and Swift). All three test suites must pass every case, which keeps the implementations in lockstep. A case gives either one raw Nightscout `entry` (or null) with its age as `minutes_ago` or `seconds_ago`, or an `entries` list whose items each hold an `entry` and its own age; every entry is parsed, bad ones are skipped, and the newest survivor (the lower value on a timestamp tie) is classified. `error` is an optional fetch error. `thresholds` optionally replaces the defaults with `urgent_low`, `low`, `high`, `urgent_high` (mg/dL) and `stale_after_minutes`, all five given and valid. Default thresholds: 55 / 70 / 180 / 250 mg/dL, stale after 15 minutes. `level` and `lines` are the exact expected result. spec_version increments whenever an existing case changes; adding a case or an optional field does not bump it.",
   "cases": [
     {
       "name": "in_range_flat",
@@ -367,6 +367,415 @@
         "Check sensor and phone",
         "Confirm on primary device"
       ]
+    },
+    {
+      "name": "stale_at_15_minutes_1_second",
+      "entry": {
+        "type": "sgv",
+        "sgv": 120,
+        "direction": "Flat"
+      },
+      "seconds_ago": 901,
+      "error": null,
+      "level": "STALE",
+      "lines": [
+        "STALE - DO NOT TRUST",
+        "last: 120 mg/dL ->",
+        "15 min ago",
+        "Confirm on primary device"
+      ]
+    },
+    {
+      "name": "fresh_at_14_minutes_59_seconds",
+      "entry": {
+        "type": "sgv",
+        "sgv": 120,
+        "direction": "Flat"
+      },
+      "seconds_ago": 899,
+      "error": null,
+      "level": "IN RANGE",
+      "lines": [
+        "IN RANGE",
+        "120 mg/dL ->",
+        "14 min ago"
+      ]
+    },
+    {
+      "name": "future_skew_exactly_2_minutes_ok",
+      "entry": {
+        "type": "sgv",
+        "sgv": 120,
+        "direction": "Flat"
+      },
+      "seconds_ago": -120,
+      "error": null,
+      "level": "IN RANGE",
+      "lines": [
+        "IN RANGE",
+        "120 mg/dL ->",
+        "just now"
+      ]
+    },
+    {
+      "name": "future_skew_2_minutes_1_second_stale",
+      "entry": {
+        "type": "sgv",
+        "sgv": 120,
+        "direction": "Flat"
+      },
+      "seconds_ago": -121,
+      "error": null,
+      "level": "STALE",
+      "lines": [
+        "STALE - DO NOT TRUST",
+        "last: 120 mg/dL ->",
+        "time is in the future",
+        "Confirm on primary device"
+      ]
+    },
+    {
+      "name": "same_timestamp_lower_value_wins",
+      "entries": [
+        {
+          "entry": {
+            "type": "sgv",
+            "sgv": 130,
+            "direction": "Flat"
+          },
+          "minutes_ago": 0
+        },
+        {
+          "entry": {
+            "type": "sgv",
+            "sgv": 68,
+            "direction": "SingleDown"
+          },
+          "minutes_ago": 0
+        },
+        {
+          "entry": {
+            "type": "sgv",
+            "sgv": 110,
+            "direction": "Flat"
+          },
+          "minutes_ago": 5
+        }
+      ],
+      "error": null,
+      "level": "LOW",
+      "lines": [
+        "LOW",
+        "68 mg/dL v",
+        "just now"
+      ]
+    },
+    {
+      "name": "newest_entry_wins_in_any_order",
+      "entries": [
+        {
+          "entry": {
+            "type": "sgv",
+            "sgv": 100,
+            "direction": "Flat"
+          },
+          "minutes_ago": 10
+        },
+        {
+          "entry": {
+            "type": "sgv",
+            "sgv": 140,
+            "direction": "FortyFiveUp"
+          },
+          "minutes_ago": 1
+        },
+        {
+          "entry": {
+            "type": "sgv",
+            "sgv": 90,
+            "direction": "Flat"
+          },
+          "minutes_ago": 5
+        }
+      ],
+      "error": null,
+      "level": "IN RANGE",
+      "lines": [
+        "IN RANGE",
+        "140 mg/dL /",
+        "1 min ago"
+      ]
+    },
+    {
+      "name": "poisoned_entries_skipped",
+      "entries": [
+        {
+          "entry": {
+            "type": "sgv",
+            "sgv": 1e+30,
+            "direction": "Flat"
+          },
+          "minutes_ago": 0
+        },
+        {
+          "entry": {
+            "type": "sgv",
+            "sgv": 402,
+            "direction": "Flat"
+          },
+          "minutes_ago": 0
+        },
+        {
+          "entry": {
+            "type": "sgv",
+            "sgv": 120.5,
+            "direction": "Flat"
+          },
+          "minutes_ago": 0
+        },
+        {
+          "entry": {
+            "type": "mbg",
+            "sgv": 50,
+            "direction": "Flat"
+          },
+          "minutes_ago": 0
+        },
+        {
+          "entry": {
+            "type": "sgv",
+            "sgv": 115,
+            "direction": "Flat"
+          },
+          "minutes_ago": 2
+        }
+      ],
+      "error": null,
+      "level": "IN RANGE",
+      "lines": [
+        "IN RANGE",
+        "115 mg/dL ->",
+        "2 min ago"
+      ]
+    },
+    {
+      "name": "rejected_newest_does_not_freshen_older",
+      "entries": [
+        {
+          "entry": {
+            "type": "sgv",
+            "sgv": 402,
+            "direction": "Flat"
+          },
+          "minutes_ago": 0
+        },
+        {
+          "entry": {
+            "type": "sgv",
+            "sgv": 110,
+            "direction": "Flat"
+          },
+          "minutes_ago": 20
+        }
+      ],
+      "error": null,
+      "level": "STALE",
+      "lines": [
+        "STALE - DO NOT TRUST",
+        "last: 110 mg/dL ->",
+        "20 min ago",
+        "Confirm on primary device"
+      ]
+    },
+    {
+      "name": "all_entries_rejected_is_no_data",
+      "entries": [
+        {
+          "entry": {
+            "type": "sgv",
+            "sgv": 402,
+            "direction": "Flat"
+          },
+          "minutes_ago": 0
+        },
+        {
+          "entry": {
+            "type": "mbg",
+            "sgv": 120,
+            "direction": "Flat"
+          },
+          "minutes_ago": 0
+        }
+      ],
+      "error": null,
+      "level": "NO DATA",
+      "lines": [
+        "NO DATA",
+        "Check sensor and phone",
+        "Confirm on primary device"
+      ]
+    },
+    {
+      "name": "custom_urgent_low_60",
+      "entry": {
+        "type": "sgv",
+        "sgv": 60,
+        "direction": "SingleDown"
+      },
+      "minutes_ago": 1,
+      "error": null,
+      "level": "URGENT LOW",
+      "lines": [
+        "URGENT LOW",
+        "60 mg/dL v",
+        "1 min ago"
+      ],
+      "thresholds": {
+        "urgent_low": 60,
+        "low": 80,
+        "high": 160,
+        "urgent_high": 220,
+        "stale_after_minutes": 10
+      }
+    },
+    {
+      "name": "custom_low_79",
+      "entry": {
+        "type": "sgv",
+        "sgv": 79,
+        "direction": "FortyFiveDown"
+      },
+      "minutes_ago": 2,
+      "error": null,
+      "level": "LOW",
+      "lines": [
+        "LOW",
+        "79 mg/dL \\",
+        "2 min ago"
+      ],
+      "thresholds": {
+        "urgent_low": 60,
+        "low": 80,
+        "high": 160,
+        "urgent_high": 220,
+        "stale_after_minutes": 10
+      }
+    },
+    {
+      "name": "custom_in_range_160",
+      "entry": {
+        "type": "sgv",
+        "sgv": 160,
+        "direction": "Flat"
+      },
+      "minutes_ago": 3,
+      "error": null,
+      "level": "IN RANGE",
+      "lines": [
+        "IN RANGE",
+        "160 mg/dL ->",
+        "3 min ago"
+      ],
+      "thresholds": {
+        "urgent_low": 60,
+        "low": 80,
+        "high": 160,
+        "urgent_high": 220,
+        "stale_after_minutes": 10
+      }
+    },
+    {
+      "name": "custom_high_161",
+      "entry": {
+        "type": "sgv",
+        "sgv": 161,
+        "direction": "FortyFiveUp"
+      },
+      "minutes_ago": 3,
+      "error": null,
+      "level": "HIGH",
+      "lines": [
+        "HIGH",
+        "161 mg/dL /",
+        "3 min ago"
+      ],
+      "thresholds": {
+        "urgent_low": 60,
+        "low": 80,
+        "high": 160,
+        "urgent_high": 220,
+        "stale_after_minutes": 10
+      }
+    },
+    {
+      "name": "custom_urgent_high_220",
+      "entry": {
+        "type": "sgv",
+        "sgv": 220,
+        "direction": "SingleUp"
+      },
+      "minutes_ago": 2,
+      "error": null,
+      "level": "URGENT HIGH",
+      "lines": [
+        "URGENT HIGH",
+        "220 mg/dL ^",
+        "2 min ago"
+      ],
+      "thresholds": {
+        "urgent_low": 60,
+        "low": 80,
+        "high": 160,
+        "urgent_high": 220,
+        "stale_after_minutes": 10
+      }
+    },
+    {
+      "name": "custom_fresh_at_10_minutes",
+      "entry": {
+        "type": "sgv",
+        "sgv": 120,
+        "direction": "Flat"
+      },
+      "minutes_ago": 10,
+      "error": null,
+      "level": "IN RANGE",
+      "lines": [
+        "IN RANGE",
+        "120 mg/dL ->",
+        "10 min ago"
+      ],
+      "thresholds": {
+        "urgent_low": 60,
+        "low": 80,
+        "high": 160,
+        "urgent_high": 220,
+        "stale_after_minutes": 10
+      }
+    },
+    {
+      "name": "custom_stale_after_10_minutes",
+      "entry": {
+        "type": "sgv",
+        "sgv": 120,
+        "direction": "Flat"
+      },
+      "minutes_ago": 11,
+      "error": null,
+      "level": "STALE",
+      "lines": [
+        "STALE - DO NOT TRUST",
+        "last: 120 mg/dL ->",
+        "11 min ago",
+        "Confirm on primary device"
+      ],
+      "thresholds": {
+        "urgent_low": 60,
+        "low": 80,
+        "high": 160,
+        "urgent_high": 220,
+        "stale_after_minutes": 10
+      }
     }
   ]
 }
