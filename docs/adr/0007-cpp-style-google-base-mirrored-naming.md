@@ -1,8 +1,8 @@
 # ADR-0007: C++ Style, Google Base with Naming That Mirrors the Python
 
-Status: Proposed
+Status: Accepted
 
-Date: 2026-10-18
+Date: 2026-10-18 (proposed); accepted 2026-10-24
 
 ## Relationships
 
@@ -12,7 +12,7 @@ Date: 2026-10-18
 
 ## Promotion Criteria
 
-- Eric approves the naming and column-limit deviations below. Gate: Eric.
+- Eric approves the naming and column-limit deviations below. Gate: Eric. Met 2026-10-24: Eric accepted the ADR as written.
 
 ## Context
 

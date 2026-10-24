@@ -30,7 +30,7 @@ A change to the safety boundary (ADR-0004) needs a new ADR, a hazard review in `
 
 ## ADR-0007: C++ Style, Google Base with Naming That Mirrors the Python
 
-**Proposed, 2026-10-18. Gate: Eric approves the deviations.** The constitution points C++ at the Google style guide, but the firmware rules are a line-for-line port of the Python and reviewers compare them side by side. So the firmware uses clang-format on `BasedOnStyle: Google`, enforced by `make -C firmware/xteink format-check` and a pre-commit hook, with three deviations: snake_case functions and CamelCase enum values mirroring the Python, a 100-column limit to match the Python side's 99, and `#pragma once`.
+**Accepted, 2026-10-24 (proposed 2026-10-18).** The constitution points C++ at the Google style guide, but the firmware rules are a line-for-line port of the Python and reviewers compare them side by side. So the firmware uses clang-format on `BasedOnStyle: Google`, enforced by `make -C firmware/xteink format-check` and a pre-commit hook, with three deviations: snake_case functions and CamelCase enum values mirroring the Python, a 100-column limit to match the Python side's 99, and `#pragma once`.
 
 ## ADR-0008: Companion App, with Bolus Requests Only Through Trio's Remote Protocol
 

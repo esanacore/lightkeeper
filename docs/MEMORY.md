@@ -38,4 +38,4 @@ This file contains durable memories, codebase learnings, user preferences, and k
   - "Adopted the Compliance Validation Triad to gate pull requests."
 -->
 
-- 
+- ADR-0007 accepted (Eric, 2026-10-24): firmware C++ uses clang-format on a Google base, but function names and enum values mirror the Python (`parse_entry`, `Level::Stale`), the column limit is 100, and `#pragma once` is fine. Do not rename toward strict Google style. 

@@ -9,6 +9,7 @@ This project follows semantic versioning.
 ### Changed
 
 - README: a version line under the badge, and the How It Fits Together diagram as a top-down image rendered from `assets/diagrams/`, so it also shows in GitHub's mobile apps.
+- ADR-0007 (firmware C++ style: Google base, Python-mirroring names, 100 columns) is Accepted.
 - The demo page is published at https://esanacore.github.io/lightkeeper/ by a new `pages.yml` workflow, and the README links it. Its links to repository docs are now absolute, so they work from the published page.
 
 ### Fixed
@@ -42,7 +43,7 @@ First tagged release (Phase 0, the foundation).
 - `--svg PATH` writes each screen as an SVG image of the e-paper panel (FR-011).
 - Display-state gallery (`docs/DISPLAY_STATES.md`) and the demo page's state table, both generated from the shared vectors, with tests that fail if either drifts.
 - Shared golden display vectors (`spec/display_vectors.json`) run by both Python and firmware tests.
-- `firmware/xteink`: safety rules ported to C++17 for the Xteink X4/X3 (ESP32-C3), with host tests under sanitizers (ADR-0006) and a clang-format check (ADR-0007, proposed).
+- `firmware/xteink`: safety rules ported to C++17 for the Xteink X4/X3 (ESP32-C3), with host tests under sanitizers (ADR-0006) and a clang-format check (ADR-0007).
 - HTTP integration tests against a fake Nightscout on localhost.
 - Static analysis: ruff (lint, format, bandit rules), strict mypy, clang-format, all in the declared suite and pre-commit.
 - `tools/doctor.py` prerequisite check, `.python-version`, and a devcontainer with Python, the C++ toolchain, and the dev tools.

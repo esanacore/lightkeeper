@@ -18,7 +18,7 @@ Replace the entry below at the end of every push; only the latest handoff is kep
 
 #### Next Steps
 
-**Human action required:** steps 1 (done), 2 (done), 3 (done), 4, 5, 6, 7, and 8.
+**Human action required:** steps 1 (done), 2 (done), 3 (done), 4 (done), 5, 6, 7, and 8.
 
 1. [x] **HUMAN** — Approve cutting release v0.1.0 (approved 2026-10-24; tagged and published)
    - **Why a human:** a tag and GitHub Release are public, permanent publications.
@@ -29,7 +29,7 @@ Replace the entry below at the end of every push; only the latest handoff is kep
 3. [x] **HUMAN** — Turn on GitHub Pages (Settings, Pages, Source: GitHub Actions) if the demo should be published (approved 2026-10-24; enabled via the API, `pages.yml` deploys it, README links it)
    - **Why a human:** repository settings change.
    - **Done when:** Pages is enabled; an agent then adds the deploy workflow and links the URL.
-4. [ ] **HUMAN** — Approve or reject ADR-0007 (C++ naming mirrors Python, 100 columns)
+4. [x] **HUMAN** — Approve or reject ADR-0007 (C++ naming mirrors Python, 100 columns) (accepted as written 2026-10-24)
    - **Why a human:** style deviations from the constitution need the owner's approval.
    - **Done when:** ADR-0007 is Accepted or replaced, and the decision is recorded in `docs/MEMORY.md`.
 5. [ ] **HUMAN** — Confirm the Apache-2.0 license and decide on the gstack section in `CLAUDE.md`
