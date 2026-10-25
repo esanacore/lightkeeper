@@ -9,6 +9,7 @@ This project follows semantic versioning.
 ### Changed
 
 - README: a version line under the badge, and the How It Fits Together diagram as a top-down image rendered from `assets/diagrams/`, so it also shows in GitHub's mobile apps.
+- `docs/SAFETY_REVIEW.md`: a one-page sign-off sheet for the person with diabetes to confirm or change the thresholds and stale limit.
 - ADR-0007 (firmware C++ style: Google base, Python-mirroring names, 100 columns) is Accepted.
 - The demo page is published at https://esanacore.github.io/lightkeeper/ by a new `pages.yml` workflow, and the README links it. Its links to repository docs are now absolute, so they work from the published page.
 

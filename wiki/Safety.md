@@ -60,6 +60,6 @@ Every public surface carries one line:
 
 The project never calls anything it does an "alarm" ([[Community Research]]).
 
-Still open: the person with diabetes has not yet reviewed `docs/SAFETY.md` and the default thresholds (55 / 70 / 180 / 250 mg/dL, stale after 15 minutes), a Phase 0 exit item in `docs/MVP_BACKLOG.md`.
+Still open: the person with diabetes has not yet reviewed `docs/SAFETY.md` and the default thresholds (55 / 70 / 180 / 250 mg/dL, stale after 15 minutes), a Phase 0 exit item in `docs/MVP_BACKLOG.md`. The review is a one-page checklist, `docs/SAFETY_REVIEW.md`: confirm or change each threshold and the stale limit, acknowledge the limitations, and sign off.
 
 Back to [[Home]], or see [[Security and Privacy]] for the data side of the same question.

@@ -37,7 +37,7 @@ Replace the entry below at the end of every push; only the latest handoff is kep
    - **Done when:** `LICENSE` is confirmed and the gstack section is kept (with gstack installed) or deleted.
 6. [ ] **HUMAN** — Kaitlin reviews `docs/SAFETY.md` and the default thresholds
    - **Why a human:** thresholds and the safety boundary are her call, with her care team.
-   - **Done when:** thresholds in `docs/ENV_VARS.md` are confirmed or changed.
+   - **Done when:** Kaitlin has filled in and signed `docs/SAFETY_REVIEW.md` (written 2026-10-24), and the thresholds in `docs/ENV_VARS.md` are confirmed or changed to match.
 7. [ ] **HUMAN** — Choose Nightscout hosting and deploy it (Phase 1)
    - **Why a human:** needs accounts, a domain, and a secret only Eric should hold.
    - **Done when:** Nightscout is reachable over HTTPS and a readable-role token exists.

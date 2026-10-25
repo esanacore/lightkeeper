@@ -48,6 +48,9 @@ Severity: how bad the outcome could be. Likelihood: before mitigation. Each miti
 
 ## Review Triggers
 
+The person with diabetes confirms the thresholds and limitations on [`SAFETY_REVIEW.md`](SAFETY_REVIEW.md) before a display is relied on, and again after any change to the defaults.
+
+
 Re-review this log when:
 
 - any change touches parsing, classification, rendering, or the Nightscout client;

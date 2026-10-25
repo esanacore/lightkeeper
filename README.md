@@ -160,7 +160,7 @@ lightkeeper/
 
 ## Documentation
 
-- Safety boundary and hazard analysis: `docs/SAFETY.md`
+- Safety boundary and hazard analysis: `docs/SAFETY.md`; the sign-off sheet for thresholds: `docs/SAFETY_REVIEW.md`
 - Security model, data classification, and threat model: `docs/SECURITY_MODEL.md`
 - Every display state, pictured: `docs/DISPLAY_STATES.md`
 - What the community says about displays and alerts, and what we take from it: `docs/COMMUNITY_RESEARCH.md`
