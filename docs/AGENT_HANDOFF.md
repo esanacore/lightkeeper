@@ -44,7 +44,7 @@ Replace the entry below at the end of every push; only the latest handoff is kep
 8. [ ] **HUMAN** — Buy the Tier 1 hardware in `docs/HARDWARE.md` (Pi Zero 2 WH + 2.9" e-paper HAT, Xteink X4 Pro, ESP32-S3 bench board)
    - **Why a human:** hardware purchase, and flashing risks bricking a device.
    - **Done when:** the parts are on the bench; CrossPoint has been flashed and stock firmware restored once on the Xteink.
-9. [ ] **AUTOMATED** — CI runs all constitution workflows and the `iOS` workflow on the pushed commit; the new `core-tests-linux` job is the first Linux build of the Swift package, so watch it.
+9. [ ] **AUTOMATED** — CI runs the constitution workflows on every push to main, `iOS` (macOS and Linux package tests, simulator build) when iOS code or the vectors change, and `Demo page` (Pages deploy) when `demo.html` changes; watch for a red run.
 10. [ ] **AGENT** _(suggestion)_ — Propose the env-workflow path fix upstream in the engineering-constitution repo.
 11. [ ] **AGENT** _(suggestion)_ — iOS: unit tests for `Settings.load()` resetting an invalid set and `reclassify()` going STALE without a fetch (needs a test target in `project.yml`).
 12. [ ] **AGENT** _(suggestion)_ — Write an ADR evaluating Nightscout v3 JWT bearer auth with `AUTH_DEFAULT_ROLES=denied`, so the token leaves the URL.
