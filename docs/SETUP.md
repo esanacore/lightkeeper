@@ -136,12 +136,30 @@ These steps are the person with diabetes's decisions, made with their care team.
 
 Nightscout is the data hub every Lightkeeper display reads from. Host it somewhere the phone can reach from anywhere, which means a cloud VPS or a managed Nightscout host, not a machine at home.
 
-1. Pick hosting. Options the community uses: a small VPS (any provider, 1 vCPU and 1 GB is enough) running the official Docker image behind a TLS proxy, or a managed host. Record the choice in a new ADR (`docs/adr/`).
+1. Pick hosting (see "Choosing a host" below) and record the choice in a new ADR (`docs/adr/`).
 2. Follow the official install guide at nightscout.github.io for the host you chose. Use the Docker Compose method on a VPS: it gives you Nightscout, MongoDB, and automatic HTTPS via a reverse proxy.
 3. Security settings that are not optional for us: a long random `API_SECRET` (at least 24 characters, generated, never reused), `AUTH_DEFAULT_ROLES=denied` so nothing is public, and HTTPS only.
 4. Create the read-only token: in Nightscout, open the hamburger menu, Admin Tools, Subjects, add a subject named `lightkeeper-displays` with the role `readable`. The token Nightscout shows is what every display uses as `NIGHTSCOUT_TOKEN`. Never put the `API_SECRET` on a display.
-5. Backups: schedule a nightly `mongodump` to object storage and restore it once to a scratch instance to prove it works. Record the retention period in `docs/OPERATIONS.md`.
+5. Backups (VPS only; managed hosts do this for you, so just note their retention): schedule a nightly `mongodump` to object storage and restore it once to a scratch instance to prove it works. Record the retention period in `docs/OPERATIONS.md`.
 6. Verify from a workstation: `NIGHTSCOUT_URL=https://your-site NIGHTSCOUT_TOKEN=... python -m lightkeeper` should print NO DATA until an uploader exists, not a configuration error.
+
+#### Choosing a host
+
+Checked 2026-10-25 on each provider's own pages; prices move, so re-check before paying. The one hard requirement for Lightkeeper is the ability to set `AUTH_DEFAULT_ROLES=denied` and create a `readable` subject token (steps 3 and 4).
+
+| Option | Cost per month | Who does upkeep | `AUTH_DEFAULT_ROLES` and readable tokens | Notes |
+| --- | --- | --- | --- | --- |
+| [ElfHosted](https://store.elfhosted.com/product/nightscout/) (managed) | $9 ($7.20 paid yearly; $1 seven-day trial) | Host: updates, TLS, nightly database backups | Yes, in [their docs](https://docs.elfhosted.com/app/nightscout/) | Private by default; data region not stated; Discord support |
+| [ns.10be.de](https://ns.10be.de/en/pricing.html) (managed) | €5.99 (€59.99 a year) | Host: updates, TLS, backups every 4 to 6 hours kept 47 days; small updates need a manual redeploy | Custom env vars supported; confirm `AUTH_DEFAULT_ROLES` with support first | Servers in Germany; 99.0% uptime guarantee |
+| [T1Pal](https://www.t1pal.com/) (managed) | from $11.99 | Host | Not confirmed (sharing uses secret links) | Ask before buying |
+| [Nightscout Pro](https://nightscout.pro/) (managed) | about £3 to £4 | Host, follows official releases | Not confirmed | Pricing page inconsistent |
+| VPS with the [official Docker Compose setup](https://nightscout.github.io/vendors/VPS/docker/) (DigitalOcean 1 GiB, Hetzner) | about $6 to $8 including provider backups | You: OS patches, image updates, backups, MongoDB upgrades (about an hour a month) | Full control | You pick the data region; allow 10 GB or more of disk, since Trio's device status grows the database |
+| Oracle Always Free VM | $0 | You | Full control | Oracle may reclaim idle instances |
+| Railway, Fly.io, Heroku Eco | about $5 plus a MongoDB | Mostly you | Yes | Free tiers are gone; Railway has trouble with some follower apps |
+
+Do not use these for a closed loop: Render's free tier (sleeps after 15 minutes), Azure F1 (60 CPU minutes a day, not recommended for loopers by the Nightscout docs), Northflank's free tier (throttled), or a MongoDB Atlas M0 database (512 MB; Nightscout crashes when it fills).
+
+Recommendation: ElfHosted for the lowest upkeep, since it is the only managed host whose documentation confirms both settings Lightkeeper needs. Use the trial to check that a readable token works from a display over HTTPS before pointing Trio at it. Runner-up: a VPS with Docker Compose, which this guide already describes, for full control and a data region you choose. ns.10be.de is a cheaper EU option once support confirms `AUTH_DEFAULT_ROLES`.
 
 ### Phase 2 and 3: Trio
 

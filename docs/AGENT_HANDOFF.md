@@ -40,10 +40,10 @@ Replace the entry below at the end of every push; only the latest handoff is kep
    - **Done when:** Kaitlin has filled in and signed `docs/SAFETY_REVIEW.md` (written 2026-10-24), and the thresholds in `docs/ENV_VARS.md` are confirmed or changed to match.
 7. [ ] **HUMAN** — Choose Nightscout hosting and deploy it (Phase 1)
    - **Why a human:** needs accounts, a domain, and a secret only Eric should hold.
-   - **Done when:** Nightscout is reachable over HTTPS and a readable-role token exists.
-8. [ ] **HUMAN** — Buy the Tier 1 hardware in `docs/HARDWARE.md` (Pi Zero 2 WH + 2.9" e-paper HAT, Xteink X4 Pro, ESP32-S3 bench board)
+   - **Done when:** a host is chosen from the comparison in `docs/SETUP.md` ("Choosing a host", 2026-10-25), recorded in an ADR, Nightscout is reachable over HTTPS, and a readable-role token exists.
+8. [ ] **HUMAN** — Buy the Tier 1 hardware in `docs/HARDWARE.md` (Pi Zero 2 WH + 2.9" Touch e-Paper HAT, Xteink X4 Pro, ESP32-S3 bench board)
    - **Why a human:** hardware purchase, and flashing risks bricking a device.
-   - **Done when:** the parts are on the bench; CrossPoint has been flashed and stock firmware restored once on the Xteink.
+   - **Done when:** the parts are on the bench (prices and stock checked 2026-10-25 in `docs/HARDWARE.md`: the bare Pi Zero 2 WH was sold out and the display is now the 2.9" Touch e-Paper HAT); CrossPoint has been flashed and stock firmware restored once on the Xteink.
 9. [ ] **AUTOMATED** — CI runs the constitution workflows on every push to main, `iOS` (macOS and Linux package tests, simulator build) when iOS code or the vectors change, and `Demo page` (Pages deploy) when `demo.html` changes; watch for a red run.
 10. [ ] **AGENT** _(suggestion)_ — Propose the env-workflow path fix upstream in the engineering-constitution repo.
 11. [ ] **AGENT** _(suggestion)_ — iOS: unit tests for `Settings.load()` resetting an invalid set and `reclassify()` going STALE without a fetch (needs a test target in `project.yml`).

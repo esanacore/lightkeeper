@@ -4,7 +4,9 @@ What to buy to run and develop Lightkeeper's displays, in the order to buy it. T
 
 Nothing here is a medical device. These are secondary displays; the primary CGM app and its alarms stay on the phone. See [[Safety]].
 
-## Tier 1: first displays (about $185)
+## Tier 1: first displays (about $195 to $250)
+
+Checked 2026-10-25: the bare Pi Zero 2 WH was sold out at the main US resellers (CanaKit's $89.95 Starter Kit with a soldered header was in stock), Waveshare's plain 2.9 inch HAT is discontinued in favour of the Touch HAT, and the Xteink X4 Pro was on pre-order.
 
 ### Bedside e-ink display: Raspberry Pi Zero 2 WH plus a 2.9 inch e-paper HAT
 
@@ -12,8 +14,8 @@ This runs the Python code as it is, so the whole test suite already covers it. I
 
 | Part | Exact name to search | Approx. price |
 | --- | --- | --- |
-| Computer | Raspberry Pi Zero 2 WH. The H means the 40-pin header is pre-soldered, which the HAT needs. | $18 to $22 bare, $35 to $50 as a kit |
-| Display | Waveshare 2.9inch e-Paper HAT, 296x128, black/white. Avoid the (B) and (C) red or yellow versions; they refresh in 15 seconds and flash. | $22 to $28 |
+| Computer | Raspberry Pi Zero 2 WH. The H means the 40-pin header is pre-soldered, which the HAT needs. | about $20 bare (often sold out), $89.95 as CanaKit's Starter Kit with header |
+| Display | Waveshare 2.9inch Touch e-Paper HAT, 296x128, black/white (the plain HAT (D) is discontinued; touch can go unused). Avoid the (B) red and (G) four-colour versions; they refresh in about 15 seconds and flash. | $24.99 |
 | Power | 5 V 2.5 A micro-USB supply (official Raspberry Pi supply or the kit's) | $8 to $12 |
 | Storage | 32 GB microSD, A1 class (SanDisk or Samsung) | $8 |
 | Case | Optional: a Pi Zero case with a HAT cutout, or a 3D-printed one later | $5 to $10 |
@@ -32,7 +34,7 @@ Develop and test firmware here, not on the device the person with diabetes carri
 
 | Part | Exact name | Approx. price |
 | --- | --- | --- |
-| Board | Waveshare ESP32-S3-ePaper-1.54 (200x200 black/white, Wi-Fi, BLE, RTC, battery charging). Not the "1.54G" color version. | $20 to $25 |
+| Board | Waveshare ESP32-S3-ePaper-1.54 (200x200 black/white, Wi-Fi, BLE, RTC, battery charging). The plain "-1.54" listing includes a battery; avoid the "1.54G" four-colour version. | $15.99 to $22.99 |
 | Battery | 3.7 V LiPo, 500 to 1000 mAh, with an MX1.25 2-pin connector. JST-PH will not fit. | $8 to $12 |
 | Cable | USB-C data cable. Many charge-only cables will not flash. | $6 |
 

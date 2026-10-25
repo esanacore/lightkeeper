@@ -18,7 +18,7 @@ None of the three has started as of 0.1.0; they do not block the display work.
 
 Nightscout is the data hub every Lightkeeper display reads from (ADR-0003). It has to live somewhere the phone can reach from anywhere, which means a cloud VPS or a managed Nightscout host, not a machine at home.
 
-- Hosting: a small VPS (1 vCPU and 1 GB is enough) running the official Docker Compose setup behind a TLS proxy, or a managed host; the choice gets its own ADR. Follow the install guide at https://nightscout.github.io.
+- Hosting: a small VPS (1 vCPU and 1 GB is enough) running the official Docker Compose setup behind a TLS proxy, or a managed host; the choice gets its own ADR. Follow the install guide at https://nightscout.github.io. `docs/SETUP.md` ("Choosing a host") compares the options as of October 2026: ElfHosted (about $9 a month, managed, and documented to support `AUTH_DEFAULT_ROLES` and readable tokens) is the low-upkeep pick, and a VPS (about $6 to $8 a month) is the full-control runner-up. Never use Render's free tier, Azure F1, or a MongoDB Atlas M0 database for a loop.
 - Security settings that are not optional here: a long random `API_SECRET` (at least 24 characters, generated, never reused), `AUTH_DEFAULT_ROLES=denied` so nothing is public, and HTTPS only.
 - The read-only token: in Nightscout, open the menu, Admin Tools, Subjects, and add a subject named `lightkeeper-displays` with the role `readable`. The token Nightscout shows is what every display uses as `NIGHTSCOUT_TOKEN`. The `API_SECRET` never goes on a display.
 - Backups: a nightly `mongodump` to object storage, restored once to a scratch instance to prove it works. The retention period gets recorded in `docs/OPERATIONS.md`.
