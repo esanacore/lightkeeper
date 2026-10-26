@@ -8,6 +8,7 @@ This project follows semantic versioning.
 
 ### Added
 
+- ADR-0010 (proposed): publish to Home Assistant over MQTT discovery, so a dead publisher makes the entity `unavailable` instead of leaving a fresh-looking level.
 - `lightkeeper.infrastructure.epaper_bitmap`: draws the display lines as a 1-bit 296x128 bitmap with the project's own 5x8 font (standard library only), as a PNG preview or a packed buffer in Waveshare's 2.9" panel layout. This is the Raspberry Pi display groundwork (FR-007); the panel driver follows when the hardware arrives.
 - iOS app unit tests (`apps/ios/Lightkeeper/Tests/`), run on a simulator in CI: an impossible threshold set on disk resets to the defaults and is saved back, and returning to the foreground turns an old reading STALE without waiting for a fetch.
 

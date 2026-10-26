@@ -18,7 +18,7 @@ Replace the entry below at the end of every push; only the latest handoff is kep
 
 #### Next Steps
 
-**Human action required:** steps 1 (done), 2 (done), 3 (done), 4 (done), 5 (done), 6, 7, 8, and 13 (done).
+**Human action required:** steps 1 (done), 2 (done), 3 (done), 4 (done), 5 (done), 6, 7, 8, 13 (done), and 14.
 
 1. [x] **HUMAN** — Approve cutting release v0.1.0 (approved 2026-10-24; tagged and published)
    - **Why a human:** a tag and GitHub Release are public, permanent publications.
@@ -51,3 +51,6 @@ Replace the entry below at the end of every push; only the latest handoff is kep
 13. [x] **HUMAN** — Accept or reject ADR-0009 (accepted 2026-10-25; Python and Swift clients now send the token in the `api-secret` header)
    - **Why a human:** a change to how credentials travel needs the owner's approval.
    - **Done when:** ADR-0009 is Accepted or Rejected; if accepted, an agent changes the clients in one commit (done) and runs the real-instance check once Nightscout exists (step 7; tracked in `TODO.md`).
+14. [ ] **HUMAN** — Pick the Home Assistant transport in ADR-0010 (MQTT discovery recommended)
+   - **Why a human:** it adds a new output that Home Assistant automations can alert on, and a broker credential; the owner decides.
+   - **Done when:** ADR-0010 is Accepted (or replaced), and `docs/SAFETY.md` has a hazard entry for the Home Assistant path; an agent then implements it with fake-broker tests (GAP-002).
