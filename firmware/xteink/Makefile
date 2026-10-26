@@ -1,6 +1,7 @@
 # Host tests for the firmware safety rules. Needs a C++17 compiler and Python 3.
 #   make test          build and run with AddressSanitizer + UBSan
 #   make format-check  confirm the C++ matches .clang-format
+#   make coverage      line and branch coverage of glucose_rules.cpp (gcov)
 #   make clean
 #
 # On Windows, run in WSL (`wsl -- make -C firmware/xteink test`): MinGW
@@ -15,7 +16,7 @@ CXXFLAGS := -std=c++17 -Wall -Wextra -Werror -Wconversion -Wshadow -g \
             -fsanitize=address,undefined -fno-sanitize-recover=all \
             -Ilib/glucose_rules -I$(BUILD)
 
-.PHONY: test format-check clean
+.PHONY: test format-check coverage clean
 
 $(BUILD)/vectors.inc: $(VECTORS) tools/gen_vectors.py
 	mkdir -p $(BUILD)
@@ -33,6 +34,18 @@ format-check:
 	@if command -v clang-format >/dev/null 2>&1; then \
 	  clang-format --dry-run --Werror lib/glucose_rules/*.h lib/glucose_rules/*.cpp test/host/*.cpp && echo "clang-format: OK"; \
 	else echo "clang-format not installed; skipping format check"; fi
+
+# Coverage build: no sanitizers (they distort counts), -O0 so lines map 1:1.
+# Prints gcov's summary for the rules file; the annotated source lands in
+# $(BUILD)/coverage/glucose_rules.cpp.gcov. Needs gcc's gcov (Linux, WSL).
+coverage: $(BUILD)/vectors.inc
+	mkdir -p $(BUILD)/coverage
+	$(CXX) -std=c++17 -O0 --coverage -Ilib/glucose_rules -I$(BUILD) \
+	  lib/glucose_rules/glucose_rules.cpp test/host/test_glucose_rules.cpp -o $(BUILD)/coverage/host_tests
+	./$(BUILD)/coverage/host_tests
+	gcov -b -c -o $(BUILD)/coverage $(BUILD)/coverage/host_tests-glucose_rules.gcda \
+	  | sed -n "/glucose_rules.cpp'/,/^$$/p"
+	mv -f *.gcov $(BUILD)/coverage/
 
 clean:
 	rm -rf $(BUILD)

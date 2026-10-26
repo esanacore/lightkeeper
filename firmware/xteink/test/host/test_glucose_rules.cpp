@@ -201,6 +201,44 @@ void test_thresholds() {
   t = lk::Thresholds();
   t.stale_after_ms = 0;
   CHECK(!t.valid(), "stale limit must be positive");
+  t = lk::Thresholds();
+  t.urgent_low = 39;
+  CHECK(!t.valid(), "urgent_low floored at 40");
+  t = lk::Thresholds();
+  t.high = t.low;
+  CHECK(!t.valid(), "low must be below high");
+  t = lk::Thresholds();
+  t.urgent_high = t.high;
+  CHECK(!t.valid(), "high must be below urgent_high");
+}
+
+// Defensive fallbacks: an enum value outside the declared set (memory
+// corruption, a future enumerator added without a name) still renders text.
+void test_out_of_range_enums_fall_back() {
+  CHECK(strcmp(lk::trend_arrow(static_cast<lk::Trend>(99)), "?") == 0,
+        "unknown trend renders as ?");
+  CHECK(strcmp(lk::level_name(static_cast<lk::Level>(99)), "NO DATA") == 0,
+        "unknown level renders as NO DATA");
+}
+
+// A status that claims a level but carries no reading must not print a number.
+void test_level_without_reading_renders_no_data() {
+  lk::Status s;
+  s.level = lk::Level::InRange;
+  s.has_reading = false;
+  lk::Lines lines;
+  lk::render(s, false, &lines);
+  CHECK(lines.count == 3 && strcmp(lines.text[0], "NO DATA") == 0,
+        "inconsistent status renders the NO DATA screen");
+}
+
+// The tie-break holds whichever order the uploaders' entries arrive in.
+void test_tie_break_with_lower_value_first() {
+  lk::RawEntry entries[2] = {good_entry(), good_entry()};
+  entries[0].sgv = 68;
+  entries[1].sgv = 130;
+  lk::Reading r;
+  CHECK(lk::newest_reading(entries, 2, &r) && r.mgdl == 68, "lower value kept when listed first");
 }
 
 void test_render_limits() {
@@ -245,6 +283,9 @@ int main() {
   test_parse_edges();
   test_newest_reading_edges();
   test_thresholds();
+  test_out_of_range_enums_fall_back();
+  test_level_without_reading_renders_no_data();
+  test_tie_break_with_lower_value_first();
   test_render_limits();
   test_age_floor();
   test_invalid_thresholds_never_classify();

@@ -45,7 +45,7 @@ From `docs/COMMUNITY_RESEARCH.md` (October 2026):
 - [ ] GAP-004: multi-day `--watch` soak test for memory growth and clock drift.
 - [~] GAP-003: localhost fake Nightscout covers the HTTP layer; still need a real Nightscout instance.
 - [ ] GAP-005: Xteink device build and on-hardware tests (FR-010).
-- [ ] GAP-006: measure firmware coverage with gcov.
+- [x] GAP-006: measure firmware coverage with gcov (2026-10-25: `make -C firmware/xteink coverage`, 100% lines, 113 of 114 branches).
 
 ## Documentation
 

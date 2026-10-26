@@ -22,6 +22,8 @@ const TrendName kTrends[] = {
 };
 
 void set_line(Lines* out, const char* text) {
+  // Defensive: render() never asks for more than kMaxLines, so this guard is
+  // the one branch the host tests cannot reach (see `make coverage`).
   if (out->count >= kMaxLines) return;
   snprintf(out->text[out->count], kLineChars, "%s", text);
   out->count++;

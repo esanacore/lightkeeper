@@ -1,6 +1,6 @@
 # Testing and Quality
 
-How the repository is tested, what it promises about coverage, and how a reader can check those promises. The source documents are `docs/TEST_PLAN.md`, `docs/REQUIREMENTS_TRACEABILITY.md`, and `docs/PRODUCT_REQUIREMENTS.md` in the repository. Numbers are from the current 0.1.0 tree: 177 Python tests, 100% line and branch coverage, 39 shared vectors, 287 firmware checks.
+How the repository is tested, what it promises about coverage, and how a reader can check those promises. The source documents are `docs/TEST_PLAN.md`, `docs/REQUIREMENTS_TRACEABILITY.md`, and `docs/PRODUCT_REQUIREMENTS.md` in the repository. Numbers are from the current 0.1.0 tree: 182 Python tests, 100% line and branch coverage, 39 shared vectors, 294 firmware checks.
 
 ## The pyramid
 
@@ -32,15 +32,15 @@ Three suites run every case, must produce identical output, and assert the spec 
 | Repository default | Line and branch | 90% (`fail_under` in `pyproject.toml`) | 100% |
 | Domain layer (the safety rules) | Line and branch | 100% | 100% |
 | Nightscout client | Line and branch | 95% | 100% |
-| Firmware `glucose_rules` | Every shared vector plus edge cases | 100% of vectors | 287 checks pass |
+| Firmware `glucose_rules` | Every shared vector plus edge cases | 100% of vectors | 294 checks pass; 100% of lines and 113 of 114 branches (gcov) |
 
-Firmware line and branch coverage is not yet measured with gcov (GAP-006). The coverage history is a dated table in `docs/TEST_PLAN.md`.
+Firmware coverage is measured with gcov: `make -C firmware/xteink coverage` reports 100% of lines and 113 of 114 branches in `glucose_rules.cpp`; the one branch left is a defensive guard that the public API cannot reach. The coverage history is a dated table in `docs/TEST_PLAN.md`.
 
 ## Requirements traceability
 
 `docs/PRODUCT_REQUIREMENTS.md` defines each requirement with a stable ID, a MUST/SHOULD/COULD/WON'T level, and numbered acceptance criteria such as `FR-003-AC-2`. `docs/REQUIREMENTS_TRACEABILITY.md` maps each to its verifying tests and a status. For 0.1.0, FR-001 through FR-006, FR-009, FR-011, FR-012, and NFR-001 through NFR-004 are Verified, 13 in all. FR-007, FR-008, FR-010, FR-013, FR-014, and FR-015 are reserved in a Planned section and get rows when their first test lands. A constitution check fails the build if a declared requirement has no verifying test, which is why unstarted work is kept out of the declared list.
 
-The gap log names what is not yet tested: GAP-001 physical e-paper output, GAP-002 Home Assistant publishing, GAP-003 a real Nightscout instance, GAP-004 a multi-day `--watch` soak test, GAP-005 the Xteink device build (High), GAP-006 firmware coverage measurement.
+The gap log names what is not yet tested: GAP-001 physical e-paper output, GAP-002 Home Assistant publishing, GAP-003 a real Nightscout instance, GAP-004 a multi-day `--watch` soak test, GAP-005 the Xteink device build (High). GAP-006, firmware coverage measurement, was closed on 2026-10-25.
 
 ## The constitution CI checks
 

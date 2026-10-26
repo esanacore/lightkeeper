@@ -12,6 +12,7 @@ This project follows semantic versioning.
 
 ### Changed
 
+- Firmware: `make -C firmware/xteink coverage` measures line and branch coverage with gcov (100% of lines, 113 of 114 branches); new host tests cover the remaining threshold, enum-fallback, inconsistent-status, and tie-break branches.
 - The readable Nightscout token is now sent in the `api-secret` request header instead of `?token=` in the URL, by the Python tool and the iOS app, so it no longer appears in proxy or hosting access logs (ADR-0009, accepted). ADR-0009 weighed this against JWT bearer auth and the v3 API, using the Nightscout v15.0.9 source. Custom fetchers passed to `NightscoutClient` now take `(url, headers, timeout)`.
 - README: a version line under the badge, and the How It Fits Together diagram as a top-down image rendered from `assets/diagrams/`, so it also shows in GitHub's mobile apps.
 - `docs/SETUP.md` compares Nightscout hosts (managed and VPS) with a recommendation; `docs/HARDWARE.md` carries prices and stock checked on 2026-10-25, and the bedside display is now the Waveshare 2.9" Touch e-Paper HAT because the plain HAT is discontinued.
