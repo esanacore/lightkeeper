@@ -15,7 +15,7 @@ From `docs/COMMUNITY_RESEARCH.md` (October 2026):
 - [x] Extend the vector schema (`seconds_ago`, several entries per case, custom thresholds) so duplicate-timestamp, 15-minutes-plus-one-second, and custom-threshold cases become shared vectors (2026-10-23: 16 new cases, firmware `newest_reading`).
 - [x] (2026-10-23, with a Linux CI job) Let `LightkeeperCore` build with the Windows and Linux Swift toolchains: guard `FoundationNetworking` in `NightscoutClient.swift` and replace the `kCFBooleanTrue` identity check, which only exists on Apple platforms. Then the vector tests can run outside macOS CI.
 - [x] (2026-10-23: it checks inside WSL, since MinGW cannot link the sanitizers) `tools/doctor.py`: accept `mingw32-make` on Windows, or point at WSL, so a Windows machine with WinLibs passes.
-- [ ] Check whether `lightkeeper` is free on PyPI before Phase 6; fallback name `lightkeeper-display`.
+- [x] Check whether `lightkeeper` is free on PyPI before Phase 6; fallback name `lightkeeper-display` (2026-10-25: both free; only publishing a release reserves a name, which is Eric's call).
 - [x] iOS: unit tests for `Settings.load()` resetting an invalid set and for `reclassify()` yielding STALE without a fetch (2026-10-25: `LightkeeperTests` target, run on a simulator in CI).
 - [x] Evaluate Nightscout's `AUTH_DEFAULT_ROLES=denied` plus v3 JWT so the token never appears in a URL (2026-10-25: ADR-0009 proposes the `api-secret` header on v1 instead; JWT is the fallback).
 - [x] ADR-0009 accepted and implemented (2026-10-25): the Python and Swift clients send the readable token in the `api-secret` header, `?token=` is gone, and tests assert no request URL carries it.
@@ -43,7 +43,7 @@ From `docs/COMMUNITY_RESEARCH.md` (October 2026):
 
 - [ ] GAP-001: hardware-in-the-loop check for the e-paper panel (FR-007).
 - [ ] GAP-002: Home Assistant integration tests (FR-008).
-- [ ] GAP-004: multi-day `--watch` soak test for memory growth and clock drift.
+- [~] GAP-004: multi-day `--watch` soak test for memory growth and clock drift. Accelerated three-day soak in the suite (2026-10-25, `tests/test_soak.py`); still to do: a real multi-day run on the Pi once it exists.
 - [~] GAP-003: localhost fake Nightscout covers the HTTP layer; still need a real Nightscout instance.
 - [ ] GAP-005: Xteink device build and on-hardware tests (FR-010).
 - [x] GAP-006: measure firmware coverage with gcov (2026-10-25: `make -C firmware/xteink coverage`, 100% lines, 113 of 114 branches).
