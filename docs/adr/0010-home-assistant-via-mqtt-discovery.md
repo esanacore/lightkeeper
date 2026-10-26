@@ -1,8 +1,8 @@
 # ADR-0010: Publish to Home Assistant over MQTT Discovery
 
-Status: Proposed
+Status: Accepted
 
-Date: 2026-10-25
+Date: 2026-10-25 (proposed); accepted 2026-10-26
 
 ## Relationships
 
@@ -12,8 +12,8 @@ Date: 2026-10-25
 
 ## Promotion Criteria
 
-- Eric picks the transport. Gate: Eric.
-- Because Home Assistant automations can alert on what this publishes, `docs/SAFETY.md` gets a hazard entry for the Home Assistant path, with a tested mitigation for each failure below, before the feature ships. Gate: Eric, with the person with diabetes informed.
+- Eric picks the transport. Gate: Eric. Met 2026-10-26: option 1 accepted.
+- Because Home Assistant automations can alert on what this publishes, `docs/SAFETY.md` gets a hazard entry for the Home Assistant path, with a tested mitigation for each failure below, before the feature ships. Gate: Eric, with the person with diabetes informed. Met 2026-10-26: HAZ-013, with the classification rationale re-read.
 
 ## Context
 
@@ -34,7 +34,15 @@ In every option, the same JSON status object (level, value, age, trend, fetch er
 
 ## Decision
 
-Proposed: option 1, MQTT discovery with a minimal standard-library MQTT 3.1.1 publisher, availability through Last Will, and `expire_after` set to the stale limit plus one refresh interval. TLS on by default, plain MQTT only when explicitly enabled for a broker on localhost (mirroring `allow_http`). Plus `--json PATH` as the shared payload and a standalone feature.
+Option 1: MQTT discovery with a minimal standard-library MQTT 3.1.1 publisher, plus `--json PATH` as the shared payload and a standalone feature. The details below were settled while writing HAZ-013:
+
+- One persistent connection per `--watch` run, reopened on the next cycle after any failure. The keepalive is twice the refresh interval (at least 60 seconds), so a publish every cycle keeps it open, and a silent power loss trips the broker's keepalive check within three intervals.
+- A Last Will publishes `offline`, retained, to the availability topic. On connect the publisher sets it to `online`, retained; a clean shutdown sets `offline` first.
+- Discovery configs are retained. State messages are **not** retained: after a Home Assistant restart, a replayed state would count as new and could make an old level look fresh. The entity reads unknown until the next cycle instead.
+- Three sensors share one JSON state topic: level (the displays' classification), glucose in mg/dL, and reading age in minutes, with trend, the display lines, and any fetch error as attributes.
+- `expire_after` is three refresh intervals (at least 180 seconds), capped at the stale limit. The entity goes unavailable soon after updates stop, without flapping on one slow cycle.
+- TLS on by default (port 8883, certificate verified). Plain MQTT (port 1883) only when explicitly enabled for a broker on localhost, mirroring `allow_http`.
+- Configuration comes from `LK_MQTT_*` environment variables, and the feature is on only when `LK_MQTT_HOST` is set. A publish failure is logged and never stops the display loop (as for HAZ-011).
 
 The published level never looks better than the displays: when the publisher can't fetch, it publishes what the displays would show (STALE or NO DATA with the error attribute), and when it can't publish at all, the broker's will and `expire_after` make the entity unavailable. Example automations in the docs trigger on `URGENT LOW`, on `STALE`, and on `unavailable`, and say plainly that the primary app's alarms stay primary.
 

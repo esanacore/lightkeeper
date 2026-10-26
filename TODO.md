@@ -23,7 +23,8 @@ From `docs/COMMUNITY_RESEARCH.md` (October 2026):
 - [ ] Firmware device HTTP layer (FR-010): send the token in the `api-secret` header, never in the URL (ADR-0009).
 
 - [ ] Raspberry Pi e-paper display adapter for `lightkeeper` (FR-007).
-- [ ] Home Assistant integration: publish level, value, and age as a sensor, alert on URGENT LOW and STALE (FR-008). ADR-0010 (proposed, 2026-10-25) recommends MQTT discovery with a standard-library publisher, Last Will, and `expire_after`, plus a `--json PATH` output; implement once Eric picks the transport and the hazard entry is written.
+- [x] Home Assistant integration: publish level, value, and age as a sensor, alert on URGENT LOW and STALE (FR-008). Done 2026-10-26: ADR-0010 accepted, HAZ-013, standard-library MQTT publisher with Last Will and `expire_after`, unretained state, `--json PATH`.
+- [ ] FR-008 against a real Home Assistant and Mosquitto: discovery creates the three sensors, the example automations fire, and stopping the publisher makes the entities unavailable (GAP-002).
 - [ ] Optional mmol/L display units (FR-013, reserved).
 - [ ] Show a short sparkline or delta from the previous reading (FR-014, reserved).
 - [x] Draw `render_svg` output to a real e-paper bitmap for the Pi adapter (FR-007), reusing the gallery layout (2026-10-25: `epaper_bitmap.py`, own 5x8 font, PNG preview and Waveshare buffer).
@@ -42,7 +43,7 @@ From `docs/COMMUNITY_RESEARCH.md` (October 2026):
 ## Testing
 
 - [ ] GAP-001: hardware-in-the-loop check for the e-paper panel (FR-007).
-- [ ] GAP-002: Home Assistant integration tests (FR-008).
+- [~] GAP-002: Home Assistant integration tests (FR-008). Fake-broker tests cover the protocol and every HAZ-013 mitigation (2026-10-26); a real Home Assistant check remains.
 - [~] GAP-004: multi-day `--watch` soak test for memory growth and clock drift. Accelerated three-day soak in the suite (2026-10-25, `tests/test_soak.py`); still to do: a real multi-day run on the Pi once it exists.
 - [~] GAP-003: localhost fake Nightscout covers the HTTP layer; still need a real Nightscout instance.
 - [ ] GAP-005: Xteink device build and on-hardware tests (FR-010).

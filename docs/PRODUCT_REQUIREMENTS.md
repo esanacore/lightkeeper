@@ -94,12 +94,21 @@ An open source stack for managing one person's type 1 diabetes (built first for 
   - `FR-012-AC-2`: The app reads Nightscout with a readable token stored in the Keychain, over HTTPS only, refusing redirects that change scheme or host.
   - `FR-012-AC-3`: The app contains no pump or sensor communication (ADR-0004, ADR-0008).
 
+**FR-008** `SHOULD` Publish the display status to Home Assistant (ADR-0010).
+
+- Level: `SHOULD`
+- Acceptance criteria:
+  - `FR-008-AC-1`: With `LK_MQTT_HOST` set, Home Assistant discovers sensors for level, glucose in mg/dL, and reading age, and receives each refresh, so an automation can trigger on `URGENT LOW` or `STALE`.
+  - `FR-008-AC-2`: When the publisher stops, the entities become unavailable (MQTT Last Will, `expire_after`, and `offline` on a clean `--watch` exit); state messages are never retained (HAZ-013).
+  - `FR-008-AC-3`: The glucose number is published only for a fresh, measured reading; STALE, NO DATA, and sensor sentinels publish no number (HAZ-013).
+  - `FR-008-AC-4`: TLS is the default; plain MQTT is refused except to a broker on localhost, and a publish failure never stops the display.
+  - `FR-008-AC-5`: `--json PATH` writes the same status payload atomically.
+
 ## Planned Requirements
 
 These IDs are reserved for work that hasn't started. They are listed here, not declared above, so the traceability gate only enforces requirements the current release commits to. Promote one into Functional Requirements, in bold, in the same change that adds its first verifying test.
 
 - FR-007 (SHOULD): Drive a physical e-ink display on a Raspberry Pi. Acceptance: the four rendered lines appear on the panel and refresh at least every 5 minutes.
-- FR-008 (SHOULD): Publish status to Home Assistant. Acceptance: Home Assistant shows a sensor with level, value, and age, and can trigger an automation on URGENT LOW or STALE.
 - FR-010 (SHOULD): Run on an Xteink X4/X3 pocket e-ink reader over Wi-Fi. Acceptance: the device fetches from Nightscout, shows every vector state correctly, and updates at least every 5 minutes (ADR-0006).
 - FR-013 (SHOULD): Display in mmol/L when configured. Acceptance: one setting switches every implementation to mmol/L with one decimal, the thresholds are entered in the same unit, and the shared vectors cover both units.
 - FR-014 (COULD): Show the change since the previous reading (delta). Acceptance: a signed delta appears beside the arrow when two consecutive fresh readings exist, and is omitted otherwise.

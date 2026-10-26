@@ -59,8 +59,8 @@ Glucose data is **Restricted** (health data) at every step of this flow, and the
 ## Repository Structure
 
 - `src/lightkeeper/domain/`: pure rules, no I/O, no clock.
-- `src/lightkeeper/application/`: use cases that combine a data source with the domain rules.
-- `src/lightkeeper/infrastructure/`: the HTTPS Nightscout client, the SVG panel renderer, and the 1-bit e-paper rasterizer (`epaper_bitmap.py` with the project's own 5x8 font, `font5x7.py`), which produces the PNG previews and the Waveshare panel buffer for the Raspberry Pi display (FR-007; the SPI driver waits for hardware).
+- `src/lightkeeper/application/`: use cases that combine a data source with the domain rules, and the status payload shared by `--json` and Home Assistant.
+- `src/lightkeeper/infrastructure/`: the HTTPS Nightscout client, the publish-only MQTT client and Home Assistant discovery publisher (`mqtt.py`, `home_assistant.py`, ADR-0010), the SVG panel renderer, and the 1-bit e-paper rasterizer (`epaper_bitmap.py` with the project's own 5x8 font, `font5x7.py`), which produces the PNG previews and the Waveshare panel buffer for the Raspberry Pi display (FR-007; the SPI driver waits for hardware).
 - `src/lightkeeper/cli.py`: composition root, wires env config, clock, and client.
 - `tests/`: pytest suite, test names carry requirement IDs.
 - `spec/display_vectors.json`: golden display cases every implementation must pass.

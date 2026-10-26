@@ -236,7 +236,41 @@ The firmware rules are done and tested on a PC (`firmware/xteink`); the device b
 
 ### Home Assistant
 
-Planned (FR-008). The exit code and the SVG file are already usable: a `command_line` sensor that runs `python -m lightkeeper` and a `local_file` camera pointing at the SVG give a working card today. The proper integration will publish level, value, and age as entities.
+Lightkeeper publishes its status to Home Assistant over MQTT discovery (FR-008, ADR-0010). Home Assistant's own Nightscout integration shows the raw last number and does not know when it is stale; Lightkeeper's level does.
+
+1. Install the Mosquitto broker add-on and enable the MQTT integration in Home Assistant.
+2. Create a broker user for Lightkeeper, and limit it in the broker's ACL to `lightkeeper/#` and `homeassistant/sensor/<node id>/#`.
+3. Give the broker a certificate for TLS (the Mosquitto add-on supports it), or run Lightkeeper on the same machine as the broker and set `LK_MQTT_TLS=false` with `LK_MQTT_HOST=localhost`; plain MQTT to any other host is refused.
+4. Set `LK_MQTT_HOST`, `LK_MQTT_USERNAME`, `LK_MQTT_PASSWORD`, and `LK_MQTT_NODE_ID` (one per display; see `docs/ENV_VARS.md`) and run `python -m lightkeeper --watch`. Three sensors appear under a "Lightkeeper" device: Glucose level, Glucose (mg/dL), and Glucose reading age.
+
+How it stays honest (HAZ-013): the glucose number is blank (unknown) whenever the level is STALE or NO DATA; state is never retained, so a Home Assistant restart shows unknown until the next refresh rather than replaying an old level; and if the publisher stops, the entities go `unavailable`, within about three refresh intervals at most.
+
+Example automation. These are secondary alerts you choose to add; the primary app's alarms stay the ones to rely on:
+
+```yaml
+automation:
+  - alias: "Lightkeeper: urgent low"
+    triggers:
+      - trigger: state
+        entity_id: sensor.lightkeeper_glucose_level
+        to: "URGENT LOW"
+    actions:
+      - action: notify.notify
+        data:
+          message: "Lightkeeper shows URGENT LOW. Check the primary CGM app now."
+  - alias: "Lightkeeper: not current"
+    triggers:
+      - trigger: state
+        entity_id: sensor.lightkeeper_glucose_level
+        to: ["STALE", "NO DATA", "unavailable"]
+        for: "00:05:00"
+    actions:
+      - action: notify.notify
+        data:
+          message: "Lightkeeper has no current reading. Check the primary CGM app."
+```
+
+Entity ids depend on the device and sensor names; check them under Settings, Devices. `--json PATH` writes the same status as a file, for dashboards that read files.
 
 ## Part 4: The iOS companion app
 

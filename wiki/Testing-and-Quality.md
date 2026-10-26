@@ -1,6 +1,6 @@
 # Testing and Quality
 
-How the repository is tested, what it promises about coverage, and how a reader can check those promises. The source documents are `docs/TEST_PLAN.md`, `docs/REQUIREMENTS_TRACEABILITY.md`, and `docs/PRODUCT_REQUIREMENTS.md` in the repository. Numbers are from the current 0.1.0 tree: 235 Python tests, 100% line and branch coverage, 39 shared vectors, 294 firmware checks.
+How the repository is tested, what it promises about coverage, and how a reader can check those promises. The source documents are `docs/TEST_PLAN.md`, `docs/REQUIREMENTS_TRACEABILITY.md`, and `docs/PRODUCT_REQUIREMENTS.md` in the repository. Numbers are from the current 0.1.0 tree: 313 Python tests, 100% line and branch coverage, 39 shared vectors, 294 firmware checks.
 
 ## The pyramid
 
@@ -40,7 +40,7 @@ Firmware coverage is measured with gcov: `make -C firmware/xteink coverage` repo
 
 `docs/PRODUCT_REQUIREMENTS.md` defines each requirement with a stable ID, a MUST/SHOULD/COULD/WON'T level, and numbered acceptance criteria such as `FR-003-AC-2`. `docs/REQUIREMENTS_TRACEABILITY.md` maps each to its verifying tests and a status. For 0.1.0, FR-001 through FR-006, FR-009, FR-011, FR-012, and NFR-001 through NFR-004 are Verified, 13 in all. FR-007, FR-008, FR-010, FR-013, FR-014, and FR-015 are reserved in a Planned section and get rows when their first test lands. A constitution check fails the build if a declared requirement has no verifying test, which is why unstarted work is kept out of the declared list.
 
-The gap log names what is not yet tested: GAP-001 physical e-paper output, GAP-002 Home Assistant publishing, GAP-003 a real Nightscout instance, GAP-004 a real-time multi-day `--watch` run on the Pi (an accelerated three-day soak already runs in the suite), GAP-005 the Xteink device build (High). GAP-006, firmware coverage measurement, was closed on 2026-10-25.
+The gap log names what is not yet tested: GAP-001 physical e-paper output, GAP-002 a real Home Assistant check (fake-broker tests already run), GAP-003 a real Nightscout instance, GAP-004 a real-time multi-day `--watch` run on the Pi (an accelerated three-day soak already runs in the suite), GAP-005 the Xteink device build (High). GAP-006, firmware coverage measurement, was closed on 2026-10-25.
 
 ## The constitution CI checks
 

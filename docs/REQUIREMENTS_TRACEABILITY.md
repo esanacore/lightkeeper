@@ -23,11 +23,12 @@ Related documents:
 | FR-004 | MUST | Render short ASCII lines for e-ink | FR-004-AC-1 to AC-3 | `tests/test_monitor.py`, `tests/test_glucose.py` (`-k fr004`) | Verified |
 | FR-005 | MUST | Degrade safely when Nightscout fails | FR-005-AC-1, AC-2 | `tests/test_monitor.py`, `tests/test_nightscout.py`, `tests/test_cli.py`, `tests/test_http_integration.py` (`-k fr005`) | Verified |
 | FR-006 | MUST | CLI with demo mode and exit codes | FR-006-AC-1 to AC-3 | `tests/test_cli.py` (`-k fr006`); watch-loop resilience `-k haz011` | Verified |
+| FR-008 | SHOULD | Publish status to Home Assistant (ADR-0010) | FR-008-AC-1 to AC-5 | `tests/test_home_assistant.py`, `tests/test_mqtt.py`, `tests/test_cli.py` (`-k fr008`, `-k haz013`) against a fake MQTT broker | Verified (fake broker); a check against a real Home Assistant stays open (GAP-002) |
 | FR-009 | MUST | Display implementations match shared vectors | FR-009-AC-1 | `tests/test_vectors.py`, `firmware/xteink/test/host/test_glucose_rules.cpp` (`make -C firmware/xteink test`), `VectorTests.swift`; all three assert `spec_version` | Verified |
 | FR-011 | SHOULD | SVG panel image, generated gallery and demo | FR-011-AC-1 to AC-3 | `tests/test_svg_display.py`, `tests/test_gallery.py` (`-k fr011`) | Verified |
 | FR-012 | SHOULD | Read-only iOS companion app on the shared rules | FR-012-AC-1 to AC-3 | `apps/ios/LightkeeperCore/Tests/LightkeeperCoreTests/VectorTests.swift`; app layer `apps/ios/Lightkeeper/Tests/` (`SettingsTests`: invalid thresholds on disk reset, HAZ-006/HAZ-012; `GlucoseModelTests`: foreground reclassify to STALE without a fetch, HAZ-008), all in `.github/workflows/ios.yml`; AC-3 by code review of `apps/ios/` | Verified |
 
-Planned requirements FR-007, FR-008, FR-010, FR-013, FR-014, and FR-015 are reserved in `docs/PRODUCT_REQUIREMENTS.md` and get rows here when they are promoted (gaps GAP-001, GAP-002, GAP-005 in `docs/TEST_PLAN.md`).
+Planned requirements FR-007, FR-010, FR-013, FR-014, and FR-015 are reserved in `docs/PRODUCT_REQUIREMENTS.md` and get rows here when they are promoted (gaps GAP-001 and GAP-005 in `docs/TEST_PLAN.md`).
 
 ## Non-Functional Requirements
 

@@ -15,6 +15,13 @@ def clean_env(monkeypatch):
         "LK_HIGH",
         "LK_URGENT_HIGH",
         "LK_STALE_MINUTES",
+        "LK_MQTT_HOST",
+        "LK_MQTT_PORT",
+        "LK_MQTT_TLS",
+        "LK_MQTT_USERNAME",
+        "LK_MQTT_PASSWORD",
+        "LK_MQTT_DISCOVERY_PREFIX",
+        "LK_MQTT_NODE_ID",
     ]:
         monkeypatch.delenv(name, raising=False)
 
@@ -125,3 +132,123 @@ def test_haz011_run_once_svg_write_failure_is_a_config_error(capsys, tmp_path):
     missing_dir = tmp_path / "does-not-exist" / "screen.svg"
     assert cli.main(["--demo", "--svg", str(missing_dir)]) == 2
     assert "Could not write" in capsys.readouterr().err
+
+
+# --- --json and Home Assistant (FR-008, ADR-0010) ------------------------------
+
+
+def test_fr008_json_output_matches_the_screen(tmp_path, capsys):
+    import json
+
+    target = tmp_path / "status.json"
+    assert cli.main(["--demo", "--json", str(target)]) == 0
+    payload = json.loads(target.read_text(encoding="utf-8"))
+    assert payload["level"] == "IN RANGE"
+    assert payload["mgdl"] == 112
+    assert payload["lines"] == capsys.readouterr().out.strip().splitlines()
+    assert not (tmp_path / "status.json.tmp").exists()
+
+
+def test_haz011_run_once_json_write_failure_is_a_config_error(capsys, tmp_path):
+    missing = tmp_path / "nope" / "status.json"
+    assert cli.main(["--demo", "--json", str(missing)]) == 2
+    assert "Could not write" in capsys.readouterr().err
+
+
+def test_fr008_mqtt_is_off_unless_a_host_is_set():
+    assert cli.home_assistant_from_env(60, cli.thresholds_from_env()) is None
+
+
+def test_fr008_mqtt_settings_come_from_the_environment(monkeypatch):
+    monkeypatch.setenv("LK_MQTT_HOST", "broker.example.com")
+    monkeypatch.setenv("LK_MQTT_USERNAME", "lightkeeper")
+    monkeypatch.setenv("LK_MQTT_PASSWORD", "secret")
+    monkeypatch.setenv("LK_MQTT_NODE_ID", "bedside")
+    monkeypatch.setenv("LK_STALE_MINUTES", "10")
+    ha = cli.home_assistant_from_env(60, cli.thresholds_from_env())
+    assert ha is not None
+    assert ha._mqtt.port == 8883  # TLS by default
+    assert ha.node_id == "bedside"
+    assert ha.expire_after == 180
+
+
+def test_fr008_plain_mqtt_to_localhost_defaults_to_port_1883(monkeypatch):
+    monkeypatch.setenv("LK_MQTT_HOST", "localhost")
+    monkeypatch.setenv("LK_MQTT_TLS", "false")
+    ha = cli.home_assistant_from_env(60, cli.thresholds_from_env())
+    assert ha._mqtt.port == 1883
+
+
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [("LK_MQTT_TLS", "maybe"), ("LK_MQTT_TLS", "off"), ("LK_MQTT_NODE_ID", "bed side")],
+)
+def test_haz013_unsafe_mqtt_settings_stop_startup(monkeypatch, capsys, name, value):
+    monkeypatch.setenv("LK_MQTT_HOST", "broker.example.com")
+    monkeypatch.setenv(name, value)
+    assert cli.main(["--demo"]) == 2
+    assert "Configuration error" in capsys.readouterr().err
+
+
+class RecordingHA:
+    def __init__(self, fail=False):
+        self.fail = fail
+        self.payloads = []
+        self.finished = None
+
+    def publish(self, payload):
+        if self.fail:
+            from lightkeeper.infrastructure.mqtt import MqttError
+
+            raise MqttError("could not reach MQTT broker: refused")
+        self.payloads.append(payload)
+
+    def finish(self, offline):
+        self.finished = offline
+
+
+def test_haz013_watch_publishes_each_cycle_and_marks_offline_on_exit(monkeypatch):
+    ha = RecordingHA()
+    monkeypatch.setattr(cli, "home_assistant_from_env", lambda interval, thresholds: ha)
+    calls = {"n": 0}
+
+    def fake_sleep(seconds):
+        calls["n"] += 1
+        if calls["n"] >= 3:
+            raise KeyboardInterrupt
+
+    monkeypatch.setattr(cli.time, "sleep", fake_sleep)
+    assert cli.main(["--demo", "--watch"]) == 0
+    assert [p["level"] for p in ha.payloads] == ["IN RANGE"] * 3
+    assert ha.finished is True
+
+
+def test_haz013_one_shot_publishes_once_and_stays_available(monkeypatch):
+    ha = RecordingHA()
+    monkeypatch.setattr(cli, "home_assistant_from_env", lambda interval, thresholds: ha)
+    assert cli.main(["--demo", "--demo-mgdl", "54"]) == 1
+    assert [p["level"] for p in ha.payloads] == ["URGENT LOW"]
+    assert ha.finished is False
+
+
+def test_haz013_publish_failure_never_stops_the_display(monkeypatch, capsys):
+    ha = RecordingHA(fail=True)
+    monkeypatch.setattr(cli, "home_assistant_from_env", lambda interval, thresholds: ha)
+    calls = {"n": 0}
+
+    def fake_sleep(seconds):
+        calls["n"] += 1
+        if calls["n"] >= 2:
+            raise KeyboardInterrupt
+
+    monkeypatch.setattr(cli.time, "sleep", fake_sleep)
+    assert cli.main(["--demo", "--watch"]) == 0
+    out, err = capsys.readouterr()
+    assert out.count("IN RANGE") == 2
+    assert err.count("Home Assistant publish failed") == 2
+
+
+def test_fr008_explicit_tls_true_keeps_port_8883(monkeypatch):
+    monkeypatch.setenv("LK_MQTT_HOST", "broker.example.com")
+    monkeypatch.setenv("LK_MQTT_TLS", "Yes")
+    assert cli.home_assistant_from_env(60, cli.thresholds_from_env())._mqtt.port == 8883

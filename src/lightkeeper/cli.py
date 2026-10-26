@@ -7,6 +7,8 @@ the real clock, and the real Nightscout client together.
 from __future__ import annotations
 
 import argparse
+import functools
+import json
 import os
 import sys
 import time
@@ -16,7 +18,10 @@ from typing import Any
 
 from lightkeeper import __version__
 from lightkeeper.application.monitor import EntrySource, current_status, render_lines
+from lightkeeper.application.status_payload import status_payload
 from lightkeeper.domain.status import Thresholds
+from lightkeeper.infrastructure.home_assistant import HomeAssistantPublisher
+from lightkeeper.infrastructure.mqtt import MqttError, MqttPublisher
 from lightkeeper.infrastructure.nightscout import NightscoutClient
 from lightkeeper.infrastructure.svg_display import render_svg
 
@@ -72,6 +77,59 @@ def thresholds_from_env() -> Thresholds:
         raise SystemExit(f"invalid threshold settings: {exc}") from None
 
 
+_TRUE = frozenset({"1", "true", "yes", "on"})
+_FALSE = frozenset({"0", "false", "no", "off"})
+
+
+def _bool_env(name: str, default: bool) -> bool:
+    raw = os.environ.get(name, "").strip().lower()
+    if raw == "":
+        return default
+    if raw in _TRUE:
+        return True
+    if raw in _FALSE:
+        return False
+    raise ValueError(f"{name} must be true or false, got {raw!r}")
+
+
+def home_assistant_from_env(
+    interval_seconds: int, thresholds: Thresholds
+) -> HomeAssistantPublisher | None:
+    """Build the Home Assistant publisher from LK_MQTT_* variables, or None when unset.
+
+    Raises ValueError for an unusable configuration (see docs/ENV_VARS.md).
+    """
+    host = os.environ.get("LK_MQTT_HOST", "").strip()
+    if not host:
+        return None
+    tls = _bool_env("LK_MQTT_TLS", True)
+    port = _int_env("LK_MQTT_PORT", 8883 if tls else 1883)
+    node_id = os.environ.get("LK_MQTT_NODE_ID") or "lightkeeper"
+    mqtt = MqttPublisher(
+        host,
+        port,
+        client_id=f"lightkeeper-{node_id}",
+        username=os.environ.get("LK_MQTT_USERNAME") or None,
+        password=os.environ.get("LK_MQTT_PASSWORD") or None,
+        tls=tls,
+    )
+    return HomeAssistantPublisher(
+        mqtt,
+        interval_seconds=interval_seconds,
+        stale_seconds=int(thresholds.stale_after.total_seconds()),
+        node_id=node_id,
+        discovery_prefix=os.environ.get("LK_MQTT_DISCOVERY_PREFIX") or "homeassistant",
+    )
+
+
+def write_json(path: str, payload: dict[str, Any]) -> None:
+    """Write the status as JSON, replacing the file in one step (like write_svg)."""
+    target = Path(path)
+    temp = target.with_name(target.name + ".tmp")
+    temp.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    os.replace(temp, target)
+
+
 def write_svg(path: str, lines: list[str], written_at: datetime | None = None) -> None:
     """Write the screen as SVG, replacing the file in one step.
 
@@ -95,6 +153,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--interval", type=int, default=60, help="seconds between refreshes")
     parser.add_argument(
         "--svg", metavar="PATH", help="also write the screen as an SVG image to PATH"
+    )
+    parser.add_argument(
+        "--json", metavar="PATH", help="also write the status as JSON to PATH (for dashboards)"
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     return parser
@@ -121,6 +182,30 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Configuration error: {exc}", file=sys.stderr)
             return 2
 
+    interval = max(args.interval, 15)
+    try:
+        home_assistant = home_assistant_from_env(interval, thresholds)
+    except ValueError as exc:
+        print(f"Configuration error: {exc}", file=sys.stderr)
+        return 2
+
+    try:
+        return _run(args, source, thresholds, interval, home_assistant)
+    finally:
+        if home_assistant is not None:
+            # A --watch loop that stops marks the entities unavailable; a
+            # one-shot run leaves them for the next run (HAZ-013).
+            home_assistant.finish(offline=args.watch)
+
+
+def _run(
+    args: argparse.Namespace,
+    source: EntrySource,
+    thresholds: Thresholds,
+    interval: int,
+    home_assistant: HomeAssistantPublisher | None,
+) -> int:
+    """Run the refresh loop: fetch, show, write, publish, sleep."""
     last_good = None
     while True:
         now = datetime.now(UTC)
@@ -131,21 +216,34 @@ def main(argv: list[str] | None = None) -> int:
         # flush=True: under systemd stdout is block-buffered, and a buffered
         # screen that only appears hours later is useless in `journalctl -f`.
         print("\n".join(lines), flush=True)
+        payload = status_payload(status, error, now)
+        outputs: list[tuple[str, functools.partial[None]]] = []
         if args.svg:
+            outputs.append((args.svg, functools.partial(write_svg, args.svg, lines, now)))
+        if args.json:
+            outputs.append((args.json, functools.partial(write_json, args.json, payload)))
+        for target, write in outputs:
             try:
-                write_svg(args.svg, lines, written_at=now)
+                write()
             except OSError as exc:
                 # A full disk or a locked file must not kill the watch loop
                 # (HAZ-011); the next cycle retries. Run-once reports it.
-                print(f"Could not write {args.svg}: {exc}", file=sys.stderr, flush=True)
+                print(f"Could not write {target}: {exc}", file=sys.stderr, flush=True)
                 if not args.watch:
                     return 2
+        if home_assistant is not None:
+            try:
+                home_assistant.publish(payload)
+            except MqttError as exc:
+                # Never stops the display. The broker's will and expire_after
+                # make Home Assistant show unavailable meanwhile (HAZ-013).
+                print(f"Home Assistant publish failed: {exc}", file=sys.stderr, flush=True)
         if not args.watch:
             # Exit code tells scripts (Home Assistant, cron) whether to pay attention.
             return 1 if status.level.needs_attention else 0
         print("-" * 24, flush=True)
         try:
-            time.sleep(max(args.interval, 15))
+            time.sleep(interval)
         except KeyboardInterrupt:
             return 0
 
