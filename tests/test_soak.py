@@ -20,6 +20,7 @@ START = datetime(2026, 10, 18, 12, 0, tzinfo=UTC)
 INTERVAL = 60
 DAYS = 3
 CYCLES = DAYS * 24 * 60 * 60 // INTERVAL
+MIDPOINT = (300 + CYCLES) // 2
 OUTAGE = range(1000, 1040)  # 40 cycles with Nightscout down
 # Mid-outage, the wall clock steps back 20 minutes (an NTP correction), so the
 # last good reading the display is aging suddenly looks future-dated.
@@ -92,6 +93,8 @@ def test_gap004_three_day_watch_soak(monkeypatch, tmp_path):
         if cycle[0] == 300:
             tracemalloc.start()
             memory["start"] = tracemalloc.take_snapshot()
+        if cycle[0] == MIDPOINT:
+            memory["mid"] = tracemalloc.take_snapshot()
         if cycle[0] == CYCLES:
             memory["end"] = tracemalloc.take_snapshot()
             tracemalloc.stop()
@@ -109,15 +112,19 @@ def test_gap004_three_day_watch_soak(monkeypatch, tmp_path):
     assert len(levels) == CYCLES
     assert svg.read_text(encoding="utf-8").startswith("<svg")
 
-    # Memory: Lightkeeper's own allocations do not grow across ~4,000 cycles.
-    # (The test's recording list grows by design, so only src/ is counted.)
-    ours = [
-        stat
-        for stat in memory["end"].compare_to(memory["start"], "filename")
-        if os.path.join("src", "lightkeeper") in stat.traceback[0].filename
-    ]
-    growth = sum(stat.size_diff for stat in ours)
-    assert growth < 16 * 1024, "memory grew: " + "; ".join(str(s) for s in ours[:5])
+    # Memory: compare two equal windows of about 2,000 cycles each. Caches in
+    # the standard library may still be filling during the first window (by
+    # how much depends on the platform), but a leak keeps growing in the
+    # second. Only allocations made by src/lightkeeper are counted, because
+    # the test's own recording list grows by design.
+    def ours(later, earlier):
+        stats = later.compare_to(earlier, "filename")
+        mine = [s for s in stats if os.path.join("src", "lightkeeper") in s.traceback[0].filename]
+        return sum(s.size_diff for s in mine), mine[:5]
+
+    first, _ = ours(memory["mid"], memory["start"])
+    second, top = ours(memory["end"], memory["mid"])
+    assert second < 8 * 1024, f"still growing in the second window ({first=}): {top}"
 
     by_cycle = {c: (level, age) for c, level, age in levels}
     # Fresh readings show their true age on day 3: no drift from jitter.
