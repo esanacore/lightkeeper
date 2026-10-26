@@ -12,7 +12,7 @@ All environment variables read by `lightkeeper`. If you add a variable to the co
 
 | Variable | Description | Default Value | Example Value |
 | :--- | :--- | :--- | :--- |
-| `NIGHTSCOUT_TOKEN` | Nightscout access token with the **readable** role only. Never the API_SECRET. Treat as a secret: keep it out of shell history, screenshots, and commits. Optional only for a public Nightscout site, which this project does not recommend; with `AUTH_DEFAULT_ROLES=denied` (the setting in `docs/SETUP.md`) it is required. | none | `readable-0123456789abcdef` |
+| `NIGHTSCOUT_TOKEN` | Nightscout access token with the **readable** role only. Never the API_SECRET. Sent in the `api-secret` request header, never in a URL (ADR-0009). Treat as a secret: keep it out of shell history, screenshots, and commits. Optional only for a public Nightscout site, which this project does not recommend; with `AUTH_DEFAULT_ROLES=denied` (the setting in `docs/SETUP.md`) it is required. | none | `readable-0123456789abcdef` |
 | `LK_URGENT_LOW` | Urgent low threshold in mg/dL (at or below) | `55` | `55` |
 | `LK_LOW` | Low threshold in mg/dL (below) | `70` | `75` |
 | `LK_HIGH` | High threshold in mg/dL (above) | `180` | `200` |

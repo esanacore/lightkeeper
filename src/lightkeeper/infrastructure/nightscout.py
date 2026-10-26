@@ -4,9 +4,10 @@ Only GET requests, only the entries endpoint. Uses the standard library so
 there is no third-party HTTP code in the data path.
 
 Authentication: pass a Nightscout *read-only* access token (role "readable"),
-never the full API_SECRET. Nightscout's v1 API takes the token as a `token`
-query parameter, so the token must be treated as sensitive: it is never
-logged or printed, and errors redact it.
+never the full API_SECRET. The token travels in the `api-secret` request
+header, which Nightscout's v1 API checks against its stored access tokens, so
+it never appears in a URL, a proxy log, or a hosting log (ADR-0009). It is
+still sensitive: it is never logged or printed, and errors redact it.
 """
 
 from __future__ import annotations
@@ -23,9 +24,14 @@ DEFAULT_TIMEOUT_SECONDS = 10
 # 288 entries of ~200 bytes is ~60 KB; anything near a megabyte is not Nightscout.
 MAX_RESPONSE_BYTES = 1_000_000
 
-# A fetcher takes (url, timeout) and returns the response body as bytes.
-# Injecting it keeps the client testable without a real server.
-Fetcher = Callable[[str, float], bytes]
+# A fetcher takes (url, headers, timeout) and returns the response body as
+# bytes. Injecting it keeps the client testable without a real server.
+Fetcher = Callable[[str, dict[str, str], float], bytes]
+
+# Nightscout reads an access token from this header as well as from `?token=`
+# (lib/authorization/index.js, v15.0.9). A plaintext API_SECRET here does not
+# match: Nightscout compares this header against the secret's hash.
+TOKEN_HEADER = "api-secret"  # noqa: S105 (a header name, not a secret)
 
 
 class NightscoutError(RuntimeError):
@@ -35,9 +41,9 @@ class NightscoutError(RuntimeError):
 class _SameSchemeRedirects(urllib.request.HTTPRedirectHandler):
     """Refuse redirects that would downgrade https to http.
 
-    urllib follows redirects by default, and a redirect to http:// would send
-    the token in the clear. Cross-site redirects are refused too: the token
-    belongs to one Nightscout site.
+    urllib follows redirects by default and copies request headers onto the
+    new request, so a redirect to http:// would send the token in the clear.
+    Cross-site redirects are refused too: the token belongs to one site.
     """
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):  # type: ignore[no-untyped-def]
@@ -53,13 +59,13 @@ class _SameSchemeRedirects(urllib.request.HTTPRedirectHandler):
 _opener = urllib.request.build_opener(_SameSchemeRedirects)
 
 
-def _default_fetcher(url: str, timeout: float) -> bytes:
-    """GET `url` and return the raw body, capped at MAX_RESPONSE_BYTES.
+def _default_fetcher(url: str, headers: dict[str, str], timeout: float) -> bytes:
+    """GET `url` with `headers` and return the raw body, capped at MAX_RESPONSE_BYTES.
 
     NightscoutClient.__init__ only accepts https (or explicitly allowed http
     for localhost tests), so file:// and custom schemes never reach urlopen.
     """
-    request = urllib.request.Request(url, headers={"Accept": "application/json"})  # noqa: S310
+    request = urllib.request.Request(url, headers={"Accept": "application/json", **headers})  # noqa: S310
     with _opener.open(request, timeout=timeout) as response:
         body: bytes = response.read(MAX_RESPONSE_BYTES + 1)
         if len(body) > MAX_RESPONSE_BYTES:
@@ -99,10 +105,12 @@ class NightscoutClient:
         self._timeout = timeout
 
     def _entries_url(self, count: int) -> str:
-        params = {"count": str(count)}
-        if self._token:
-            params["token"] = self._token
-        return f"{self._base_url}/api/v1/entries/sgv.json?{urllib.parse.urlencode(params)}"
+        """Build the entries URL. It never carries the token (ADR-0009)."""
+        query = urllib.parse.urlencode({"count": count})
+        return f"{self._base_url}/api/v1/entries/sgv.json?{query}"
+
+    def _auth_headers(self) -> dict[str, str]:
+        return {TOKEN_HEADER: self._token} if self._token else {}
 
     def _redact(self, text: str) -> str:
         if self._token:
@@ -116,7 +124,7 @@ class NightscoutClient:
             raise ValueError("count must be between 1 and 288 (24 hours of 5-minute readings)")
         url = self._entries_url(count)
         try:
-            body = self._fetcher(url, self._timeout)
+            body = self._fetcher(url, self._auth_headers(), self._timeout)
         except (urllib.error.URLError, OSError, TimeoutError) as exc:
             raise NightscoutError(self._redact(f"could not reach Nightscout: {exc}")) from None
 

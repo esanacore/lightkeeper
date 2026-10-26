@@ -22,18 +22,25 @@ TOKEN = "readable-integration-token"
 
 
 class FakeNightscout(BaseHTTPRequestHandler):
-    """Serves /api/v1/entries/sgv.json, checks the token, records requests."""
+    """Serves /api/v1/entries/sgv.json, checks the token header, records requests.
+
+    Like Nightscout with AUTH_DEFAULT_ROLES=denied: no valid token, no data.
+    """
 
     mode = "ok"
     requests = []
+    paths = []
+    secrets = []
     entries = []
 
     def do_GET(self):  # noqa: N802 (http.server naming)
         parsed = urlparse(self.path)
         FakeNightscout.requests.append(("GET", parsed.path, parse_qs(parsed.query)))
+        FakeNightscout.paths.append(self.path)
+        FakeNightscout.secrets.append(self.headers.get("api-secret"))
         if parsed.path != "/api/v1/entries/sgv.json":
             self._send(404, b"not found")
-        elif parse_qs(parsed.query).get("token") != [TOKEN]:
+        elif self.headers.get("api-secret") != TOKEN:
             self._send(401, b'{"status": 401, "message": "Unauthorized"}')
         elif FakeNightscout.mode == "slow":
             time.sleep(2)
@@ -43,11 +50,7 @@ class FakeNightscout(BaseHTTPRequestHandler):
             self.send_response(302)
             self.send_header("Location", "http://example.invalid/api/v1/entries/sgv.json")
             self.end_headers()
-        elif (
-            FakeNightscout.mode == "redirect-same"
-            and "token" in parsed.query
-            and "r=1" not in parsed.query
-        ):
+        elif FakeNightscout.mode == "redirect-same" and "r=1" not in parsed.query:
             self.send_response(302)
             self.send_header("Location", self.path + "&r=1")
             self.end_headers()
@@ -77,6 +80,8 @@ class FakeNightscout(BaseHTTPRequestHandler):
 def server():
     FakeNightscout.mode = "ok"
     FakeNightscout.requests = []
+    FakeNightscout.paths = []
+    FakeNightscout.secrets = []
     now_ms = int(datetime.now(UTC).timestamp() * 1000)
     FakeNightscout.entries = [
         {"type": "sgv", "sgv": 98, "date": now_ms - 60_000, "direction": "FortyFiveDown"},
@@ -105,9 +110,19 @@ def test_fr005_end_to_end_reading_over_http(server):
 
 def test_nfr003_only_get_requests_reach_the_server(server):
     client(server).fetch_entries(count=3)
-    assert FakeNightscout.requests == [
-        ("GET", "/api/v1/entries/sgv.json", {"count": ["3"], "token": [TOKEN]})
-    ]
+    assert FakeNightscout.requests == [("GET", "/api/v1/entries/sgv.json", {"count": ["3"]})]
+
+
+def test_nfr001_no_request_line_carries_the_token(server):
+    """ADR-0009: a server or proxy logs the request line; the token is not in it."""
+    client(server).fetch_entries(count=3)
+    assert FakeNightscout.paths == ["/api/v1/entries/sgv.json?count=3"]
+    assert FakeNightscout.secrets == [TOKEN]
+
+
+def test_nfr001_missing_token_is_refused_like_auth_denied(server):
+    with pytest.raises(NightscoutError):
+        client(server, token=None).fetch_entries()
 
 
 def test_nfr001_wrong_token_is_an_error_and_not_echoed(server):
@@ -151,6 +166,9 @@ def test_nfr001_https_to_http_redirect_is_refused(server):
 def test_nfr001_same_site_redirect_is_followed(server):
     FakeNightscout.mode = "redirect-same"
     assert client(server).fetch_entries()[0]["sgv"] == 98
+    # The header survived the same-site redirect, and neither URL carried the token.
+    assert FakeNightscout.secrets == [TOKEN, TOKEN]
+    assert all(TOKEN not in p for p in FakeNightscout.paths)
 
 
 def test_fr005_oversized_response_is_an_error(server):

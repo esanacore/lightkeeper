@@ -33,7 +33,7 @@ Planned requirements FR-007, FR-008, FR-010, FR-013, FR-014, and FR-015 are rese
 
 | Requirement ID | Level | Description | Acceptance Criteria | Verifying Tests | Status |
 | --- | --- | --- | --- | --- | --- |
-| NFR-001 | MUST | HTTPS only, token never exposed | NFR-001-AC-1, AC-2 | `tests/test_nightscout.py`, `tests/test_cli.py` (`-k nfr001`) | Verified |
+| NFR-001 | MUST | HTTPS only, token never exposed | NFR-001-AC-1, AC-2 | `tests/test_nightscout.py`, `tests/test_http_integration.py`, `tests/test_cli.py` (`-k nfr001`, including `test_nfr001_token_travels_in_a_header_never_the_url` and `test_nfr001_no_request_line_carries_the_token`); Swift `NightscoutClientTests` | Verified |
 | NFR-002 | MUST | Reject invalid configuration | NFR-002-AC-1 | `tests/test_status.py`, `tests/test_cli.py` (`-k nfr002`) | Verified |
 | NFR-003 | MUST | Read-only client, bounded requests | NFR-003-AC-1 | `tests/test_nightscout.py` (`-k nfr003`) | Verified |
 | NFR-004 | MUST | Automated suite, 90% floor | NFR-004-AC-1 | `pytest --cov` with `fail_under = 90` in `pyproject.toml` | Verified |

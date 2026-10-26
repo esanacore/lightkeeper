@@ -42,4 +42,4 @@ Trust boundaries: the network between the display device and Nightscout; the dev
 | **D**enial of service | Nightscout down or slow, display freezes on an old value | 10 s timeout; failures degrade to NO DATA or age into STALE; refresh no faster than every 15 s so we never hammer the server | FR-005 tests |
 | **E**levation of privilege | Lightkeeper used to change therapy data | Readable-role token only; client issues GET to one endpoint; no dosing code exists (ADR-0004) | NFR-003 tests |
 
-Residual risks: the token sits in the query string because Nightscout's v1 API expects it there, so it could appear in proxy or server access logs. ADR-0009 (proposed) moves it to the `api-secret` request header, which Nightscout's v1 API also accepts, so it leaves every URL. A compromised display device exposes one reading and a read-only token, not therapy control.
+Residual risks: the token travels in the `api-secret` request header (ADR-0009), so it is not in any URL, proxy log, or hosting access log; it is exposed only inside the TLS session and on the device itself. A compromised display device exposes one reading and a read-only token, not therapy control.

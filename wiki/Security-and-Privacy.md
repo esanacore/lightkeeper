@@ -35,7 +35,7 @@ The only credential Lightkeeper ever holds is a Nightscout access token for a su
 - The token is redacted from every error message, raw and URL-encoded, so logs and bug reports are safe to share.
 - On a Raspberry Pi the token lives in `/etc/lightkeeper.env` with mode 600, read by systemd. On iOS it lives in the Keychain. There is no `.env` loader in the Python package. The setup instructions use `read -rs` and `Read-Host` to keep it out of shell history.
 
-Residual risk: Nightscout's v1 API expects the token as a query parameter, so it could appear in proxy logs; evaluating the v3 API with bearer authentication is tracked in `TODO.md`. A compromised display device exposes one reading and a read-only token, not therapy control.
+The token travels in the `api-secret` request header, which Nightscout's v1 API accepts, and never in a URL, so it stays out of proxy and hosting logs (ADR-0009). A compromised display device exposes one reading and a read-only token, not therapy control.
 
 ## STRIDE summary
 

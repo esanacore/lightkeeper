@@ -12,4 +12,4 @@ Every significant architecture or safety decision, numbered in the order it was 
 | [0006](0006-xteink-esp32-display-with-shared-vectors.md) | Xteink ESP32-C3 Pocket Display, Kept in Lockstep with Python by Shared Vectors | Proposed | 2026-10-17 |
 | [0007](0007-cpp-style-google-base-mirrored-naming.md) | C++ Style, Google Base with Naming That Mirrors the Python | Accepted | 2026-10-24 |
 | [0008](0008-companion-app-and-bolus-requests-via-trio.md) | Companion App, with Bolus Requests Only Through Trio's Remote Protocol | Proposed | 2026-10-18 |
-| [0009](0009-nightscout-token-in-a-header-not-the-url.md) | Send the Nightscout Readable Token in a Header, Not the URL | Proposed | 2026-10-25 |
+| [0009](0009-nightscout-token-in-a-header-not-the-url.md) | Send the Nightscout Readable Token in a Header, Not the URL | Accepted | 2026-10-25 |

@@ -39,5 +39,6 @@ This file contains durable memories, codebase learnings, user preferences, and k
 -->
 
 - ADR-0007 accepted (Eric, 2026-10-24): firmware C++ uses clang-format on a Google base, but function names and enum values mirror the Python (`parse_entry`, `Level::Stale`), the column limit is 100, and `#pragma once` is fine. Do not rename toward strict Google style.
+- ADR-0009 accepted (Eric, 2026-10-25): the readable Nightscout token goes in the `api-secret` request header on the v1 API, never in a URL. Every client (including future firmware) does the same; JWT bearer auth is the fallback only if Nightscout drops the header path.
 - License confirmed (Eric, 2026-10-24): Apache-2.0. Trio and Nightscout are AGPL-3.0, but this repository only reads Nightscout over HTTP and vendors none of their code.
 - gstack section in `CLAUDE.md` kept (Eric, 2026-10-24). Where gstack is missing (cloud sessions), run `bash constitution/scripts/setup-machine.sh` or work without it. 

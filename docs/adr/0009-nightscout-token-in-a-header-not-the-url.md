@@ -1,8 +1,8 @@
 # ADR-0009: Send the Nightscout Readable Token in a Header, Not the URL
 
-Status: Proposed
+Status: Accepted
 
-Date: 2026-10-25
+Date: 2026-10-25 (proposed and accepted)
 
 ## Relationships
 
@@ -12,8 +12,8 @@ Date: 2026-10-25
 
 ## Promotion Criteria
 
-- Eric accepts the chosen option. Gate: Eric.
-- On a real Nightscout (handoff step 7), with `AUTH_DEFAULT_ROLES=denied`, a GET of `/api/v1/entries/sgv.json` with the readable token in the `api-secret` header returns entries, and the same request with no credentials returns 401. Gate: an agent, recorded in `docs/TEST_PLAN.md`.
+- Eric accepts the chosen option. Gate: Eric. Met 2026-10-25: accepted, and implemented in the Python and Swift clients the same day.
+- On a real Nightscout (handoff step 7), with `AUTH_DEFAULT_ROLES=denied`, a GET of `/api/v1/entries/sgv.json` with the readable token in the `api-secret` header returns entries, and the same request with no credentials returns 401. Gate: an agent, recorded in `docs/TEST_PLAN.md`. Still open: no Nightscout is deployed yet (handoff step 7).
 
 ## Context
 
@@ -36,9 +36,9 @@ This ADR evaluates the request: move to the v3 API with JWT bearer auth. The fac
 
 ## Decision
 
-Proposed: option 2. Send the readable access token in the `api-secret` request header, keep the v1 entries endpoint, and stop putting the token in the URL. Option 3 is the fallback if Nightscout ever drops the header path. Option 4 is not pursued unless Lightkeeper needs something only v3 offers.
+Option 2. Send the readable access token in the `api-secret` request header, keep the v1 entries endpoint, and stop putting the token in the URL. Option 3 is the fallback if Nightscout ever drops the header path. Option 4 is not pursued unless Lightkeeper needs something only v3 offers.
 
-When accepted, the implementation is one change across all three clients, in a single commit per the parity rule:
+Implementation (2026-10-25, Python and Swift; the firmware has no HTTP layer yet and follows when it gets one):
 
 - Python `NightscoutClient`, firmware (once the device HTTP layer exists, FR-010), and Swift `NightscoutClient` send `api-secret: <token>` and no `token` query parameter.
 - Tests assert that the token appears in no request URL and that the header is present. The existing redaction tests (NFR-001) keep covering error messages.

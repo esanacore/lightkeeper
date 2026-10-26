@@ -51,7 +51,7 @@ def test_fr005_unreachable_nightscout_reports_no_data(monkeypatch, capsys):
     monkeypatch.setenv("NIGHTSCOUT_URL", "https://ns.invalid")
     monkeypatch.setenv("NIGHTSCOUT_TOKEN", "readable-secret")
 
-    def boom(url, timeout):
+    def boom(url, headers, timeout):
         raise OSError(f"no route to {url}")
 
     monkeypatch.setattr(cli.NightscoutClient, "__init__", _client_init_with(boom))

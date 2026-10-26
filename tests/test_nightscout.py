@@ -18,9 +18,11 @@ class RecordingFetcher:
         self.body = body
         self.error = error
         self.urls = []
+        self.headers = []
 
-    def __call__(self, url, timeout):
+    def __call__(self, url, headers, timeout):
         self.urls.append((url, timeout))
+        self.headers.append(headers)
         if self.error:
             raise self.error
         return self.body
@@ -39,15 +41,26 @@ def test_nfr003_only_reads_the_sgv_entries_endpoint():
     assert parsed.scheme == "https"
     assert parsed.path == "/api/v1/entries/sgv.json"
     query = urllib.parse.parse_qs(parsed.query)
-    assert query["count"] == ["5"]
-    assert query["token"] == [TOKEN]
+    assert query == {"count": ["5"]}
     assert timeout == nightscout.DEFAULT_TIMEOUT_SECONDS
 
 
-def test_nfr003_no_token_means_no_token_param():
+def test_nfr001_token_travels_in_a_header_never_the_url():
+    """ADR-0009: the token stays out of URLs, so it stays out of access logs."""
+    fetcher = RecordingFetcher()
+    make_client(fetcher).fetch_entries()
+    url = fetcher.urls[0][0]
+    assert TOKEN not in url
+    assert urllib.parse.quote(TOKEN, safe="") not in url
+    assert "token" not in urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
+    assert fetcher.headers[0] == {"api-secret": TOKEN}
+
+
+def test_nfr003_no_token_means_no_auth_header():
     fetcher = RecordingFetcher()
     make_client(fetcher, token=None).fetch_entries()
     assert "token=" not in fetcher.urls[0][0]
+    assert fetcher.headers[0] == {}
 
 
 @pytest.mark.parametrize(
@@ -120,14 +133,17 @@ def test_default_fetcher_sends_json_accept_header(monkeypatch):
 
     def fake_open(request, timeout):
         seen["accept"] = request.get_header("Accept")
+        seen["secret"] = request.get_header("Api-secret")
         seen["timeout"] = timeout
         seen["method"] = request.get_method()
         return FakeResponse()
 
     monkeypatch.setattr(nightscout._opener, "open", fake_open)
-    assert nightscout._default_fetcher("https://ns.example.com/x", 3) == b"[]"
+    headers = {"api-secret": "t"}
+    assert nightscout._default_fetcher("https://ns.example.com/x", headers, 3) == b"[]"
     assert seen == {
         "accept": "application/json",
+        "secret": "t",
         "timeout": 3,
         "method": "GET",
         "limit": nightscout.MAX_RESPONSE_BYTES + 1,
