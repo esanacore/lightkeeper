@@ -11,10 +11,28 @@ final class GlucoseModel: ObservableObject {
     @Published private(set) var lines: [String] = ["NO DATA", "Check sensor and phone", "Confirm on primary device"]
     @Published private(set) var fetchError = false
     @Published private(set) var lastRefresh: Date?
-    @Published var settings = Settings.load()
+    @Published var settings: Settings
 
     private var lastGood: Status?
     private var timer: Task<Void, Never>?
+    private let now: () -> Int64
+    private let fetch: (Settings) async throws -> [Any]
+
+    /// Raw Nightscout entries, or a throw when the URL is not set yet.
+    static func fetchFromNightscout(_ settings: Settings) async throws -> [Any] {
+        struct NotConfigured: Error {}
+        guard let client = settings.makeClient() else { throw NotConfigured() }
+        return try await client.fetchEntries()
+    }
+
+    /// The app uses the defaults; tests pass a fixed clock and a fake fetch.
+    init(settings: Settings = .load(),
+         now: @escaping () -> Int64 = { Int64(Date().timeIntervalSince1970 * 1000) },
+         fetch: @escaping (Settings) async throws -> [Any] = GlucoseModel.fetchFromNightscout) {
+        self.settings = settings
+        self.now = now
+        self.fetch = fetch
+    }
 
     /// Refresh now, then every 60 seconds while the app is open.
     func start() async {
@@ -33,22 +51,15 @@ final class GlucoseModel: ObservableObject {
     /// background the last screen would otherwise sit there reading "3 min
     /// ago" until the first fetch completes (HAZ-008). This is instant.
     func reclassify() {
-        let now = Int64(Date().timeIntervalSince1970 * 1000)
-        status = classify(lastGood?.reading, nowMs: now, thresholds: settings.thresholds)
+        status = classify(lastGood?.reading, nowMs: now(), thresholds: settings.thresholds)
         lines = renderLines(status, fetchError: fetchError)
     }
 
     func refresh() async {
-        let now = Int64(Date().timeIntervalSince1970 * 1000)
         let thresholds = settings.thresholds
         let result: Result<[Any], Error>
-        if let client = settings.makeClient() {
-            do { result = .success(try await client.fetchEntries()) } catch { result = .failure(error) }
-        } else {
-            struct NotConfigured: Error {}
-            result = .failure(NotConfigured())
-        }
-        let outcome = currentStatus(entries: result, nowMs: now, thresholds: thresholds, lastGood: lastGood)
+        do { result = .success(try await fetch(settings)) } catch { result = .failure(error) }
+        let outcome = currentStatus(entries: result, nowMs: now(), thresholds: thresholds, lastGood: lastGood)
         if !outcome.fetchError { lastGood = outcome.status }
         status = outcome.status
         fetchError = outcome.fetchError
@@ -115,8 +126,7 @@ struct Settings {
         return try? NightscoutClient(baseURL: nightscoutURL, token: Keychain.readToken())
     }
 
-    static func load() -> Settings {
-        let d = UserDefaults.standard
+    static func load(from d: UserDefaults = .standard) -> Settings {
         var s = Settings()
         s.nightscoutURL = d.string(forKey: "nightscoutURL") ?? ""
         for (key, path) in [("urgentLow", \Settings.urgentLow), ("low", \.low), ("high", \.high),
@@ -125,16 +135,15 @@ struct Settings {
         }
         // Never start on an invalid set: reset to defaults so the screen and
         // the rules agree, rather than showing one thing and using another.
-        if !s.isValid { s = s.resettingThresholds(); s.save() }
+        if !s.isValid { s = s.resettingThresholds(); s.save(to: d) }
         return s
     }
 
     /// Persist the settings. Returns false, writing nothing, when the
     /// thresholds are invalid.
     @discardableResult
-    func save() -> Bool {
+    func save(to d: UserDefaults = .standard) -> Bool {
         guard isValid else { return false }
-        let d = UserDefaults.standard
         d.set(nightscoutURL, forKey: "nightscoutURL")
         d.set(urgentLow, forKey: "urgentLow")
         d.set(low, forKey: "low")
