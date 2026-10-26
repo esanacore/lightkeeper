@@ -26,7 +26,8 @@ From `docs/COMMUNITY_RESEARCH.md` (October 2026):
 - [ ] Home Assistant integration: publish level, value, and age as a sensor, alert on URGENT LOW and STALE (FR-008).
 - [ ] Optional mmol/L display units (FR-013, reserved).
 - [ ] Show a short sparkline or delta from the previous reading (FR-014, reserved).
-- [ ] Draw `render_svg` output to a real e-paper bitmap for the Pi adapter (FR-007), reusing the gallery layout.
+- [x] Draw `render_svg` output to a real e-paper bitmap for the Pi adapter (FR-007), reusing the gallery layout (2026-10-25: `epaper_bitmap.py`, own 5x8 font, PNG preview and Waveshare buffer).
+- [ ] Pi adapter, once the parts arrive: send `Bitmap.to_epd_buffer()` to the 2.9" Touch e-Paper HAT over SPI, confirm the buffer orientation on the real panel (GAP-001), and decide whether the panel shows a refresh-time stamp so a dead Pi cannot leave a fresh-looking screen.
 
 ## Technical Debt
 

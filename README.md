@@ -141,7 +141,7 @@ lightkeeper/
 ├── src/lightkeeper/
 │   ├── domain/          ← Pure rules: parsing, thresholds, staleness (no I/O)
 │   ├── application/     ← Fetch, classify, render for a display
-│   ├── infrastructure/  ← Read-only HTTPS Nightscout client, SVG panel renderer
+│   ├── infrastructure/  ← Read-only HTTPS Nightscout client, SVG and e-paper bitmap renderers
 │   └── cli.py           ← Command-line entry point
 ├── tests/               ← Pytest suite, named by requirement ID
 ├── spec/                ← Shared golden display vectors

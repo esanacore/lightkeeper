@@ -10,7 +10,7 @@ Checked 2026-10-25: the bare Pi Zero 2 WH was sold out at the main US resellers 
 
 ### Bedside e-ink display: Raspberry Pi Zero 2 WH plus a 2.9 inch e-paper HAT
 
-This runs the Python code as it is, so the whole test suite already covers it. It is the first display a household can rely on.
+This runs the Python code as it is, so the whole test suite already covers it. The bitmap the panel will show is already drawn and tested (`epaper_bitmap.py`); only the SPI driver waits for the parts. It is the first display a household can rely on.
 
 | Part | Exact name to search | Approx. price |
 | --- | --- | --- |
