@@ -17,7 +17,8 @@ From `docs/COMMUNITY_RESEARCH.md` (October 2026):
 - [x] (2026-10-23: it checks inside WSL, since MinGW cannot link the sanitizers) `tools/doctor.py`: accept `mingw32-make` on Windows, or point at WSL, so a Windows machine with WinLibs passes.
 - [ ] Check whether `lightkeeper` is free on PyPI before Phase 6; fallback name `lightkeeper-display`.
 - [x] iOS: unit tests for `Settings.load()` resetting an invalid set and for `reclassify()` yielding STALE without a fetch (2026-10-25: `LightkeeperTests` target, run on a simulator in CI).
-- [ ] Evaluate Nightscout's `AUTH_DEFAULT_ROLES=denied` plus v3 JWT so the token never appears in a URL.
+- [x] Evaluate Nightscout's `AUTH_DEFAULT_ROLES=denied` plus v3 JWT so the token never appears in a URL (2026-10-25: ADR-0009 proposes the `api-secret` header on v1 instead; JWT is the fallback).
+- [ ] If ADR-0009 is accepted: send the readable token in the `api-secret` header from the Python, Swift, and (later) firmware clients, drop `?token=`, and assert no request URL carries it; then run the ADR's real-instance check.
 
 - [ ] Raspberry Pi e-paper display adapter for `lightkeeper` (FR-007).
 - [ ] Home Assistant integration: publish level, value, and age as a sensor, alert on URGENT LOW and STALE (FR-008).
@@ -27,7 +28,7 @@ From `docs/COMMUNITY_RESEARCH.md` (October 2026):
 
 ## Technical Debt
 
-- [ ] The Nightscout v1 API takes the token as a query parameter. Evaluate the v3 API with JWT bearer auth so the token never appears in URLs or proxy logs.
+- [x] The Nightscout v1 API takes the token as a query parameter. Evaluate the v3 API with JWT bearer auth so the token never appears in URLs or proxy logs (covered by ADR-0009).
 - [~] (PR open: https://github.com/esanacore/engineering-constitution/pull/97, 2026-10-25) Upstream: the constitution's `constitution-env.yml` template calls `scripts/check_env_vars.sh` instead of `constitution/scripts/check_env_vars.sh`, so it silently skips in every adopter. Fixed locally; propose the fix in the engineering-constitution repo.
 - [x] Decide whether to keep the gstack section in `CLAUDE.md` (kept, 2026-10-24).
 

@@ -13,6 +13,7 @@ This project follows semantic versioning.
 ### Changed
 
 - README: a version line under the badge, and the How It Fits Together diagram as a top-down image rendered from `assets/diagrams/`, so it also shows in GitHub's mobile apps.
+- ADR-0009 (proposed): send the readable Nightscout token in the `api-secret` header instead of the URL. Weighed against JWT bearer auth and a move to the v3 API, using the v15.0.9 source.
 - `docs/SETUP.md` compares Nightscout hosts (managed and VPS) with a recommendation; `docs/HARDWARE.md` carries prices and stock checked on 2026-10-25, and the bedside display is now the Waveshare 2.9" Touch e-Paper HAT because the plain HAT is discontinued.
 - `docs/SAFETY_REVIEW.md`: a one-page sign-off sheet for the person with diabetes to confirm or change the thresholds and stale limit.
 - ADR-0007 (firmware C++ style: Google base, Python-mirroring names, 100 columns) is Accepted.

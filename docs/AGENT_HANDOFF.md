@@ -18,7 +18,7 @@ Replace the entry below at the end of every push; only the latest handoff is kep
 
 #### Next Steps
 
-**Human action required:** steps 1 (done), 2 (done), 3 (done), 4 (done), 5 (done), 6, 7, and 8.
+**Human action required:** steps 1 (done), 2 (done), 3 (done), 4 (done), 5 (done), 6, 7, 8, and 13.
 
 1. [x] **HUMAN** — Approve cutting release v0.1.0 (approved 2026-10-24; tagged and published)
    - **Why a human:** a tag and GitHub Release are public, permanent publications.
@@ -47,4 +47,7 @@ Replace the entry below at the end of every push; only the latest handoff is kep
 9. [ ] **AUTOMATED** — CI runs the constitution workflows on every push to main, `iOS` (macOS and Linux package tests, simulator build) when iOS code or the vectors change, and `Demo page` (Pages deploy) when `demo.html` changes; watch for a red run.
 10. [x] **AGENT** — Propose the env-workflow path fix upstream in the engineering-constitution repo: [esanacore/engineering-constitution#97](https://github.com/esanacore/engineering-constitution/pull/97) (template fix plus `test_workflow_templates.sh`; 32 of 32 upstream suites pass). Merging it is Eric's call; once released, re-pin the submodule here.
 11. [x] **AGENT** — iOS: unit tests for `Settings.load()` resetting an invalid set and `reclassify()` going STALE without a fetch: `LightkeeperTests` target (`SettingsTests`, `GlucoseModelTests`), 9 of 9 passing on a simulator in `ios.yml`; merged from [esanacore/lightkeeper#2](https://github.com/esanacore/lightkeeper/pull/2).
-12. [ ] **AGENT** _(suggestion)_ — Write an ADR evaluating Nightscout v3 JWT bearer auth with `AUTH_DEFAULT_ROLES=denied`, so the token leaves the URL.
+12. [x] **AGENT** — Write an ADR evaluating Nightscout v3 JWT bearer auth with `AUTH_DEFAULT_ROLES=denied`: ADR-0009 (Proposed) recommends the `api-secret` header on v1 instead, with JWT as the fallback.
+13. [ ] **HUMAN** — Accept or reject ADR-0009
+   - **Why a human:** a change to how credentials travel needs the owner's approval.
+   - **Done when:** ADR-0009 is Accepted or Rejected; if accepted, an agent changes the three clients in one commit and runs the real-instance check once Nightscout exists (step 7).
