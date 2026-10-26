@@ -16,7 +16,7 @@ From `docs/COMMUNITY_RESEARCH.md` (October 2026):
 - [x] (2026-10-23, with a Linux CI job) Let `LightkeeperCore` build with the Windows and Linux Swift toolchains: guard `FoundationNetworking` in `NightscoutClient.swift` and replace the `kCFBooleanTrue` identity check, which only exists on Apple platforms. Then the vector tests can run outside macOS CI.
 - [x] (2026-10-23: it checks inside WSL, since MinGW cannot link the sanitizers) `tools/doctor.py`: accept `mingw32-make` on Windows, or point at WSL, so a Windows machine with WinLibs passes.
 - [ ] Check whether `lightkeeper` is free on PyPI before Phase 6; fallback name `lightkeeper-display`.
-- [ ] iOS: unit tests for `Settings.load()` resetting an invalid set and for `reclassify()` yielding STALE without a fetch (needs a test target in `project.yml`).
+- [x] iOS: unit tests for `Settings.load()` resetting an invalid set and for `reclassify()` yielding STALE without a fetch (2026-10-25: `LightkeeperTests` target, run on a simulator in CI).
 - [ ] Evaluate Nightscout's `AUTH_DEFAULT_ROLES=denied` plus v3 JWT so the token never appears in a URL.
 
 - [ ] Raspberry Pi e-paper display adapter for `lightkeeper` (FR-007).

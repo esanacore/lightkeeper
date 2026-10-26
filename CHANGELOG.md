@@ -6,6 +6,10 @@ This project follows semantic versioning.
 
 ## Unreleased
 
+### Added
+
+- iOS app unit tests (`apps/ios/Lightkeeper/Tests/`), run on a simulator in CI: an impossible threshold set on disk resets to the defaults and is saved back, and returning to the foreground turns an old reading STALE without waiting for a fetch.
+
 ### Changed
 
 - README: a version line under the badge, and the How It Fits Together diagram as a top-down image rendered from `assets/diagrams/`, so it also shows in GitHub's mobile apps.

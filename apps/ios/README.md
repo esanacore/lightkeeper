@@ -9,7 +9,7 @@ The companion app from ADR-0008. This is the read-only layer (Phase 5a): the sam
 
 ## Building without a Mac
 
-`.github/workflows/ios.yml` runs the package tests on GitHub's macOS runners and in a Linux Swift container, and builds the app for the simulator on macOS, whenever iOS code or the vectors change. That is the project's build machine. TestFlight distribution will use the same path with signing secrets added, the way Trio's browser build does.
+`.github/workflows/ios.yml` runs the package tests on GitHub's macOS runners and in a Linux Swift container, and builds the app and runs its unit tests (`Lightkeeper/Tests/`: settings persistence and foreground re-classification) on an iOS simulator, whenever iOS code or the vectors change. That is the project's build machine. TestFlight distribution will use the same path with signing secrets added, the way Trio's browser build does.
 
 ## Building with a Mac
 
