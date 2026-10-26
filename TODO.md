@@ -28,7 +28,7 @@ From `docs/COMMUNITY_RESEARCH.md` (October 2026):
 ## Technical Debt
 
 - [ ] The Nightscout v1 API takes the token as a query parameter. Evaluate the v3 API with JWT bearer auth so the token never appears in URLs or proxy logs.
-- [ ] Upstream: the constitution's `constitution-env.yml` template calls `scripts/check_env_vars.sh` instead of `constitution/scripts/check_env_vars.sh`, so it silently skips in every adopter. Fixed locally; propose the fix in the engineering-constitution repo.
+- [~] (PR open: https://github.com/esanacore/engineering-constitution/pull/97, 2026-10-25) Upstream: the constitution's `constitution-env.yml` template calls `scripts/check_env_vars.sh` instead of `constitution/scripts/check_env_vars.sh`, so it silently skips in every adopter. Fixed locally; propose the fix in the engineering-constitution repo.
 - [x] Decide whether to keep the gstack section in `CLAUDE.md` (kept, 2026-10-24).
 
 ## Refactoring

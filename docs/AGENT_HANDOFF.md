@@ -45,6 +45,6 @@ Replace the entry below at the end of every push; only the latest handoff is kep
    - **Why a human:** hardware purchase, and flashing risks bricking a device.
    - **Done when:** the parts are on the bench (prices and stock checked 2026-10-25 in `docs/HARDWARE.md`: the bare Pi Zero 2 WH was sold out and the display is now the 2.9" Touch e-Paper HAT); CrossPoint has been flashed and stock firmware restored once on the Xteink.
 9. [ ] **AUTOMATED** — CI runs the constitution workflows on every push to main, `iOS` (macOS and Linux package tests, simulator build) when iOS code or the vectors change, and `Demo page` (Pages deploy) when `demo.html` changes; watch for a red run.
-10. [ ] **AGENT** _(suggestion)_ — Propose the env-workflow path fix upstream in the engineering-constitution repo.
+10. [x] **AGENT** — Propose the env-workflow path fix upstream in the engineering-constitution repo: [esanacore/engineering-constitution#97](https://github.com/esanacore/engineering-constitution/pull/97) (template fix plus `test_workflow_templates.sh`; 32 of 32 upstream suites pass). Merging it is Eric's call; once released, re-pin the submodule here.
 11. [ ] **AGENT** _(suggestion)_ — iOS: unit tests for `Settings.load()` resetting an invalid set and `reclassify()` going STALE without a fetch (needs a test target in `project.yml`).
 12. [ ] **AGENT** _(suggestion)_ — Write an ADR evaluating Nightscout v3 JWT bearer auth with `AUTH_DEFAULT_ROLES=denied`, so the token leaves the URL.
