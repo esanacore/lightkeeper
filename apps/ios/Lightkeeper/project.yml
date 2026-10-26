@@ -17,6 +17,8 @@ targets:
     sources: [Sources]
     dependencies:
       - package: LightkeeperCore
+    scheme:
+      testTargets: [LightkeeperTests]
     info:
       path: Sources/Info.plist
       properties:
@@ -33,3 +35,17 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         CODE_SIGN_STYLE: Automatic
         PRODUCT_BUNDLE_IDENTIFIER: com.esanacore.lightkeeper
+  LightkeeperTests:
+    # Unit tests for the app layer (settings persistence, foreground
+    # re-classification). The display rules themselves are tested in the
+    # LightkeeperCore package against the shared vectors.
+    type: bundle.unit-test
+    platform: iOS
+    sources: [Tests]
+    dependencies:
+      - target: Lightkeeper
+    settings:
+      base:
+        SWIFT_VERSION: "5.9"
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.esanacore.lightkeeper.tests

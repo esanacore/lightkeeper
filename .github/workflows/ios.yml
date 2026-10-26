@@ -51,7 +51,7 @@ jobs:
         run: swift test
 
   app-build:
-    name: Build the app for the simulator
+    name: Build and test the app on the simulator
     runs-on: macos-15
     needs: core-tests
     steps:
@@ -71,4 +71,21 @@ jobs:
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO build 2>&1 | tee build.log | tail -40 || status=$?
           grep -E "error:" build.log | head -40 | sed 's/^/::error::/' || true
+          exit ${status:-0}
+      - name: Run the app unit tests on a simulator
+        working-directory: apps/ios/Lightkeeper
+        run: |
+          set -o pipefail
+          # Pick any available iPhone simulator; runner images change names.
+          udid=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin)["devices"]
+          print(next(d["udid"] for runtime, ds in sorted(devices.items(), reverse=True)
+                     if "iOS" in runtime for d in ds if d["name"].startswith("iPhone")))
+          ')
+          echo "Simulator: $udid"
+          xcodebuild -project Lightkeeper.xcodeproj -scheme Lightkeeper \
+            -destination "id=$udid" \
+            CODE_SIGNING_ALLOWED=NO test 2>&1 | tee test.log | tail -60 || status=$?
+          grep -E "(error:|failed|XCTAssert)" test.log | head -40 | sed 's/^/::error::/' || true
           exit ${status:-0}
