@@ -1,0 +1,22 @@
+flowchart TD
+    A[Newest trustworthy reading<br/>from Nightscout] --> B{Any reading?}
+    B -- no --> ND[NO DATA<br/>Check sensor and phone]
+    B -- yes --> C{Older than the stale limit,<br/>or more than 2 min in the future?}
+    C -- yes --> ST[STALE - DO NOT TRUST<br/>last value shown as last:]
+    C -- no --> D{At or below 55?}
+    D -- yes --> UL[URGENT LOW]
+    D -- no --> E{Below 70?}
+    E -- yes --> L[LOW]
+    E -- no --> F{At or above 250?}
+    F -- yes --> UH[URGENT HIGH]
+    F -- no --> G{Above 180?}
+    G -- yes --> H[HIGH]
+    G -- no --> IR[IN RANGE]
+
+    classDef warn fill:#F1DDB4,stroke:#B8730A,color:#15171C
+    classDef low fill:#F6D5D2,stroke:#B3261E,color:#15171C
+    classDef ok fill:#D6EBDF,stroke:#2E6B4A,color:#15171C
+    class ND,ST warn
+    class UL,L low
+    class UH,H warn
+    class IR ok

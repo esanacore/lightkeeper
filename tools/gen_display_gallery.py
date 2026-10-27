@@ -19,10 +19,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
+from lightkeeper.infrastructure.epaper_bitmap import Bitmap, render_bitmap  # noqa: E402
 from lightkeeper.infrastructure.svg_display import render_svg  # noqa: E402
 
 VECTORS = ROOT / "spec" / "display_vectors.json"
 IMG_DIR = Path("docs") / "img" / "display-states"
+PANEL_DIR = Path("docs") / "img" / "epaper"
+PANEL_SCALE = 2  # PNGs are drawn at 2x so the 1-bit pixels stay visible on a high-DPI screen
 DOC = Path("docs") / "DISPLAY_STATES.md"
 DEMO = Path("demo.html")
 BEGIN = "      // BEGIN GENERATED STATES"
@@ -126,6 +129,17 @@ def describe(case: dict) -> str:
     return situation
 
 
+def panel_png(lines: list[str]) -> bytes:
+    """Return the exact 1-bit bitmap the Pi panel will show, enlarged without smoothing."""
+    native = render_bitmap(lines)
+    big = Bitmap(native.width * PANEL_SCALE, native.height * PANEL_SCALE)
+    for y in range(native.height):
+        for x in range(native.width):
+            if native.is_ink(x, y):
+                big.fill(x * PANEL_SCALE, y * PANEL_SCALE, PANEL_SCALE, PANEL_SCALE)
+    return big.to_png()
+
+
 def build(out_root: Path) -> list[Path]:
     """Write the gallery under out_root and return the files written."""
     cases = {c["name"]: c for c in json.loads(VECTORS.read_text(encoding="utf-8"))["cases"]}
@@ -138,6 +152,8 @@ def build(out_root: Path) -> list[Path]:
 
     img_dir = out_root / IMG_DIR
     img_dir.mkdir(parents=True, exist_ok=True)
+    panel_dir = out_root / PANEL_DIR
+    panel_dir.mkdir(parents=True, exist_ok=True)
     written = []
     doc = [
         "# Display States",
@@ -151,9 +167,21 @@ def build(out_root: Path) -> list[Path]:
         "future, shows STALE, even when the number would be alarming; sensor out-of-range "
         "values show as words, not numbers; and the screen never uses more than four lines.",
         "",
+        "![How a reading becomes a word: NO DATA, then STALE before any range check, then the "
+        "thresholds](../assets/diagrams/classification.svg)",
+        "",
+        "The **Screen** column is the SVG preview (also written by `--svg`). The **Panel pixels** "
+        "column is the exact 1-bit bitmap the Raspberry Pi e-paper panel will show, drawn by "
+        "`lightkeeper.infrastructure.epaper_bitmap` with the project's own font and shown at 2x.",
+        "",
     ]
     for heading, names in GROUPS:
-        doc += [f"## {heading}", "", "| Situation | Screen |", "| --- | --- |"]
+        doc += [
+            f"## {heading}",
+            "",
+            "| Situation | Screen | Panel pixels |",
+            "| --- | --- | --- |",
+        ]
         for name in names:
             case = cases[name]
             svg_path = img_dir / f"{name}.svg"
@@ -161,7 +189,13 @@ def build(out_root: Path) -> list[Path]:
                 render_svg(case["lines"], title=f"{case['level']}: {name}"), encoding="utf-8"
             )
             written.append(svg_path)
-            doc.append(f"| {describe(case)} | ![{case['level']}](img/display-states/{name}.svg) |")
+            png_path = panel_dir / f"{name}.png"
+            png_path.write_bytes(panel_png(case["lines"]))
+            written.append(png_path)
+            doc.append(
+                f"| {describe(case)} | ![{case['level']}](img/display-states/{name}.svg) "
+                f"| ![{case['level']}, panel pixels](img/epaper/{name}.png) |"
+            )
         doc.append("")
     doc_path = out_root / DOC
     doc_path.write_text("\n".join(doc), encoding="utf-8")

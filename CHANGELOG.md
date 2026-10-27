@@ -8,6 +8,10 @@ This project follows semantic versioning.
 
 ### Added
 
+- A parametric bedside enclosure (`hardware/enclosure/bedside.scad`, OpenSCAD): a front bezel that holds the HAT's glass (the HAT has no mounting holes), a 15 degree plinth, and a back cover with an engraved "secondary display, not a medical device, confirm on the primary app" label. Print-ready, watertight STLs and six renders that show the real screen from the rasterizer. Every dimension cites its source; the few the official drawings omit are marked VERIFY.
+- `docs/BOM.md`, generated from `hardware/bom/bom.csv` with per-build subtotals, and `docs/ASSEMBLY.md`, a print-and-assemble guide with the renders.
+- Diagrams: how a reading becomes a word (classification), one refresh cycle, deployment, and Home Assistant availability (`assets/diagrams/`), plus a pinout of the header pins the HAT uses.
+- `docs/DISPLAY_STATES.md` now shows each state twice: the SVG preview and the exact 1-bit bitmap the Pi panel will draw.
 - Firmware: `lib/nightscout_json`, a strict, streaming, heap-free parser that finds the newest trustworthy reading in a raw Nightscout response, the groundwork for the Xteink device build (FR-010). It is fuzzed with thousands of mutated bodies under the sanitizers.
 - `spec/response_vectors.json`: 39 raw Nightscout responses (real shapes, rejected fields, ties, and malformed bodies) with the conclusion Python, the firmware, and Swift must each reach.
 

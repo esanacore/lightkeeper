@@ -24,6 +24,9 @@ Everything above Nightscout is configured, tested, and contributed to upstream, 
 3. `lightkeeper` requests the newest entries from Nightscout's `/api/v1/entries/sgv.json` endpoint over HTTPS, with a token that has only the readable role. It asks for twelve entries, never more than 288, and only ever issues GET.
 4. The domain layer parses each entry and drops anything untrustworthy: a type other than `sgv`, a missing, fractional, non-finite, or out-of-range value (39 to 401 mg/dL), a timestamp outside 2000 to 2100. Nothing is repaired, and one poisoned entry never discards its neighbors (HAZ-011). The newest valid reading wins; two readings with the same timestamp resolve to the lower value.
 5. The domain layer classifies that reading against the current time. Staleness comes first: older than the stale limit (15 minutes by default) or more than 2 minutes in the future means STALE, regardless of the value. Only a fresh reading is compared against the thresholds.
+
+   ![How a reading becomes a word](https://raw.githubusercontent.com/esanacore/lightkeeper/main/assets/diagrams/classification.svg)
+
 6. The application layer renders three or four short ASCII lines and the CLI returns an exit code. If the fetch failed, the last good reading is re-classified against the current time, so it ages into STALE instead of freezing on screen, and the last line says "Nightscout unreachable". The same status can be written as SVG and JSON and published to Home Assistant; under systemd, each finished cycle also pets the watchdog, so a hung cycle is restarted rather than left frozen.
 
 Glucose data is classified Restricted at every step, and the token is Confidential. [[Security and Privacy]] has the classification table and the threat model.

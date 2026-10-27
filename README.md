@@ -148,11 +148,12 @@ lightkeeper/
 ├── spec/                ← Shared display vectors and raw-response corpus
 ├── firmware/xteink/     ← ESP32-C3 pocket e-ink display (C++)
 ├── apps/ios/            ← Swift core package and SwiftUI companion app
-├── tools/               ← Prerequisite check, display-gallery and response-corpus generators
+├── tools/               ← Prerequisite check; gallery, BOM, pinout, corpus generators; render tools
 ├── docs/                ← Requirements, architecture, safety, security, ADRs, setup, hardware, brand, display gallery
 ├── assets/brand/        ← Mark, app icon, palette, social preview
 ├── assets/diagrams/     ← README diagram source and its rendered image
 ├── deploy/              ← Hardened systemd service for a Pi display
+├── hardware/            ← BOM data, parametric enclosure (OpenSCAD), renders, STLs
 ├── wiki/                ← Wiki source pages
 ├── demo.html            ← Offline demo of every display state
 └── constitution/        ← Eric's Engineering Constitution (git submodule)
@@ -167,7 +168,7 @@ lightkeeper/
 - Every display state, pictured: `docs/DISPLAY_STATES.md`
 - What the community says about displays and alerts, and what we take from it: `docs/COMMUNITY_RESEARCH.md`
 - Setup for Nightscout, Trio, and this repo: `docs/SETUP.md`
-- What hardware to buy for the displays: `docs/HARDWARE.md`
+- What hardware to buy for the displays: `docs/HARDWARE.md`; bill of materials: `docs/BOM.md`; printing and assembly with CAD renders: `docs/ASSEMBLY.md`, `hardware/`
 - Brand guide, mark, palette, and type: `docs/BRAND.md`
 - Roadmap and how the project grows: `docs/ROADMAP.md`, `docs/MVP_BACKLOG.md`, `TODO.md`
 - Changelog: `CHANGELOG.md`

@@ -2,6 +2,10 @@
 
 What to buy to run and develop Lightkeeper's displays, in the order to buy it. This page condenses `docs/HARDWARE.md` in the repository, which also carries search links. Prices are October 2026 US list prices and move; search by exact product name rather than trusting a pinned listing. Buy from Waveshare, established Raspberry Pi resellers (Vilros, PiShop, CanaKit), and the "Xteink Official Store" only.
 
+![The bedside display, rendered from the CAD model](https://raw.githubusercontent.com/esanacore/lightkeeper/main/hardware/enclosure/renders/hero.png)
+
+The parts list with prices and stock is `docs/BOM.md` in the repository, generated from `hardware/bom/bom.csv`. The printed enclosure (OpenSCAD source, STLs, renders) is in `hardware/enclosure/`, and `docs/ASSEMBLY.md` covers printing and assembly.
+
 Nothing here is a medical device. These are secondary displays; the primary CGM app and its alarms stay on the phone. See [[Safety]].
 
 ## Tier 1: first displays (about $195 to $250)

@@ -2,6 +2,10 @@
 
 What to buy to run and develop Lightkeeper's displays, in the order to buy it, with Amazon search links and first-party alternatives. Prices are October 2026 US list prices and move; Amazon listings and ASINs change often, so links below search by exact product name rather than pinning a listing that may vanish. Always check the seller: Waveshare, Raspberry Pi resellers (Vilros, PiShop, CanaKit), and the "Xteink Official Store" are the ones to buy from.
 
+![The bedside display: a Pi Zero 2 WH and a 2.9 inch e-paper HAT in the printed enclosure](../hardware/enclosure/renders/hero.png)
+
+Prices, quantities, and stock for every build are in `docs/BOM.md` (generated from `hardware/bom/bom.csv`). The printed enclosure and its STLs are in `hardware/enclosure/`, and `docs/ASSEMBLY.md` walks through printing and assembly.
+
 Nothing here is a medical device. These are secondary displays; the primary CGM app and its alarms stay on the phone. See `docs/SAFETY.md`.
 
 ## Tier 1: first displays (about $195 to $250, checked 2026-10-25)
@@ -71,7 +75,7 @@ Develop and test firmware here, not on the device the person with diabetes carri
 
 ## Wiring and setup notes
 
-- The 2.9" and 7.5" HATs plug straight onto the Pi's 40-pin header; no wiring. Enable SPI in `raspi-config`.
+- The 2.9" and 7.5" HATs plug straight onto the Pi's 40-pin header; no wiring. Enable SPI in `raspi-config`. The pins the 2.9" Touch HAT uses are drawn in `docs/img/pinout-2.9-touch-hat.svg`.
 - On the Pi, Lightkeeper runs as the hardened systemd service in `deploy/lightkeeper.service` with `--watch` and the e-paper adapter (FR-007, in progress); until then `--svg` plus any image viewer works for testing.
 - The ESP32-S3 board flashes over USB-C; hold BOOT while powering on to enter download mode.
 - Keep a written list of what you bought, with dates, in `docs/OTS_SOFTWARE.md`'s system-level table once a device is in service, so hardware is tracked like software.

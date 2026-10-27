@@ -54,7 +54,7 @@ Yes, over MQTT discovery (ADR-0010). Set `LK_MQTT_HOST` and the other `LK_MQTT_*
 Because a Raspberry Pi runs Python, an ESP32-C3 cannot, and an iPhone wants Swift. Drift is handled by `spec/display_vectors.json`, 39 cases that all three implementations must pass identically, and by the rule that a change touches all of them in one commit. See [[How It Works]] and [[Testing and Quality]].
 
 **How tested is it?**
-372 Python tests at 100% line and branch coverage against a 90% floor, 294 firmware checks under AddressSanitizer and UBSan (100% of lines by gcov), the Swift vector tests in CI on macOS and Linux, and a traceability matrix in which every declared requirement has a verifying test named with its ID. See [[Testing and Quality]].
+389 Python tests at 100% line and branch coverage against a 90% floor, 294 firmware checks under AddressSanitizer and UBSan (100% of lines by gcov), the Swift vector tests in CI on macOS and Linux, and a traceability matrix in which every declared requirement has a verifying test named with its ID. See [[Testing and Quality]].
 
 **Why Trio and not Loop or AndroidAPS?**
 Trio for its oref algorithm features, active community, and Omnipod 5 support since v1.0.0. Loop remains a fallback; AndroidAPS lacked Omnipod 5 support as of October 2026. See [[Architecture Decisions]].

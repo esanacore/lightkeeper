@@ -1,0 +1,25 @@
+{
+  "config": "68301635a44b2d41de518fa42ecd334173c332bbd57770b68ea9714841b6fdaa",
+  "diagrams": {
+    "classification": {
+      "source": "a024d4b837fb08c9a37f8c8d25c66b1bd4466f95c72b01dadebed04f0748575f",
+      "svg": "classification.svg"
+    },
+    "deployment": {
+      "source": "48ea81a7bd95d66c5d86ea04db71b2d3feac2eb4cc05856c1a628fb47beb3a7b",
+      "svg": "deployment.svg"
+    },
+    "ha-availability": {
+      "source": "4ddb9fd7d65c833b2becd8eccee76762202120bf523af1e7ca652f0dede67ca0",
+      "svg": "ha-availability.svg"
+    },
+    "how-it-fits-together": {
+      "source": "74d30dac1d04b351e73792efdb37fc0db6d38c28927198512f5f4c110a67aaa0",
+      "svg": "how-it-fits-together.svg"
+    },
+    "refresh-cycle": {
+      "source": "f92093324fb253231969bc30d12950c83845ac3802eb4e0e016a0f8ebe72d6be",
+      "svg": "refresh-cycle.svg"
+    }
+  }
+}

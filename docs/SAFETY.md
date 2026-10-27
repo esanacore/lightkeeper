@@ -8,6 +8,10 @@ Lightkeeper displays glucose values that have already been published to Nightsco
 
 Classification rationale. No Lightkeeper output drives therapy, and no code in this repository communicates with a pump or a sensor (see The Boundary). The worst-case failure of the software alone is a wrong or missing number on a secondary screen that always carries, in the device label, the CLI help, and the documentation, an instruction to confirm on the primary device. The project therefore treats itself as the equivalent of IEC 62304 Class A (no injury or damage to health is possible from a software failure alone), and it is not submitted, registered, or marketed as a medical device. Should any future feature change that reasoning (an alarm, or the bolus request path in ADR-0008), this section and the classification are re-evaluated first. Re-evaluated 2026-10-26 for the Home Assistant path (ADR-0010, HAZ-013): Lightkeeper publishes a status and still sounds nothing itself. What a household builds on that status in Home Assistant is a secondary alert by its own choice, and the published status degrades the same way the displays do (STALE, NO DATA, or unavailable, never a stale fresh-looking level). The classification is unchanged.
 
+How a reading becomes the word on the screen. Staleness is checked before any range check, so an old low never shows as a current one (HAZ-001):
+
+![Classification flowchart: no reading gives NO DATA; older than the stale limit or more than 2 minutes in the future gives STALE; then URGENT LOW at or below 55, LOW below 70, URGENT HIGH at or above 250, HIGH above 180, otherwise IN RANGE](../assets/diagrams/classification.svg)
+
 Limitations a user must know:
 
 - Wi-Fi and Nightscout dependent: no network, no new numbers.

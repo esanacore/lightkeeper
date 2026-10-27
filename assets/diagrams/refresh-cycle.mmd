@@ -1,0 +1,20 @@
+sequenceDiagram
+    autonumber
+    participant L as lightkeeper --watch
+    participant N as Nightscout
+    participant D as Display and files
+    participant H as Home Assistant (MQTT)
+    participant S as systemd
+    L->>N: GET /api/v1/entries (token in api-secret header)
+    alt fetch succeeds
+        N-->>L: JSON list
+        L->>L: parse, drop bad entries, keep newest
+    else fetch fails
+        L->>L: re-age the last good reading (it turns STALE on its own)
+    end
+    L->>L: classify (STALE first), render 3 or 4 lines
+    L->>D: print, write SVG and JSON atomically
+    L->>H: publish level (never retained)
+    L->>S: WATCHDOG=1, STATUS=level
+    Note over L,S: a hung cycle stops the pings and systemd restarts the service
+    L->>L: sleep the interval, repeat

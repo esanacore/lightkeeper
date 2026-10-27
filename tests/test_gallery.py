@@ -20,7 +20,10 @@ def test_fr011_committed_gallery_is_up_to_date(tmp_path):
         relative = generated.relative_to(tmp_path)
         committed = ROOT / relative
         assert committed.exists(), f"{relative} is missing; run tools/gen_display_gallery.py"
-        assert committed.read_text(encoding="utf-8") == generated.read_text(encoding="utf-8"), (
+        # Compare bytes: the PNGs are binary, and text files may differ only in line endings.
+        committed_bytes = committed.read_bytes().replace(b"\r\n", b"\n")
+        generated_bytes = generated.read_bytes().replace(b"\r\n", b"\n")
+        assert committed_bytes == generated_bytes, (
             f"{relative} is out of date; run tools/gen_display_gallery.py"
         )
 

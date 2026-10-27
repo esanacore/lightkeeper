@@ -1,0 +1,17 @@
+sequenceDiagram
+    participant P as Lightkeeper publisher
+    participant B as MQTT broker
+    participant H as Home Assistant
+    P->>B: CONNECT with Last Will (availability = offline, retained)
+    P->>B: discovery configs (retained), availability = online (retained)
+    loop every refresh
+        P->>B: state JSON (not retained)
+        B->>H: sensors update: level, glucose, age
+    end
+    alt publisher dies or loses power
+        B->>H: Last Will: availability = offline
+        H->>H: sensors show unavailable
+    else updates stop for another reason
+        H->>H: expire_after passes, sensors show unavailable
+    end
+    Note over P,H: the glucose number is blank whenever the level is STALE or NO DATA

@@ -38,6 +38,16 @@ flowchart LR
     CLI --> HA[Home Assistant]
 ```
 
+## Deployment
+
+Where each piece runs and what crosses each boundary. The highlighted boxes are what this repository builds; everything reads Nightscout with a readable token and nothing writes back.
+
+![Deployment: the primary iPhone uploads to Nightscout; the Pi, the Xteink, and the iOS app read it over HTTPS; the Pi publishes to Home Assistant over MQTT](../assets/diagrams/deployment.svg)
+
+## One Refresh Cycle
+
+![Sequence of one --watch cycle: fetch with the token in a header, parse or re-age the last good reading, classify with STALE first, render, write files, publish to Home Assistant, pet the systemd watchdog](../assets/diagrams/refresh-cycle.svg)
+
 ## Data Flow
 
 1. The G7 sends a reading every 5 minutes to the Dexcom G7 app; Trio reads it on the same phone.
@@ -63,6 +73,7 @@ Glucose data is **Restricted** (health data) at every step of this flow, and the
 - `src/lightkeeper/infrastructure/`: the HTTPS Nightscout client, the publish-only MQTT client and Home Assistant discovery publisher (`mqtt.py`, `home_assistant.py`, ADR-0010), the SVG panel renderer, and the 1-bit e-paper rasterizer (`epaper_bitmap.py` with the project's own 5x8 font, `font5x7.py`), which produces the PNG previews and the Waveshare panel buffer for the Raspberry Pi display (FR-007; the SPI driver waits for hardware).
 - `src/lightkeeper/cli.py`: composition root, wires env config, clock, and client.
 - `src/lightkeeper/infrastructure/systemd_notify.py`: sd_notify (ready, watchdog, status) for the systemd service.
+- `hardware/`: the bill of materials (`bom/bom.csv`, rendered to `docs/BOM.md`) and the parametric bedside enclosure (`enclosure/bedside.scad`) with its renders and STLs.
 - `deploy/lightkeeper.service`: the hardened systemd unit for a Pi display, checked against the CLI by `tests/test_deploy.py`.
 - `tests/`: pytest suite, test names carry requirement IDs.
 - `spec/display_vectors.json`: golden display cases every implementation must pass.

@@ -1,0 +1,18 @@
+{
+  "inputs": {
+    "bedside.scad": "b903378617a3ac8b09030e37da3a6cd9c318dce01d9ef8f6de6341343fd6e3a8",
+    "screen_in_range.scad": "1557afc45d96b6134010e1f5b088fb485da844012d44836e845994649785edde"
+  },
+  "renders": {
+    "hero": "renders/hero.png",
+    "front": "renders/front.png",
+    "back": "renders/back.png",
+    "side": "renders/side.png",
+    "exploded": "renders/exploded.png",
+    "exploded_back": "renders/exploded_back.png"
+  },
+  "stls": {
+    "bezel": "stl/bedside-bezel.stl",
+    "back": "stl/bedside-back.stl"
+  }
+}

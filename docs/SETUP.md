@@ -231,6 +231,8 @@ Lightkeeper publishes its status to Home Assistant over MQTT discovery (FR-008, 
 3. Give the broker a certificate for TLS (the Mosquitto add-on supports it), or run Lightkeeper on the same machine as the broker and set `LK_MQTT_TLS=false` with `LK_MQTT_HOST=localhost`; plain MQTT to any other host is refused.
 4. Set `LK_MQTT_HOST`, `LK_MQTT_USERNAME`, `LK_MQTT_PASSWORD`, and `LK_MQTT_NODE_ID` (one per display; see `docs/ENV_VARS.md`) and run `python -m lightkeeper --watch`. Three sensors appear under a "Lightkeeper" device: Glucose level, Glucose (mg/dL), and Glucose reading age.
 
+![How a stopped publisher becomes unavailable in Home Assistant: Last Will on a dropped connection, expire_after when updates stop](../assets/diagrams/ha-availability.svg)
+
 How it stays honest (HAZ-013): the glucose number is blank (unknown) whenever the level is STALE or NO DATA; state is never retained, so a Home Assistant restart shows unknown until the next refresh rather than replaying an old level; and if the publisher stops, the entities go `unavailable`, within about three refresh intervals at most.
 
 Example automation. These are secondary alerts you choose to add; the primary app's alarms stay the ones to rely on:

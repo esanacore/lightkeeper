@@ -30,6 +30,8 @@ From `docs/COMMUNITY_RESEARCH.md` (October 2026):
 - [ ] Show a short sparkline or delta from the previous reading (FR-014, reserved).
 - [x] Draw `render_svg` output to a real e-paper bitmap for the Pi adapter (FR-007), reusing the gallery layout (2026-10-25: `epaper_bitmap.py`, own 5x8 font, PNG preview and Waveshare buffer).
 - [ ] When the Pi panel driver lands, open the service sandbox just enough: replace `PrivateDevices=yes` with `DeviceAllow=` for `/dev/spidev0.0` and the GPIO chip, add `SupplementaryGroups=spi gpio`, and update `tests/test_deploy.py`.
+- [ ] When the Pi and HAT arrive: measure the four VERIFY values in `hardware/enclosure/bedside.scad` (glass thickness, header gap, Pi offset, cable plug), print a test bezel, adjust, re-render with `python tools/render_enclosure.py`, and record the fit in `docs/TEST_PLAN.md`.
+- [ ] Enclosures for the 7.5" across-the-room panel and a stand or sleeve for the Xteink X4 Pro, once those parts are chosen.
 - [ ] Pi adapter, once the parts arrive: send `Bitmap.to_epd_buffer()` to the 2.9" Touch e-Paper HAT over SPI, confirm the buffer orientation on the real panel (GAP-001), and decide whether the panel shows a refresh-time stamp so a dead Pi cannot leave a fresh-looking screen.
 
 ## Technical Debt
