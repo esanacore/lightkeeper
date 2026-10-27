@@ -24,7 +24,9 @@
 //
 // Every frame's lines come from classify() and renderLines(), so there is no
 // new screen text. Pure: the time comes in as nowMs, and nothing here reads
-// the clock or the network.
+// the clock or the network. Nothing traps unless classify() itself would at
+// nowMs: every later instant the timeline schedules has an age classify()
+// can work out, even at the ends of Int64.
 //
 // WidgetKit contract for the extension (not built yet; it needs D10, Apple
 // signing and App Groups):
@@ -35,12 +37,22 @@
 // - Timeline policy .atEnd is always safe: if WidgetKit never reloads, the
 //   frame that stays up is the last one, and it says DO NOT TRUST (or NO
 //   DATA).
-// - To pick up a new reading sooner, reload after the next boundary: use
-//   .after(reloadAfterMs(for:)) when it is not nil, and .atEnd when it is
-//   (a one-entry timeline has no boundary to wait for). WidgetKit treats the
-//   date as a request within its budget and may reload much later; the
-//   frames already cover every moment in between, so a late reload costs
-//   freshness, never honesty.
+// - To pick up a new reading sooner, use .after(reloadAfterMs(for:)) (.atEnd
+//   only for an empty timeline, which glanceTimeline never returns). The hint
+//   follows the data, not the age text: one reading interval (5 minutes)
+//   after now, or sooner if the timeline turns STALE before then, the moment
+//   a fresh reading matters most. WidgetKit treats the date as a request
+//   within its budget and may reload much later; the frames already cover
+//   every moment in between, so a late reload costs freshness, never honesty.
+// - Never ask for a reload at every frame boundary. That is once a minute,
+//   and it spends the daily budget in about an hour; new readings then stop
+//   reaching the widget for the rest of the day, and it sits on STALE frames
+//   that are correct but needless. A STALE that shows for hours every day
+//   teaches people to ignore STALE. The 5-minute interval is a starting
+//   point, to be measured on a device with the extension.
+// - The app should also call WidgetCenter.shared.reloadAllTimelines() when
+//   it gets a new reading and after a settings save, so frames built with
+//   old data or old thresholds are replaced without waiting for the hint.
 // - Whether a STALE widget shows the struck "last:" line or no number is
 //   still to be decided; either way the text comes from `lines`.
 // - A Live Activity has no timeline of its own: the first STALE entry's date
@@ -65,6 +77,11 @@ let glanceScheduleCapMinutes = 24 * 60
 
 private let msPerMinute: Int64 = 60_000
 
+/// The longest wait the reload hint asks for: one CGM reading interval.
+/// Nightscout gets about one reading every 5 minutes, so asking sooner
+/// mostly finds nothing new and spends WidgetKit's daily budget for nothing.
+let glanceReloadIntervalMs: Int64 = 5 * msPerMinute
+
 /// `a + b`, pinned to the Int64 range instead of trapping.
 private func clampedSum(_ a: Int64, _ b: Int64) -> Int64 {
     let (sum, overflow) = a.addingReportingOverflow(b)
@@ -82,9 +99,11 @@ private func boundaries(of reading: GlucoseReading, after nowMs: Int64,
                         thresholds: Thresholds, maxMinutes: Int) -> [Int64] {
     let readingMs = reading.timestampMs
     // classify() calls a reading STALE once its age is greater than the stale
-    // limit. A limit so large that this instant does not exist never fires.
-    let (limitMs, overflow) = readingMs.addingReportingOverflow(thresholds.staleAfterMs)
-    let firstStaleMs: Int64? = overflow || limitMs == .max ? nil : limitMs + 1
+    // limit: from age limit + 1, which is the instant reading + limit + 1. If
+    // that age or that instant is past the end of Int64, it never comes, and
+    // classify() could not work out the age there, so it is not scheduled.
+    let staleAgeMs: Int64? = thresholds.staleAfterMs < .max ? thresholds.staleAfterMs + 1 : nil
+    let firstStaleMs = staleAgeMs.flatMap { readingMs <= Int64.max - $0 ? readingMs + $0 : nil }
     // A future-dated reading is trusted again once it is no more than
     // maxFutureSkewMs ahead of the clock.
     var instants = [clampedSum(readingMs, -maxFutureSkewMs)]
@@ -143,9 +162,16 @@ public func glanceTimeline(lastGood: GlucoseReading?, fetchError: Bool, nowMs: I
     return timeline
 }
 
-/// When the extension should ask WidgetKit for a new timeline: the next
-/// boundary, which is the second frame's date. Nil for a timeline of one
-/// frame, which never changes on its own; use the `.atEnd` policy then.
+/// When the extension should ask WidgetKit for a new timeline: one reading
+/// interval after the first frame, or the date the timeline turns STALE if
+/// that comes first, so a fresh reading has its best chance to replace STALE
+/// before it shows. A NO DATA timeline, or one that is STALE from its first
+/// frame, asks one interval later. The hint follows Nightscout's reading
+/// cadence, not the minute ticks of the age text, so it never asks once a
+/// minute. Nil only for an empty timeline.
 public func reloadAfterMs(for timeline: [GlanceEntry]) -> Int64? {
-    timeline.dropFirst().first?.dateMs
+    guard let first = timeline.first else { return nil }
+    let turnsStaleMs = zip(timeline, timeline.dropFirst())
+        .first { $0.level != .stale && $1.level == .stale }?.1.dateMs
+    return min(clampedSum(first.dateMs, glanceReloadIntervalMs), turnsStaleMs ?? .max)
 }

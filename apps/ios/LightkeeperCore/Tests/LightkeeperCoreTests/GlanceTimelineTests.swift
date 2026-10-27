@@ -339,7 +339,8 @@ final class GlanceTimelineTests: XCTestCase {
         let restale = try XCTUnwrap(timeline.dropFirst().first { $0.level == .stale })
         XCTAssertEqual(restale.dateMs, r.timestampMs + 15 * minute + 1)
         XCTAssertEqual(timeline.last?.dateMs, r.timestampMs + 120 * minute)
-        XCTAssertEqual(reloadAfterMs(for: timeline), r.timestampMs - 2 * minute)
+        XCTAssertEqual(reloadAfterMs(for: timeline), nowMs + glanceReloadIntervalMs,
+                       "STALE from the first frame: ask one reading interval later")
 
         // Exactly 2 minutes ahead is trusted at once; 1 ms more is trusted 1 ms later.
         let edge = glanceTimeline(lastGood: reading(agedMs: -2 * minute, at: nowMs),
@@ -424,7 +425,8 @@ final class GlanceTimelineTests: XCTestCase {
                                     thresholds: .defaults)
         XCTAssertEqual(failed, [GlanceEntry(dateMs: nowMs, level: .noData,
                                             lines: noData + [unreachable])])
-        XCTAssertNil(reloadAfterMs(for: failed), "nothing changes until a fetch")
+        XCTAssertEqual(reloadAfterMs(for: failed), nowMs + glanceReloadIntervalMs,
+                       "only a fetch changes it: ask one reading interval later")
     }
 
     // MARK: - Bounds and the reload hint
@@ -441,12 +443,13 @@ final class GlanceTimelineTests: XCTestCase {
                                  fetchError: false, nowMs: nowMs, thresholds: .defaults)
         XCTAssertEqual(old.count, 1)
         XCTAssertEqual(old.first.flatMap(staleMinutes), 180)
-        XCTAssertNil(reloadAfterMs(for: old))
+        XCTAssertEqual(reloadAfterMs(for: old), nowMs + glanceReloadIntervalMs)
     }
 
     /// Absurd inputs neither trap nor build a huge timeline: maxMinutes and the
-    /// minute ticks stop at one day, and a stale limit no instant can exceed
-    /// is never called STALE, by the rules or by the timeline.
+    /// minute ticks stop at one day, a stale limit no instant can exceed is
+    /// never called STALE, by the rules or by the timeline, and no scheduled
+    /// instant has an age classify() cannot work out.
     func testFR019HugeLimitsStayBoundedAndNeverTrap() throws {
         let cap = glanceScheduleCapMinutes
         let r = reading(agedMs: 0, at: nowMs)
@@ -479,6 +482,39 @@ final class GlanceTimelineTests: XCTestCase {
         let last = try XCTUnwrap(never.last)
         XCTAssertEqual(last.lines, expected(r, at: last.dateMs, endless, fetchError: false).lines)
 
+        // The first STALE instant, and its age, at the end of Int64: a limit
+        // that ends exactly on Int64.max (the instant would be one past it), a
+        // limit of Int64.max on a reading before 1970 (the instant fits, its
+        // age does not), and a first STALE millisecond that is Int64.max itself.
+        let ends: [(label: String, readingMs: Int64, now: Int64, limitMs: Int64, stale: Bool)] = [
+            ("limit ends on Int64.max", nowMs, nowMs, Int64.max - nowMs, false),
+            ("STALE age past Int64.max", -10, 0, .max, false),
+            ("first STALE ms is Int64.max", nowMs, nowMs, Int64.max - 1 - nowMs, true),
+        ]
+        for end in ends {
+            let edge = GlucoseReading(mgdl: 120, timestampMs: end.readingMs, trend: .flat)
+            let limit = try Thresholds(staleAfterMs: end.limitMs)
+            let c = Case(name: end.label, reading: edge, thresholds: limit, fetchError: false)
+            let timeline = glanceTimeline(lastGood: edge, fetchError: false, nowMs: end.now,
+                                          thresholds: limit, maxMinutes: .max)
+            let run = Run(label: end.label, c: c, nowMs: end.now, timeline: timeline)
+            XCTAssertEqual(run.timeline.map { $0.level == .stale },
+                           [Bool](repeating: false, count: cap + 1) + (end.stale ? [true] : []),
+                           "\(end.label): one frame a minute for a day, then STALE if it fits")
+            assertEntriesMatchRender(run)
+            if end.stale {
+                // Past the one-day cap the age lags until STALE (see above), but
+                // STALE itself still lands on its first millisecond.
+                XCTAssertEqual(run.timeline.last?.dateMs, .max, end.label)
+                XCTAssertNotEqual(classify(edge, nowMs: .max - 1, thresholds: limit).level, .stale,
+                                  end.label)
+            } else {
+                assertEntriesStartAtChanges(run)
+            }
+            XCTAssertEqual(reloadAfterMs(for: run.timeline), end.now + glanceReloadIntervalMs,
+                           end.label)
+        }
+
         // Timestamps at the ends of the Int64 range. Near the top, every later
         // instant pins to Int64.max, where the reading is still 10 ms old, so
         // one frame is the whole truth; near the bottom the schedule is normal.
@@ -497,21 +533,65 @@ final class GlanceTimelineTests: XCTestCase {
         }
     }
 
-    func testFR019ReloadAfterIsTheNextBoundary() throws {
-        for run in try runs() {
-            if run.timeline.count > 1 {
-                XCTAssertEqual(reloadAfterMs(for: run.timeline), run.timeline[1].dateMs, run.label)
-                XCTAssertGreaterThan(reloadAfterMs(for: run.timeline) ?? .min, run.nowMs, run.label)
-            } else {
-                XCTAssertNil(reloadAfterMs(for: run.timeline), run.label)
+    /// Follows the reload hint for a day, reloading exactly when it asks, and
+    /// counts the reloads. `newest` is the newest reading Nightscout has at t.
+    func reloadsInADay(_ newest: (Int64) -> GlucoseReading?) throws -> Int {
+        var t = nowMs
+        var reloads = 0
+        while t < nowMs + 24 * 60 * minute {
+            let timeline = glanceTimeline(lastGood: newest(t), fetchError: false, nowMs: t,
+                                          thresholds: .defaults)
+            let next = try XCTUnwrap(reloadAfterMs(for: timeline))
+            XCTAssertGreaterThan(next, t, "the hint is always in the future")
+            t = next
+            reloads += 1
+        }
+        return reloads
+    }
+
+    /// The reload hint follows Nightscout's reading cadence, not the minute
+    /// ticks of the age text: it waits one reading interval, or less only to
+    /// try for fresh data the moment the timeline would turn STALE. Asking at
+    /// every boundary would be once a minute: the daily budget in an hour.
+    func testFR019ReloadAfterFollowsTheReadingCadence() throws {
+        let interval = glanceReloadIntervalMs
+        XCTAssertEqual(interval, 5 * minute)
+        for maxMinutes in [120, 0] {
+            for run in try runs(maxMinutes: maxMinutes) {
+                let hint = try XCTUnwrap(reloadAfterMs(for: run.timeline), run.label)
+                XCTAssertGreaterThan(hint, run.nowMs, run.label)
+                XCTAssertLessThanOrEqual(hint, run.nowMs + interval, run.label)
+                let turnsStale = run.timeline.indices.dropFirst().first {
+                    run.timeline[$0].level == .stale && run.timeline[$0 - 1].level != .stale
+                }.map { run.timeline[$0].dateMs }
+                XCTAssertLessThanOrEqual(hint, turnsStale ?? .max, "\(run.label): not after STALE")
+                XCTAssertTrue(hint == run.nowMs + interval || hint == turnsStale,
+                              "\(run.label): no sooner than it needs to be")
             }
         }
         XCTAssertNil(reloadAfterMs(for: []))
 
-        // A fresh reading asks again at its next minute boundary.
+        // A fresh reading 3:20 old asks in 5 minutes, not at its next boundary.
         let r = reading(agedMs: 3 * minute + 20_000, at: nowMs)
         let timeline = glanceTimeline(lastGood: r, fetchError: false, nowMs: nowMs,
                                       thresholds: .defaults)
-        XCTAssertEqual(reloadAfterMs(for: timeline), nowMs + 40_000)
+        XCTAssertEqual(timeline.dropFirst().first?.dateMs, nowMs + 40_000)
+        XCTAssertEqual(reloadAfterMs(for: timeline), nowMs + interval)
+
+        // A reading 12 minutes old asks on the millisecond it turns STALE.
+        let late = reading(agedMs: 12 * minute, at: nowMs)
+        let turning = glanceTimeline(lastGood: late, fetchError: false, nowMs: nowMs,
+                                     thresholds: .defaults)
+        XCTAssertEqual(reloadAfterMs(for: turning), late.timestampMs + 15 * minute + 1)
+
+        // A day of following the hint: one reload per reading interval whether
+        // readings keep coming, stop, or never existed (each boundary: 1440).
+        let perDay = 24 * 60 / 5
+        let start = nowMs - 3 * minute
+        let everyFive = try reloadsInADay { t in reading(agedMs: (t - start) % interval, at: t) }
+        XCTAssertEqual(everyFive, perDay, "readings every 5 minutes")
+        let stopped = try reloadsInADay { _ in reading(agedMs: 3 * minute, at: nowMs) }
+        XCTAssertEqual(stopped, perDay + 1, "readings stop: one extra, as it turns STALE")
+        XCTAssertEqual(try reloadsInADay { _ in nil }, perDay, "no data at all")
     }
 }
