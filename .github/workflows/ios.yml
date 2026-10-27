@@ -8,9 +8,9 @@ name: iOS
 on:
   push:
     branches: [main]
-    paths: ["apps/ios/**", "spec/display_vectors.json", "spec/response_vectors.json", ".github/workflows/ios.yml"]
+    paths: ["apps/ios/**", "spec/display_vectors.json", "spec/response_vectors.json", "spec/spoken_vectors.json", ".github/workflows/ios.yml"]
   pull_request:
-    paths: ["apps/ios/**", "spec/display_vectors.json", "spec/response_vectors.json", ".github/workflows/ios.yml"]
+    paths: ["apps/ios/**", "spec/display_vectors.json", "spec/response_vectors.json", "spec/spoken_vectors.json", ".github/workflows/ios.yml"]
 
 permissions:
   contents: read

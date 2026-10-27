@@ -14,3 +14,4 @@ Every significant architecture or safety decision, numbered in the order it was 
 | [0008](0008-companion-app-and-bolus-requests-via-trio.md) | Companion App, with Bolus Requests Only Through Trio's Remote Protocol | Proposed | 2026-10-18 |
 | [0009](0009-nightscout-token-in-a-header-not-the-url.md) | Send the Nightscout Readable Token in a Header, Not the URL | Accepted | 2026-10-25 |
 | [0010](0010-home-assistant-via-mqtt-discovery.md) | Publish to Home Assistant over MQTT Discovery | Accepted | 2026-10-26 |
+| [0011](0011-screen-text-v2.md) | Screen Text v2: No Arrow on STALE, the Failing Link Named, and a STALE Age No Fresh Screen Shows | Proposed | 2026-10-27 |
