@@ -8,6 +8,7 @@ This project follows semantic versioning.
 
 ### Added
 
+- A packaging test builds the wheel and checks that every module, the `lightkeeper` command, and the no-runtime-dependencies rule survive packaging; `setuptools` joins the dev extras for it (OTS-005).
 - `deploy/lightkeeper.service`: a hardened systemd unit for a Pi display (unprivileged user, sandboxing, `systemd-analyze security` exposure about 1.2). Lightkeeper speaks sd_notify: it reports ready, pets the watchdog after every refresh so a hung cycle gets the service restarted instead of freezing the screen, and shows the current level in `systemctl status`. `systemctl stop` runs the clean shutdown.
 - Home Assistant over MQTT discovery (FR-008, ADR-0010 accepted, HAZ-013). Set `LK_MQTT_HOST` (and the other `LK_MQTT_*` settings) to publish Glucose level, Glucose, and Glucose reading age sensors. A Last Will and `expire_after` make them unavailable if the publisher stops, state is never retained, the number is blank whenever the level is STALE or NO DATA, TLS is the default, and a broker failure never stops the display. The MQTT client is a small publish-only implementation in the standard library.
 - `--json PATH` writes the current status (level, number, trend, age, lines, error) atomically, for dashboards.

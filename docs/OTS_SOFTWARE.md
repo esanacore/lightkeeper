@@ -21,6 +21,7 @@ Related documents: `constitution/SECURITY.md`, `docs/TEST_PLAN.md`, `docs/SAFETY
 | OTS-002 | pytest-cov | >=5 | pytest-dev | Coverage measurement and floor | MIT | Low | Mature upstream suite; floor enforced via `fail_under` | github.com/pytest-dev/pytest-cov/issues, last reviewed 2026-10-17 | Range, Dependabot-managed | Active |
 | OTS-003 | ruff | >=0.6 | Astral | Lint (incl. bandit security rules) and format | MIT | Low | Runs on every commit and in CI; findings reviewed by hand when first enabled | github.com/astral-sh/ruff/issues, last reviewed 2026-10-18 | Range, Dependabot-managed; pre-commit pin v0.16.8 | Active |
 | OTS-004 | mypy | >=1.11 | Python typing community | Strict static type checking of `src/` | MIT | Low | Runs in the declared suite and pre-commit | github.com/python/mypy/issues, last reviewed 2026-10-18 | Range, Dependabot-managed | Active |
+| OTS-005 | setuptools | >=69 | Python Packaging Authority | Build backend (already in `[build-system]`); also a dev extra so `tests/test_packaging.py` can build the wheel offline | MIT | Low | The same backend that builds every release; the packaging test checks its output | github.com/pypa/setuptools/issues, last reviewed 2026-10-27 | Range, Dependabot-managed | Active |
 
 ## System-Level OTS
 

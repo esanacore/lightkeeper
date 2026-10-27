@@ -17,6 +17,7 @@ dev = [
     "pytest-cov>=5",
     "ruff>=0.6",
     "mypy>=1.11",
+    "setuptools>=69",
 ]
 
 [project.scripts]
