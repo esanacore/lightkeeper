@@ -6,7 +6,10 @@ This project follows semantic versioning.
 
 ## Unreleased
 
-Nothing yet.
+### Added
+
+- Firmware: `lib/nightscout_json`, a strict, streaming, heap-free parser that finds the newest trustworthy reading in a raw Nightscout response, the groundwork for the Xteink device build (FR-010). It is fuzzed with thousands of mutated bodies under the sanitizers.
+- `spec/response_vectors.json`: 39 raw Nightscout responses (real shapes, rejected fields, ties, and malformed bodies) with the conclusion Python, the firmware, and Swift must each reach.
 
 ## [0.2.0] - 2026-10-27
 

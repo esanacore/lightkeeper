@@ -1,0 +1,313 @@
+{
+  "spec_version": 1,
+  "description": "Raw Nightscout /api/v1/entries responses and what every implementation must conclude from each: the newest trustworthy reading (`mgdl`, `date` in Unix ms, `trend`), `null` when the response parses but holds no usable reading, or `\"error\"` when the response is not a JSON list. Python (json.loads and parse_entries), the firmware's heap-free parser, and Swift (JSONSerialization and parseEntries) all run every case. Times are relative to 2026-10-18T12:00:00Z. spec_version increments whenever an existing case changes; adding a case does not bump it. `swift_also_accepts` lists outcomes the Swift suite may also see where Foundation's JSON parser differs from Python's on syntax Nightscout never sends; each is safe (an error, or the same reading).",
+  "cases": [
+    {
+      "name": "typical_newest_first",
+      "body": "[{\"_id\": \"6510a1\", \"device\": \"Trio\", \"date\": 1792324800000, \"dateString\": \"2026-10-18T12:00:00.000Z\", \"sgv\": 112, \"delta\": -1.5, \"direction\": \"Flat\", \"type\": \"sgv\", \"filtered\": 0, \"unfiltered\": 0, \"rssi\": 100, \"noise\": 1, \"sysTime\": \"2026-10-18T12:00:00.000Z\", \"utcOffset\": 0}, {\"type\": \"sgv\", \"sgv\": 114, \"date\": 1792324500000, \"direction\": \"Flat\"}]",
+      "expect": {
+        "mgdl": 112,
+        "date": 1792324800000,
+        "trend": "Flat"
+      }
+    },
+    {
+      "name": "oldest_first",
+      "body": "[{\"type\": \"sgv\", \"sgv\": 100, \"date\": 1792324200000, \"direction\": \"Flat\"}, {\"type\": \"sgv\", \"sgv\": 105, \"date\": 1792324500000, \"direction\": \"Flat\"}, {\"type\": \"sgv\", \"sgv\": 110, \"date\": 1792324800000, \"direction\": \"FortyFiveUp\"}]",
+      "expect": {
+        "mgdl": 110,
+        "date": 1792324800000,
+        "trend": "FortyFiveUp"
+      }
+    },
+    {
+      "name": "empty_list",
+      "body": "[]",
+      "expect": null
+    },
+    {
+      "name": "whitespace_everywhere",
+      "body": "\n[\n\t{ \"sgv\" : 98 ,\r\n \"date\" : 1792324800000 , \"direction\" : \"SingleDown\" , \"type\" : \"sgv\" }\n]\n",
+      "expect": {
+        "mgdl": 98,
+        "date": 1792324800000,
+        "trend": "SingleDown"
+      }
+    },
+    {
+      "name": "unknown_nested_fields",
+      "body": "[{\"type\": \"sgv\", \"sgv\": 121, \"date\": 1792324740000, \"direction\": \"Flat\", \"meta\": {\"a\": [1, {\"b\": [2, 35.0, null, true, false]}], \"c\": null, \"q\": \"x\\\"y\\\\z\"}, \"tags\": [], \"empty\": {}}]",
+      "expect": {
+        "mgdl": 121,
+        "date": 1792324740000,
+        "trend": "Flat"
+      }
+    },
+    {
+      "name": "unicode_in_unknown_field",
+      "body": "[{\"device\": \"xDrip-\\u00e9 café\", \"sgv\": 130, \"date\": 1792324800000, \"direction\": \"Flat\", \"type\": \"sgv\"}]",
+      "expect": {
+        "mgdl": 130,
+        "date": 1792324800000,
+        "trend": "Flat"
+      }
+    },
+    {
+      "name": "escaped_direction",
+      "body": "[{\"sgv\": 125, \"date\": 1792324800000, \"direction\": \"Fla\\u0074\", \"type\": \"sgv\"}]",
+      "expect": {
+        "mgdl": 125,
+        "date": 1792324800000,
+        "trend": "Flat"
+      }
+    },
+    {
+      "name": "escaped_slash_and_controls_in_unknown",
+      "body": "[{\"note\": \"a\\/b\\n\\t\\r\\b\\f\", \"sgv\": 101, \"date\": 1792324800000, \"type\": \"sgv\", \"direction\": \"Flat\"}]",
+      "expect": {
+        "mgdl": 101,
+        "date": 1792324800000,
+        "trend": "Flat"
+      }
+    },
+    {
+      "name": "type_missing_is_sgv",
+      "body": "[{\"sgv\": 140, \"date\": 1792324800000, \"direction\": \"Flat\"}]",
+      "expect": {
+        "mgdl": 140,
+        "date": 1792324800000,
+        "trend": "Flat"
+      }
+    },
+    {
+      "name": "type_mbg_skipped",
+      "body": "[{\"type\": \"mbg\", \"sgv\": 80, \"date\": 1792324800000, \"direction\": \"Flat\"}, {\"type\": \"sgv\", \"sgv\": 115, \"date\": 1792324500000, \"direction\": \"Flat\"}]",
+      "expect": {
+        "mgdl": 115,
+        "date": 1792324500000,
+        "trend": "Flat"
+      }
+    },
+    {
+      "name": "type_not_a_string_skipped",
+      "body": "[{\"type\": 5, \"sgv\": 80, \"date\": 1792324800000, \"direction\": \"Flat\"}, {\"type\": \"sgv\", \"sgv\": 116, \"date\": 1792324500000, \"direction\": \"Flat\"}]",
+      "expect": {
+        "mgdl": 116,
+        "date": 1792324500000,
+        "trend": "Flat"
+      }
+    },
+    {
+      "name": "sgv_true_skipped",
+      "body": "[{\"type\": \"sgv\", \"sgv\": true, \"date\": 1792324800000, \"direction\": \"Flat\"}, {\"type\": \"sgv\", \"sgv\": 117, \"date\": 1792324500000, \"direction\": \"Flat\"}]",
+      "expect": {
+        "mgdl": 117,
+        "date": 1792324500000,
+        "trend": "Flat"
+      }
+    },
+    {
+      "name": "sgv_null_skipped",
+      "body": "[{\"type\": \"sgv\", \"sgv\": null, \"date\": 1792324800000, \"direction\": \"Flat\"}, {\"type\": \"sgv\", \"sgv\": 118, \"date\": 1792324500000, \"direction\": \"Flat\"}]",
+      "expect": {
+        "mgdl": 118,
+        "date": 1792324500000,
+        "trend": "Flat"
+      }
+    },
+    {
+      "name": "sgv_string_skipped",
+      "body": "[{\"type\": \"sgv\", \"sgv\": \"120\", \"date\": 1792324800000, \"direction\": \"Flat\"}, {\"type\": \"sgv\", \"sgv\": 119, \"date\": 1792324500000, \"direction\": \"Flat\"}]",
+      "expect": {
+        "mgdl": 119,
+        "date": 1792324500000,
+        "trend": "Flat"
+      }
+    },
+    {
+      "name": "sgv_whole_float_accepted",
+      "body": "[{\"sgv\": 120.0, \"date\": 1792324800000, \"direction\": \"Flat\", \"type\": \"sgv\"}]",
+      "expect": {
+        "mgdl": 120,
+        "date": 1792324800000,
+        "trend": "Flat"
+      }
+    },
+    {
+      "name": "sgv_exponent_accepted",
+      "body": "[{\"sgv\": 1.2e2, \"date\": 1792324800000, \"direction\": \"Flat\", \"type\": \"sgv\"}]",
+      "expect": {
+        "mgdl": 120,
+        "date": 1792324800000,
+        "trend": "Flat"
+      }
+    },
+    {
+      "name": "sgv_fraction_skipped",
+      "body": "[{\"sgv\": 120.5, \"date\": 1792324800000, \"type\": \"sgv\"}, {\"sgv\": 99, \"date\": 1792324500000, \"type\": \"sgv\", \"direction\": \"Flat\"}]",
+      "expect": {
+        "mgdl": 99,
+        "date": 1792324500000,
+        "trend": "Flat"
+      }
+    },
+    {
+      "name": "sgv_overflow_skipped",
+      "body": "[{\"sgv\": 1e400, \"date\": 1792324800000, \"type\": \"sgv\"}, {\"sgv\": 97, \"date\": 1792324500000, \"type\": \"sgv\", \"direction\": \"Flat\"}]",
+      "expect": {
+        "mgdl": 97,
+        "date": 1792324500000,
+        "trend": "Flat"
+      },
+      "swift_also_accepts": [
+        "error"
+      ],
+      "swift_note": "JSONSerialization rejects a number it cannot represent; Nightscout writes non-finite numbers as null, so this never comes from a real server."
+    },
+    {
+      "name": "sgv_negative_skipped",
+      "body": "[{\"type\": \"sgv\", \"sgv\": -5, \"date\": 1792324800000, \"direction\": \"Flat\"}, {\"type\": \"sgv\", \"sgv\": 96, \"date\": 1792324500000, \"direction\": \"Flat\"}]",
+      "expect": {
+        "mgdl": 96,
+        "date": 1792324500000,
+        "trend": "Flat"
+      }
+    },
+    {
+      "name": "date_string_skipped",
+      "body": "[{\"type\": \"sgv\", \"sgv\": 80, \"date\": \"1792324800000\", \"direction\": \"Flat\"}, {\"type\": \"sgv\", \"sgv\": 95, \"date\": 1792324500000, \"direction\": \"Flat\"}]",
+      "expect": {
+        "mgdl": 95,
+        "date": 1792324500000,
+        "trend": "Flat"
+      }
+    },
+    {
+      "name": "date_in_seconds_skipped",
+      "body": "[{\"type\": \"sgv\", \"sgv\": 80, \"date\": 1792324800, \"direction\": \"Flat\"}, {\"type\": \"sgv\", \"sgv\": 94, \"date\": 1792324500000, \"direction\": \"Flat\"}]",
+      "expect": {
+        "mgdl": 94,
+        "date": 1792324500000,
+        "trend": "Flat"
+      }
+    },
+    {
+      "name": "direction_not_a_string_is_unknown",
+      "body": "[{\"type\": \"sgv\", \"sgv\": 131, \"date\": 1792324800000, \"direction\": 5}]",
+      "expect": {
+        "mgdl": 131,
+        "date": 1792324800000,
+        "trend": "Unknown"
+      }
+    },
+    {
+      "name": "direction_missing_is_unknown",
+      "body": "[{\"sgv\": 132, \"date\": 1792324800000, \"type\": \"sgv\"}]",
+      "expect": {
+        "mgdl": 132,
+        "date": 1792324800000,
+        "trend": "Unknown"
+      }
+    },
+    {
+      "name": "non_object_elements_skipped",
+      "body": "[1, \"x\", null, true, [], [{\"sgv\": 50}], {\"sgv\": 133, \"date\": 1792324800000, \"type\": \"sgv\", \"direction\": \"Flat\"}]",
+      "expect": {
+        "mgdl": 133,
+        "date": 1792324800000,
+        "trend": "Flat"
+      }
+    },
+    {
+      "name": "all_entries_invalid",
+      "body": "[{\"type\": \"sgv\", \"sgv\": 402, \"date\": 1792324800000, \"direction\": \"Flat\"}, {\"type\": \"sgv\", \"sgv\": null, \"date\": 1792324500000, \"direction\": \"Flat\"}, {\"type\": \"cal\", \"sgv\": 80, \"date\": 1792324800000, \"direction\": \"Flat\"}]",
+      "expect": null
+    },
+    {
+      "name": "same_timestamp_lower_value_wins",
+      "body": "[{\"type\": \"sgv\", \"sgv\": 130, \"date\": 1792324800000, \"direction\": \"Flat\"}, {\"type\": \"sgv\", \"sgv\": 68, \"date\": 1792324800000, \"direction\": \"SingleDown\"}, {\"type\": \"sgv\", \"sgv\": 110, \"date\": 1792324500000, \"direction\": \"Flat\"}]",
+      "expect": {
+        "mgdl": 68,
+        "date": 1792324800000,
+        "trend": "SingleDown"
+      }
+    },
+    {
+      "name": "duplicate_key_last_wins",
+      "body": "[{\"sgv\": 300, \"sgv\": 109, \"date\": 1792324800000, \"type\": \"sgv\", \"direction\": \"Flat\"}]",
+      "expect": {
+        "mgdl": 109,
+        "date": 1792324800000,
+        "trend": "Flat"
+      }
+    },
+    {
+      "name": "object_not_a_list",
+      "body": "{\"status\": 401, \"message\": \"Unauthorized\"}",
+      "expect": "error"
+    },
+    {
+      "name": "html_maintenance_page",
+      "body": "<html><body>Maintenance</body></html>",
+      "expect": "error"
+    },
+    {
+      "name": "truncated_body",
+      "body": "[{\"sgv\": 120, \"date\": ",
+      "expect": "error"
+    },
+    {
+      "name": "trailing_garbage",
+      "body": "[{\"type\": \"sgv\", \"sgv\": 120, \"date\": 1792324800000, \"direction\": \"Flat\"}] x",
+      "expect": "error"
+    },
+    {
+      "name": "trailing_comma",
+      "body": "[{\"sgv\": 120, \"date\": 1792324800000, \"type\": \"sgv\"},]",
+      "expect": "error",
+      "swift_also_accepts": [
+        {
+          "mgdl": 120,
+          "date": 1792324800000,
+          "trend": "Unknown"
+        }
+      ],
+      "swift_note": "Some Foundation versions accept a trailing comma; the entries are still validated by parseEntries."
+    },
+    {
+      "name": "single_quotes",
+      "body": "[{'sgv': 120}]",
+      "expect": "error"
+    },
+    {
+      "name": "raw_newline_inside_string",
+      "body": "[{\"sgv\": 120, \"date\": 1792324800000, \"type\": \"sgv\", \"note\": \"a\nb\"}]",
+      "expect": "error"
+    },
+    {
+      "name": "leading_zero_number",
+      "body": "[{\"sgv\": 0120, \"date\": 1792324800000, \"type\": \"sgv\"}]",
+      "expect": "error"
+    },
+    {
+      "name": "bare_word",
+      "body": "[{\"sgv\": undefined}]",
+      "expect": "error"
+    },
+    {
+      "name": "empty_body",
+      "body": "",
+      "expect": "error"
+    },
+    {
+      "name": "unterminated_string",
+      "body": "[{\"type\": \"sgv",
+      "expect": "error"
+    },
+    {
+      "name": "bad_escape",
+      "body": "[{\"note\": \"\\x41\", \"sgv\": 120, \"date\": 1792324800000, \"type\": \"sgv\"}]",
+      "expect": "error"
+    }
+  ]
+}

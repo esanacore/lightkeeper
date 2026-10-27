@@ -1,6 +1,6 @@
 # Testing and Quality
 
-How the repository is tested, what it promises about coverage, and how a reader can check those promises. The source documents are `docs/TEST_PLAN.md`, `docs/REQUIREMENTS_TRACEABILITY.md`, and `docs/PRODUCT_REQUIREMENTS.md` in the repository. Numbers are from the current 0.2.0 tree: 331 Python tests, 100% line and branch coverage, 39 shared vectors, 294 firmware checks.
+How the repository is tested, what it promises about coverage, and how a reader can check those promises. The source documents are `docs/TEST_PLAN.md`, `docs/REQUIREMENTS_TRACEABILITY.md`, and `docs/PRODUCT_REQUIREMENTS.md` in the repository. Numbers are from the current 0.2.0 tree: 372 Python tests, 100% line and branch coverage, 39 shared vectors, 294 firmware checks.
 
 ## The pyramid
 
@@ -32,6 +32,7 @@ Three suites run every case, must produce identical output, and assert the spec 
 | Repository default | Line and branch | 90% (`fail_under` in `pyproject.toml`) | 100% |
 | Domain layer (the safety rules) | Line and branch | 100% | 100% |
 | Nightscout client | Line and branch | 95% | 100% |
+| Firmware `nightscout_json` | Every response case, edge cases, fuzzing | 100% of cases | 2,970 checks pass, 100% of lines |
 | Firmware `glucose_rules` | Every shared vector plus edge cases | 100% of vectors | 294 checks pass; 100% of lines and 113 of 114 branches (gcov) |
 
 Firmware coverage is measured with gcov: `make -C firmware/xteink coverage` reports 100% of lines and 113 of 114 branches in `glucose_rules.cpp`; the one branch left is a defensive guard that the public API cannot reach. The coverage history is a dated table in `docs/TEST_PLAN.md`.

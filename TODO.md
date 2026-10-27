@@ -20,7 +20,8 @@ From `docs/COMMUNITY_RESEARCH.md` (October 2026):
 - [x] Evaluate Nightscout's `AUTH_DEFAULT_ROLES=denied` plus v3 JWT so the token never appears in a URL (2026-10-25: ADR-0009 proposes the `api-secret` header on v1 instead; JWT is the fallback).
 - [x] ADR-0009 accepted and implemented (2026-10-25): the Python and Swift clients send the readable token in the `api-secret` header, `?token=` is gone, and tests assert no request URL carries it.
 - [ ] ADR-0009 real-instance check once Nightscout is deployed: with `AUTH_DEFAULT_ROLES=denied`, the header returns entries and no credentials return 401; record it in `docs/TEST_PLAN.md`.
-- [ ] Firmware device HTTP layer (FR-010): send the token in the `api-secret` header, never in the URL (ADR-0009).
+- [x] Firmware JSON layer (FR-010): `lib/nightscout_json`, heap-free and fuzzed, matched to Python by `spec/response_vectors.json` (2026-10-27).
+- [ ] Firmware device HTTP layer (FR-010): send the token in the `api-secret` header, never in the URL (ADR-0009), and feed the body to `newest_reading_from_json`.
 
 - [ ] Raspberry Pi e-paper display adapter for `lightkeeper` (FR-007).
 - [x] Home Assistant integration: publish level, value, and age as a sensor, alert on URGENT LOW and STALE (FR-008). Done 2026-10-26: ADR-0010 accepted, HAZ-013, standard-library MQTT publisher with Last Will and `expire_after`, unretained state, `--json PATH`.

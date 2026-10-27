@@ -66,7 +66,8 @@ Glucose data is **Restricted** (health data) at every step of this flow, and the
 - `deploy/lightkeeper.service`: the hardened systemd unit for a Pi display, checked against the CLI by `tests/test_deploy.py`.
 - `tests/`: pytest suite, test names carry requirement IDs.
 - `spec/display_vectors.json`: golden display cases every implementation must pass.
-- `firmware/xteink/`: C++17 port of the domain rules for the ESP32-C3 pocket display, with host tests.
+- `spec/response_vectors.json`: raw Nightscout responses and the conclusion every implementation must reach (built by `tools/gen_response_corpus.py`).
+- `firmware/xteink/`: C++17 port of the domain rules for the ESP32-C3 pocket display (`lib/glucose_rules`) and a heap-free Nightscout JSON parser (`lib/nightscout_json`), with host tests.
 - `apps/ios/`: Swift package with the same rules and a read-only Nightscout client, plus the SwiftUI companion app (ADR-0008, read-only layer).
 - `docs/`: requirements, safety, ADRs, setup.
 - `constitution/`: universal engineering rules (git submodule).

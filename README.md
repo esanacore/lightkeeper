@@ -126,7 +126,7 @@ python -m pytest --cov
 make -C firmware/xteink test   # needs g++ and make (Linux, macOS, or WSL on Windows)
 ```
 
-The Python suite enforces a 90% coverage floor (currently 100%). Both suites run every case in `spec/display_vectors.json`. The full suite, including ruff, strict mypy, and clang-format, is listed in [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md). Test names carry the requirement IDs they verify, for example `test_fr003_staleness_beats_urgent_low`.
+The Python suite enforces a 90% coverage floor (currently 100%). Both suites run every case in `spec/display_vectors.json` and `spec/response_vectors.json`. The full suite, including ruff, strict mypy, and clang-format, is listed in [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md). Test names carry the requirement IDs they verify, for example `test_fr003_staleness_beats_urgent_low`.
 
 ## Demo
 
@@ -145,10 +145,10 @@ lightkeeper/
 │   ├── infrastructure/  ← Read-only HTTPS Nightscout client, SVG and e-paper bitmap renderers
 │   └── cli.py           ← Command-line entry point
 ├── tests/               ← Pytest suite, named by requirement ID
-├── spec/                ← Shared golden display vectors
+├── spec/                ← Shared display vectors and raw-response corpus
 ├── firmware/xteink/     ← ESP32-C3 pocket e-ink display (C++)
 ├── apps/ios/            ← Swift core package and SwiftUI companion app
-├── tools/               ← Prerequisite check and display-gallery generator
+├── tools/               ← Prerequisite check, display-gallery and response-corpus generators
 ├── docs/                ← Requirements, architecture, safety, security, ADRs, setup, hardware, brand, display gallery
 ├── assets/brand/        ← Mark, app icon, palette, social preview
 ├── assets/diagrams/     ← README diagram source and its rendered image

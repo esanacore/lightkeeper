@@ -5,8 +5,9 @@ Firmware for a pocket e-ink glucose display on the Xteink X4 or X3 (ESP32-C3, Wi
 ## Status
 
 - [x] `lib/glucose_rules`: the safety rules (parse, classify, render) ported from `lightkeeper` to dependency-free C++17. No heap, no Arduino, fixed-size buffers.
-- [x] Host tests run on a PC with AddressSanitizer and UBSan, including every shared vector in `spec/display_vectors.json`, so this code and the Python code render identical screens.
-- [ ] Device project (PlatformIO, ESP32-C3): Wi-Fi setup, HTTPS fetch with a readable token, JSON field extraction, e-paper drawing, deep sleep between updates. Starts once the hardware is on the bench; see `ADR-0006`.
+- [x] Host tests run on a PC with AddressSanitizer and UBSan, including every shared vector in `spec/display_vectors.json` and every case in `spec/response_vectors.json`, so this code and the Python code reach identical conclusions and render identical screens.
+- [x] `lib/nightscout_json`: a strict, streaming, heap-free parser for the raw Nightscout response. It finds the newest trustworthy reading with the same rules as Python's `json.loads` plus `parse_entries`, checked against the shared response corpus (`spec/response_vectors.json`) and fuzzed with thousands of mutated bodies under the sanitizers.
+- [ ] Device project (PlatformIO, ESP32-C3): Wi-Fi setup, HTTPS fetch with the readable token in the `api-secret` header (ADR-0009), e-paper drawing, deep sleep between updates. Starts once the hardware is on the bench; see `ADR-0006`.
 
 ## Run the tests
 
