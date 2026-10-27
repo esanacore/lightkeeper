@@ -212,7 +212,10 @@ SWIFT = {
         ["error"],
         "JSONSerialization rejects a number it cannot represent; Nightscout writes non-finite numbers as null, so this never comes from a real server.",
     ),
-    "duplicate_key_last_wins": ([reading(300, 0)], "Apple's JSONSerialization keeps the first of two duplicate keys where Python keeps the last. Nightscout cannot send duplicates: MongoDB documents and JSON.stringify both rule them out."),
+    "duplicate_key_last_wins": (
+        [reading(300, 0)],
+        "Apple's JSONSerialization keeps the first of two duplicate keys where Python keeps the last. Nightscout cannot send duplicates: MongoDB documents and JSON.stringify both rule them out.",
+    ),
     "trailing_comma": (
         [reading(120, 0, "Unknown")],
         "Some Foundation versions accept a trailing comma; the entries are still validated by parseEntries.",
