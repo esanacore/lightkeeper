@@ -6,6 +6,9 @@ g, j, p, q, y, and the comma and semicolon tails. The shapes
 are plain on purpose: e-paper at a glance across a dark bedroom rewards
 blocky, unambiguous letters over pretty ones. Written for this project, so
 there is no third-party font data in the tree.
+
+The brand docs call it Keeper 5x8. `glyph_table()` is exported to
+`spec/font5x8.json` (by `tools/gen_panel_spec.py`) for the other ports.
 """
 
 from __future__ import annotations
@@ -126,3 +129,13 @@ def glyph(char: str) -> tuple[str, ...]:
 def covered() -> frozenset[str]:
     """Every character with its own glyph."""
     return frozenset(_GLYPHS)
+
+
+def glyph_table() -> dict[str, tuple[str, ...]]:
+    """Every glyph, in code-point order: the source `spec/font5x8.json` is exported from.
+
+    The JavaScript and C++ panel ports draw from that file, so this table is
+    the one definition of the Keeper 5x8 font. A copy is returned; changing it
+    changes nothing here.
+    """
+    return {char: _GLYPHS[char] for char in sorted(_GLYPHS)}
