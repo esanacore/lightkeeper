@@ -4,7 +4,7 @@
 [![Eric's Engineering Constitution](https://img.shields.io/badge/Eric's%20Engineering%20Constitution-Adopted-blue)](https://github.com/esanacore/engineering-constitution)
 <!-- CONSTITUTION_END -->
 
-**Version [0.1.0](https://github.com/esanacore/lightkeeper/releases/tag/v0.1.0)** · [Changelog](CHANGELOG.md) · [Roadmap](docs/ROADMAP.md)
+**Version [0.2.0](https://github.com/esanacore/lightkeeper/releases/tag/v0.2.0)** · [Changelog](CHANGELOG.md) · [Roadmap](docs/ROADMAP.md)
 
 An open source type 1 diabetes management stack, built by Eric and Kaitlin alongside the #WeAreNotWaiting community. It wires together existing community projects (Trio, Nightscout) around Kaitlin's real setup, a Dexcom G7 and Omnipod 5 pods on an iPhone, and adds our own read-only hardware and software layer on top: e-ink displays, bedside alerts, and Home Assistant integration.
 

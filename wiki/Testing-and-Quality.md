@@ -1,6 +1,6 @@
 # Testing and Quality
 
-How the repository is tested, what it promises about coverage, and how a reader can check those promises. The source documents are `docs/TEST_PLAN.md`, `docs/REQUIREMENTS_TRACEABILITY.md`, and `docs/PRODUCT_REQUIREMENTS.md` in the repository. Numbers are from the current 0.1.0 tree: 331 Python tests, 100% line and branch coverage, 39 shared vectors, 294 firmware checks.
+How the repository is tested, what it promises about coverage, and how a reader can check those promises. The source documents are `docs/TEST_PLAN.md`, `docs/REQUIREMENTS_TRACEABILITY.md`, and `docs/PRODUCT_REQUIREMENTS.md` in the repository. Numbers are from the current 0.2.0 tree: 331 Python tests, 100% line and branch coverage, 39 shared vectors, 294 firmware checks.
 
 ## The pyramid
 

@@ -12,7 +12,7 @@ Lightkeeper is a secondary display and not a medical device. Nothing on this pag
 | 2 Open loop | Trio on the primary iPhone with the G7 and Omnipod 5 pods, suggestions only | Two weeks of logs; settings validated with the endocrinologist | The person with diabetes and their care team |
 | 3 Closed loop | Trio automates, with weekly review at first | ADR-0002 promotion criteria: endocrinologist review, two weeks of open loop, five pod changes without unresolved faults | The person with diabetes and their care team |
 
-None of the three has started as of 0.1.0; they do not block the display work.
+None of the three has started as of 0.2.0; they do not block the display work.
 
 ## Phase 1: Nightscout
 

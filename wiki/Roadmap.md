@@ -48,6 +48,6 @@ In rough order:
 
 ## Versioning
 
-Semantic versioning; `VERSION`, `pyproject.toml`, and `lightkeeper.__version__` all read 0.1.0, tagged `v0.1.0` on 2026-10-24. The display vectors carry their own `spec_version` (currently 1): a change to an existing case bumps it, adding a case does not, and all three implementations assert it, so a vector change cannot be silently ignored by one port. Token-in-query-string debt is noted in [[Security and Privacy]].
+Semantic versioning; `VERSION`, `pyproject.toml`, and `lightkeeper.__version__` all read 0.2.0, tagged `v0.2.0` on 2026-10-27 (0.1.0 was tagged 2026-10-24). The display vectors carry their own `spec_version` (currently 1): a change to an existing case bumps it, adding a case does not, and all three implementations assert it, so a vector change cannot be silently ignored by one port. Token-in-query-string debt is noted in [[Security and Privacy]].
 
 Back to [[Home]].

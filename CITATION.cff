@@ -7,8 +7,8 @@ authors:
     given-names: Eric
 repository-code: "https://github.com/esanacore/lightkeeper"
 license: Apache-2.0
-version: 0.1.0
-date-released: 2026-10-24
+version: 0.2.0
+date-released: 2026-10-27
 keywords:
   - type 1 diabetes
   - Nightscout

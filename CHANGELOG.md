@@ -6,6 +6,12 @@ This project follows semantic versioning.
 
 ## Unreleased
 
+Nothing yet.
+
+## [0.2.0] - 2026-10-27
+
+Home Assistant publishing, the Nightscout token moved out of the URL, a hardened systemd service with a watchdog, and the groundwork for the Raspberry Pi e-paper panel.
+
 ### Added
 
 - A packaging test builds the wheel and checks that every module, the `lightkeeper` command, and the no-runtime-dependencies rule survive packaging; `setuptools` joins the dev extras for it (OTS-005).

@@ -5,4 +5,4 @@ glucose data that Nightscout already has and turns it into something a
 small display (terminal, e-ink, bedside clock) can show.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
