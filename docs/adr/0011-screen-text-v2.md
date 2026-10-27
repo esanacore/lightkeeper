@@ -8,11 +8,11 @@ Date: 2026-10-27
 
 - Extends: ADR-0006 (one set of shared vectors keeps every implementation in lockstep)
 - Supersedes: none
-- Related: FR-003, FR-004, FR-009, FR-012, FR-017 (the spoken form, `spec/spoken_vectors.json`), HAZ-001, HAZ-008, docs/SAFETY_REVIEW.md, decisions D5, D6, D7 and D8; deferred FR-013, FR-014 and FR-015
+- Related: FR-003, FR-004, FR-009, FR-012, FR-017 (the spoken form, `spec/spoken_vectors.json`), HAZ-001, HAZ-008, docs/SAFETY_REVIEW.md; deferred FR-013, FR-014 and FR-015
 
 ## Promotion Criteria
 
-Nothing in this ADR is implemented while it is Proposed (decision D6). Until every criterion below is met, `spec/display_vectors.json` stays at `spec_version` 1 and every screen line stays byte-identical.
+Nothing in this ADR is implemented while it is Proposed. Until every criterion below is met, `spec/display_vectors.json` stays at `spec_version` 1 and every screen line stays byte-identical.
 
 - Hazard review: HAZ-017, HAZ-018 and HAZ-019 (below) are added to the hazard log in `docs/SAFETY.md`, each with its mitigation and the tests that verify it, and the classification rationale is re-read. Gate: Eric.
 - Kaitlin chooses the STALE age wording for change (c): round up (c1) or "over N min ago" (c2). Gate: Kaitlin.
@@ -84,7 +84,7 @@ Proposed HAZ-018:
 Kaitlin chooses one of two wordings. Both keep fresh ages exactly as they are (whole minutes, rounded down) and both change only what a STALE screen says about the reading's age.
 
 - (c1) **Round up.** A STALE age is rounded up to the next whole minute. A STALE reading is always older than the limit, so it always shows at least one minute more than any fresh screen can. Every other STALE vector is a whole number of minutes old and keeps its text.
-- (c2) **"over N min ago".** In the first minute past the limit, where the rounded-down age equals the limit N, a STALE screen says `over N min ago`; from the next minute on it says `N min ago` as today. N is the configured stale limit, so with a 10-minute limit it reads `over 10 min ago`. This is the plan's recommendation, because the words state the rule.
+- (c2) **"over N min ago".** In the first minute past the limit, where the rounded-down age equals the limit N, a STALE screen says `over N min ago`; from the next minute on it says `N min ago` as today. N is the configured stale limit, so with a 10-minute limit it reads `over 10 min ago`. This ADR recommends (c2), because the words state the rule.
 
 | Vector | Line | Before (`spec_version` 1) | After, (c1) round up | After, (c2) "over" |
 | --- | --- | --- | --- | --- |
@@ -100,7 +100,7 @@ Spoken form, `stale_at_15_minutes_1_second`:
 
 What each choice costs:
 
-- (c1) changes only the rounding inside the three render functions and the spoken form (an integer ceiling for a positive age; future-dated ages keep `time is in the future`). The status payload's `age_minutes` stays the rounded-down number, because it is data rather than screen text; whether it follows is for the Home Assistant work (D14) to decide.
+- (c1) changes only the rounding inside the three render functions and the spoken form (an integer ceiling for a positive age; future-dated ages keep `time is in the future`). The status payload's `age_minutes` stays the rounded-down number, because it is data rather than screen text; whether it follows is decided separately, with the Home Assistant status payload, and is not part of this change.
 - (c2) needs the stale limit where the line is drawn. `render_lines` (Python), `renderLines` (Swift) and `lk::render` (C++), and the two spoken-form functions, gain the limit as a required argument, with no default, so a caller can never silently fall back to 15 minutes. Every caller passes `thresholds.stale_after`.
 
 Proposed HAZ-019:
@@ -111,7 +111,7 @@ Proposed HAZ-019:
 
 ## Width Check
 
-Measured with the reference rasterizer that draws the gallery today (`epaper_bitmap.text_width` and `fit_scale`; margin `max(4, (h*6+50)//100)`). A glyph is 5 pixels wide at scale 1, and the gap between glyphs is `max(1, scale // 2)`.
+Measured with the reference rasterizer that draws the gallery today (`epaper_bitmap.text_width` and `fit_scale`, with the margin `max(4, round(height * 0.06))` from `render_bitmap`). The integer form `max(4, (height * 6 + 50) // 100)` planned for the shared panel layout gives the same margins at both panel sizes, 8 px at a height of 128 and 12 px at 200, so every number below holds for either. A glyph is 5 pixels wide at scale 1, and the gap between glyphs is `max(1, scale // 2)`.
 
 On the 2.9" panel, 296x128 (margin 8, usable width 280 px), every affected screen draws its body at scale 2, before and after:
 
@@ -125,9 +125,9 @@ On the 2.9" panel, 296x128 (margin 8, usable width 280 px), every affected scree
 | Widest body line on these screens, unchanged: `Confirm on primary device` | 25 | 274 px |
 | On `stale_while_unreachable_stays_four_lines`, unchanged: `Nightscout unreachable` | 22 | 241 px |
 
-On the 1.54" bench board, 200x200 (margin 12, usable width 176 px), every affected screen draws its body at scale 1, before and after. That is today's pinned small-panel exception (D4): `Confirm on primary device` is 149 px at scale 1 and 274 px at scale 2. At scale 1 the changed lines measure 107 → 89 px, 95 → 83 px, 131 → 131 px, 59 → 59 px (c1) and 59 → 89 px (c2).
+On the 1.54" bench board, 200x200 (margin 12, usable width 176 px), every affected screen draws its body at scale 1, before and after. That is the small-panel exception: `Confirm on primary device` is 149 px at scale 1 and 274 px at scale 2, wider than the 176 px available, so the whole body is drawn at scale 1. At scale 1 the changed lines measure 107 → 89 px, 95 → 83 px, 131 → 131 px, 59 → 59 px (c1) and 59 → 89 px (c2).
 
-No line after the change is wider than the widest body line already on its screen, so no scale changes on either panel, and the headlines (`STALE - DO NOT TRUST`, `NO DATA`) do not change at all. Nothing grows either: dropping the arrow could otherwise let a per-line layout draw the shorter `last:` line larger, but the panel layout rule (LK-03) keeps a STALE `last:` line at body scale and never above the age line, so an old value never becomes the hero. The firmware's line buffer (`kLineChars` 32, so 31 characters) holds every new line; the longest is 22 characters, and `over N min ago` stays under 20 for any limit up to 99,999 minutes. Re-run both checks, and the pixel vectors, when the change lands.
+No line after the change is wider than the widest body line already on its screen, so no scale changes on either panel, and the headlines (`STALE - DO NOT TRUST`, `NO DATA`) do not change at all. Nothing grows either: dropping the arrow could otherwise let a per-line layout draw the shorter `last:` line larger, but the panel layout rule (`src/lightkeeper/infrastructure/panel_layout.py`, written alongside this ADR) keeps a STALE `last:` line at body scale and never above the age line, so an old value never becomes the hero. The firmware's line buffer (`kLineChars` 32, so 31 characters) holds every new line; the longest is 22 characters, and `over N min ago` stays under 20 for any limit up to 99,999 minutes. Re-run both checks, and the pixel vectors, when the change lands.
 
 ## What Must Change
 
@@ -143,9 +143,9 @@ All of this lands in one pull request, after the promotion criteria are met.
 - Generated outputs, regenerated by their own tools, never by hand:
   - the gallery, by `python tools/gen_display_gallery.py`: `docs/DISPLAY_STATES.md`, `docs/img/display-states/*.svg` and `docs/img/epaper/*.png` for the 9 vectors;
   - the demo states, the generated block in `demo.html`, by the same tool;
-  - the pixel vectors, `spec/panel_vectors.json` (LK-03's `tools/gen_panel_spec.py`), which the web panel (LK-08) and the firmware panel rasterizer (LK-09) also check;
+  - the pixel vectors, `spec/panel_vectors.json`, by `python tools/gen_panel_spec.py`; the web panel (`web/panel/`) and the firmware panel rasterizer (`firmware/xteink/lib/panel_bitmap/`) check them too;
   - the spoken vectors, as above.
-- Surfaces that draw the trend outside the vector lines hide it on STALE. Today that is `apps/ios/Lightkeeper/Sources/ContentView.swift`, which shows `trend.symbol` beside a STALE number; `Presentation.swift` (LK-07, in the same batch as this ADR) is specified to give STALE no separate arrow. Check every surface that exists by then (desktop, terminal, widgets, Android, the demo's mock cards).
+- Surfaces that draw the trend outside the vector lines hide it on STALE. Today that is `apps/ios/Lightkeeper/Sources/ContentView.swift`, which shows `trend.symbol` beside a STALE number; LightkeeperCore's `Presentation.swift`, written alongside this ADR, is specified to give STALE no separate arrow. Check every surface that exists by then (desktop, terminal, widgets, Android, the demo's mock cards).
 - Documents: the HAZ-017, HAZ-018 and HAZ-019 rows in `docs/SAFETY.md`; FR-004-AC-2 in `docs/PRODUCT_REQUIREMENTS.md` (no arrow on STALE, the NO DATA wording after a failed fetch, and the STALE age rule); `docs/REQUIREMENTS_TRACEABILITY.md`; `docs/TEST_PLAN.md`; `CHANGELOG.md`; the "NO DATA with Nightscout unreachable" sections of `docs/TROUBLESHOOTING.md` and `wiki/Troubleshooting.md` (the wiki quotes today's four lines), and the cutoff wording in `wiki/Display-States.md`; the signed section of `docs/SAFETY_REVIEW.md`; and this ADR's status in `docs/adr/README.md`.
 - Not affected: the classification (`classify` and its thresholds), the status payload's `level` and `mgdl` rules, and every fresh screen. The Home Assistant `lines` attribute follows the vectors on its own.
 
@@ -168,13 +168,13 @@ The section below is added to `docs/SAFETY_REVIEW.md` when this ADR goes to revi
 
 ## Deferred, with Their Gates
 
-Each of these changes screen text too, but none is part of this bump. Each one is its own vector change across Python, C++ and Swift, plus the gallery, the demo and the pixel and spoken vectors, with its own hazard entry and Kaitlin's sign-off (decision D8).
+Each of these changes screen text too, but none is part of this bump. Each one is its own vector change across Python, C++ and Swift, plus the gallery, the demo and the pixel and spoken vectors, with its own hazard entry and its own review, signed by Kaitlin.
 
 - **FR-013, mmol/L.** Gate: the household asks for it. One setting switches every implementation, with one shared rounding rule, thresholds entered in the same unit, and vectors in both units; its hazard entry covers unit confusion.
 - **FR-014, signed delta.** Gate: the household asks for it. Shown only between two consecutive fresh readings 4 to 7 minutes apart, and never on STALE or NO DATA.
 - **FR-015, phone quiet.** Gate: research into Nightscout's `devicestatus`, so that "phone quiet N min" reports the uploader phone reliably. FR-015 is reserved today as device status on hardware displays (battery, and the time since the display itself last reached Nightscout); its wording is settled when it is promoted.
 - **The compact field.** Gate: widgets or Live Activities landing. It is an optional field (no `spec_version` bump, but new text in every implementation) and always carries the age or STALE, never a bare number on a STALE compact form.
-- **Graded aging.** Gate: decision D7, a hazard review and Kaitlin's agreement. The current recommendation is no cue before the cutoff; the only variant on the table is a style-only cue from 10 to 15 minutes with the text unchanged, because a half-faded number can read as "a bit old but fine".
+- **Graded aging.** Gate: a decision to add any aging cue before the cutoff (none is planned; today a screen changes only at the cutoff), then a hazard review and Kaitlin's agreement. The current recommendation is no cue before the cutoff, because a half-faded number can read as "a bit old but fine"; the only variant on the table is a style-only cue from 10 to 15 minutes with the text unchanged.
 
 ## Consequences
 
@@ -193,5 +193,5 @@ Each of these changes screen text too, but none is part of this bump. Each one i
 - **(b) Drop line 2 when Nightscout is unreachable.** It would leave NO DATA without a next step. Rejected.
 - **(c) Show seconds** (`15 min 1 s ago`). The age would tick every second, which Lightkeeper never does. Rejected.
 - **(c) Move the cutoff to whole minutes** (STALE from 16:00). That changes the classification rule (FR-003) itself, the safety core every implementation shares, to fix a wording problem. Rejected.
-- **Fold FR-013, FR-014, FR-015 and the compact field into this bump.** It would make one review too large to check line by line (D8). Deferred above.
+- **Fold FR-013, FR-014, FR-015 and the compact field into this bump.** It would make one review too large to check line by line. Deferred above.
 - **Do nothing.** It keeps three lines that are known to mislead. Rejected, pending the review above.

@@ -228,6 +228,40 @@ def test_fr017_generator_check_runs_as_a_script():
     assert "up to date" in result.stdout
 
 
+def test_fr017_generator_table_shows_every_sentence_in_full(capsys):
+    """The wording review table is the committed file, one unabridged row per vector."""
+    assert gen.main(["--table"]) == 0
+    rows = capsys.readouterr().out.splitlines()
+    assert rows[:2] == ["| Vector | Level | Screen | Spoken |", "| --- | --- | --- | --- |"]
+    assert len(rows) == 2 + len(VECTORS)
+    for row, case in zip(rows[2:], VECTORS, strict=True):
+        screen = "<br>".join(f"`{line}`" for line in case["lines"])
+        name, level, sentence = case["name"], case["level"], SENTENCES[case["name"]]
+        assert row == f"| `{name}` | {level} | {screen} | {sentence} |"
+        assert "..." not in sentence
+
+
+def test_fr017_generator_table_escapes_a_pipe(tmp_path):
+    display = tmp_path / "display_vectors.json"
+    case = {"name": "x", "level": "NO DATA", "lines": ["a|b"]}
+    display.write_text(json.dumps({"cases": [case]}), encoding="utf-8")
+    assert gen.table({"cases": {"x": "One | two."}}, display).splitlines()[2] == (
+        "| `x` | NO DATA | `a\\|b` | One \\| two. |"
+    )
+
+
+def test_fr017_generator_table_refuses_a_drifted_file(tmp_path, capsys):
+    """A table from a drifted file would put the wrong text in front of the reviewers."""
+    spec = json.loads(SPOKEN_PATH.read_text(encoding="utf-8"))
+    spec["cases"]["no_data"] = "No data."
+    drifted = tmp_path / "spoken_vectors.json"
+    drifted.write_text(gen.render(spec), encoding="utf-8")
+    assert gen.main(["--table", "--spoken", str(drifted)]) == 1
+    out = capsys.readouterr()
+    assert out.out == ""
+    assert "no_data:" in out.err
+
+
 def test_fr017_every_trend_has_its_own_words():
     assert {trend: spoken_name(trend) for trend in Trend} == {
         Trend.DOUBLE_UP: "rising quickly",
@@ -339,19 +373,26 @@ def names_and_keys(tree):
 
 def test_fr017_spoken_form_is_not_published_to_home_assistant():
     """No audio-alert path is invited: the HA payload never carries the sentence (HAZ-013)."""
+    # cli.py is where the payload is built and handed to the publisher, so a
+    # sentence added there would reach Home Assistant without touching the others.
     modules = [
         "application/status_payload.py",
         "infrastructure/home_assistant.py",
         "infrastructure/mqtt.py",
+        "cli.py",
     ]
     for module in modules:
         tree = ast.parse((ROOT / "src" / "lightkeeper" / module).read_text("utf-8"))
         found = {name for name in names_and_keys(tree) if "spoken" in str(name).lower()}
         assert not found, (module, found)
-    # The guard itself sees a payload key and an import.
+    # The guard itself sees a payload key and an import, and a sentence stored
+    # under a key without "spoken" in it, which is how cli.py would add one.
     planted = ast.parse(
         "from lightkeeper.application.spoken import spoken_text\nx = {'spoken': 1}\n"
     )
     assert {"lightkeeper.application.spoken", "spoken_text", "spoken"} <= set(
         names_and_keys(planted)
+    )
+    assert "spoken_text" in set(
+        names_and_keys(ast.parse("payload['speech'] = spoken_text(status, error)\n"))
     )

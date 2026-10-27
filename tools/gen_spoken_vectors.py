@@ -10,6 +10,11 @@ spoken form stays identical across implementations (FR-017).
 Usage (from the repo root):
     python tools/gen_spoken_vectors.py           # rewrite spec/spoken_vectors.json
     python tools/gen_spoken_vectors.py --check   # report drift; exit 1 if any
+    python tools/gen_spoken_vectors.py --table   # print the wording review table
+
+The table is Markdown for a pull request: one row per display vector with its
+level, its screen lines and its full sentence, so the reviewers approve the
+exact text the file pins. It is printed only when the file has no drift.
 """
 
 from __future__ import annotations
@@ -99,6 +104,17 @@ def render(spec: dict[str, Any]) -> str:
     return json.dumps(spec, indent=2, ensure_ascii=False) + "\n"
 
 
+def table(spec: dict[str, Any], display_vectors: Path = DISPLAY_VECTORS) -> str:
+    """Return the review table: each vector's level, screen lines and full sentence."""
+    cases = json.loads(display_vectors.read_text(encoding="utf-8"))["cases"]
+    rows = ["| Vector | Level | Screen | Spoken |", "| --- | --- | --- | --- |"]
+    for case in cases:
+        screen = "<br>".join(f"`{line}`" for line in case["lines"])
+        cells = [f"`{case['name']}`", case["level"], screen, spec["cases"][case["name"]]]
+        rows.append("| " + " | ".join(cell.replace("|", "\\|") for cell in cells) + " |")
+    return "\n".join(rows) + "\n"
+
+
 def drift(expected: dict[str, Any], path: Path) -> list[str]:
     """List each way the file at `path` differs from `expected`, one line apiece."""
     if not path.exists():
@@ -130,22 +146,30 @@ def drift(expected: dict[str, Any], path: Path) -> list[str]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Write the spoken spec, or with --check report how the committed one drifted."""
+    """Write the spoken spec, or report how the committed one drifted, or print its table."""
     parser = argparse.ArgumentParser(description="Generate spec/spoken_vectors.json.")
-    parser.add_argument("--check", action="store_true", help="report drift, write nothing")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--check", action="store_true", help="report drift, write nothing")
+    mode.add_argument(
+        "--table", action="store_true", help="print the wording review table (Markdown)"
+    )
     parser.add_argument("--display", type=Path, default=DISPLAY_VECTORS, help=argparse.SUPPRESS)
     parser.add_argument("--spoken", type=Path, default=SPOKEN_VECTORS, help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
 
     expected = build(args.display)
-    if args.check:
+    if args.check or args.table:
         problems = drift(expected, args.spoken)
         for problem in problems:
             print(f"drift: {problem}", file=sys.stderr)
         if problems:
             print("run: python tools/gen_spoken_vectors.py", file=sys.stderr)
             return 1
-        print(f"{args.spoken.name} is up to date ({len(expected['cases'])} cases)")
+        # No drift, so `expected` is exactly the committed file.
+        if args.table:
+            print(table(expected, args.display), end="")
+        else:
+            print(f"{args.spoken.name} is up to date ({len(expected['cases'])} cases)")
         return 0
     with args.spoken.open("w", encoding="utf-8", newline="\n") as fh:
         fh.write(render(expected))
