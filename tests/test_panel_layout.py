@@ -324,7 +324,18 @@ def test_fr016_margin_is_six_percent_rounded_half_up():
     assert [pl.margin(h) for h in (60, 74, 75, 128, 125, 141, 142)] == [4, 4, 5, 8, 8, 8, 9]
     assert [pl.headline_cap(h) for h in (60, 128, 159, 160, 480, 800)] == [4, 4, 4, 5, 15, 25]
     assert [pl.body_cap(s) for s in (1, 2, 3, 4, 8, 15)] == [1, 2, 3, 3, 4, 7]
-    assert [pl.stamp_scale(h) for h in (60, 128, 479, 480, 800)] == [2, 2, 2, 2, 3]
+    sizes = [(157, 70), (296, 128), (800, 479), (800, 480), (600, 800), (4096, 4096)]
+    assert [pl.stamp_scale(w, h) for w, h in sizes] == [2, 2, 2, 2, 3, 17]
+
+
+def test_haz014_stamp_scale_never_outgrows_a_narrow_content_box():
+    # 2000 // 240 asks for 8, which is 216 px wide; the content box is 154.
+    content = 394 - 2 * pl.margin(2000)
+    assert pl.text_width(pl.STAMP_SAMPLE, 2000 // 240) > content
+    assert pl.stamp_scale(394, 2000) == 5
+    assert pl.text_width(pl.STAMP_SAMPLE, 5) <= content < pl.text_width(pl.STAMP_SAMPLE, 6)
+    stamp = pl.plan_panel(["NO DATA", "Check sensor and phone"], 394, 2000, "23:59").stamp
+    assert stamp.x >= pl.margin(2000) and stamp.scale == 5
 
 
 # --- Fitting the height on panels far smaller than the profiles ---------------
@@ -346,10 +357,11 @@ def test_fr007_context_shrinks_before_the_hero():
 
 
 @pytest.mark.parametrize(
-    ("width", "height", "band_scale"), [(400, 70, 3), (150, 60, 2), (296, 60, 2)]
+    ("width", "height", "stamp", "band_scale"),
+    [(400, 70, None, 3), (157, 70, None, 3), (296, 70, None, 3), (157, 70, "02:14", 1)],
 )
-def test_fr007_tiny_panels_shrink_everything_but_the_status(width, height, band_scale):
-    plan = pl.plan_panel(FOUR, width, height)
+def test_fr007_tiny_panels_shrink_everything_but_the_status(width, height, stamp, band_scale):
+    plan = pl.plan_panel(FOUR, width, height, stamp)
     assert plan.band_scale == band_scale
     assert scales(plan) == [(pl.VALUE, 1), (pl.AGE, 1), (pl.CONTEXT, 1)]
     boxes = [plan.band] + [line.box for line in plan.lines]
@@ -361,16 +373,19 @@ def test_fr007_tiny_panels_shrink_everything_but_the_status(width, height, band_
 def test_fr007_a_two_line_fresh_screen_has_a_hero_and_no_age():
     plan = pl.plan_panel(["IN RANGE", "112 mg/dL ->"], 296, 128)
     assert scales(plan) == [(pl.VALUE, 4)]
-    tiny = pl.plan_panel(["IN RANGE", "112 mg/dL ->"], 100, 60, "02:14")
+    tiny = pl.plan_panel(["IN RANGE", "112 mg/dL ->"], 157, 70, "02:14")
     assert scales(tiny) == [(pl.VALUE, 1)]
 
 
 def test_fr007_too_many_lines_for_a_tiny_panel_are_clipped_not_refused():
+    # Six lines under the headline: more than any screen has, so the size check
+    # does not cover them, and the bottom ones are clipped rather than refused.
     lines = ["NO DATA", "a", "b", "c", "d", "e", "f"]
-    plan = pl.plan_panel(lines, 100, 60)
+    plan = pl.plan_panel(lines, 157, 70)
     assert [line.scale for line in plan.lines] == [1] * 6
-    bitmap = eb.render_bitmap(lines, 100, 60)
-    assert bitmap.width == 100
+    assert plan.lines[-1].y + plan.lines[-1].height > plan.content.y + plan.content.h
+    bitmap = eb.render_bitmap(lines, 157, 70)
+    assert bitmap.width == 157
 
 
 def test_fr007_stale_with_no_lines_under_it_has_no_strike():
@@ -381,9 +396,25 @@ def test_fr007_stale_with_no_lines_under_it_has_no_strike():
 # --- Input checks --------------------------------------------------------------
 
 
-@pytest.mark.parametrize(("width", "height"), [(99, 128), (296, 59), (4097, 128), (296, 4097)])
-def test_fr007_plan_refuses_impossible_panels(width, height):
-    with pytest.raises(ValueError, match="panel must be"):
+@pytest.mark.parametrize(
+    ("width", "height", "reason"),
+    [
+        (99, 128, "too narrow"),
+        (164, 128, "too narrow"),
+        (128, 296, "too narrow"),  # the 2.9" panel mounted in portrait
+        (100, 600, "too narrow"),
+        (100, 4096, "too narrow"),
+        (120, 80, "too narrow"),
+        (296, 59, "too short"),
+        (296, 69, "too short"),
+        (4097, 128, "1 to 4096 pixels on a side"),
+        (296, 4097, "1 to 4096 pixels on a side"),
+        (0, 128, "1 to 4096 pixels on a side"),
+        (296, -128, "1 to 4096 pixels on a side"),
+    ],
+)
+def test_fr007_plan_refuses_impossible_panels(width, height, reason):
+    with pytest.raises(ValueError, match=f"panel {width}x{height} (is|must be) {reason}"):
         pl.plan_panel(["NO DATA"], width, height)
 
 
@@ -417,7 +448,7 @@ def test_fr016_profiles_resolve_by_name_alias_or_size():
     assert resolve("Kindle") is PROFILES["kindle"]
     custom = resolve("320x240")
     assert (custom.name, custom.width, custom.height) == ("320x240", 320, 240)
-    assert resolve("100x60").width == 100
+    assert resolve("157x70").width == 157  # the smallest panel accepted at all
 
 
 @pytest.mark.parametrize("spec", ["", "waveshare", "296", "296x", "x128", "29.6x128", "-296x128"])
@@ -426,7 +457,104 @@ def test_fr016_unknown_profile_names_the_choices(spec):
         resolve(spec)
 
 
-@pytest.mark.parametrize("spec", ["99x128", "296x59", "4097x480", "800x99999"])
-def test_fr016_custom_size_must_be_drawable(spec):
-    with pytest.raises(ValueError, match="outside 100x60 to 4096x4096"):
+@pytest.mark.parametrize(
+    ("spec", "reason"),
+    [
+        (
+            "99x128",
+            "is too narrow: at 128 px tall the margins take 16 px, and 'Confirm on "
+            "primary device' needs 149 px between them, 165 px in all",
+        ),
+        ("128x296", "is too narrow: at 296 px tall the margins take 36 px"),
+        ("100x600", "is too narrow"),
+        ("100x4096", "is too narrow: .* 641 px in all"),
+        ("120x80", "is too narrow"),
+        ("100x60", "is too narrow"),
+        (
+            "296x59",
+            "is too short: the margins take 8 px, and the headline band and a "
+            "four-line screen with its stamp need 62 px between them",
+        ),
+        ("296x69", "is too short"),
+        ("4097x480", "must be 1 to 4096 pixels on a side"),
+        ("800x99999", "must be 1 to 4096 pixels on a side"),
+        ("0x0", "must be 1 to 4096 pixels on a side"),
+    ],
+)
+def test_fr016_custom_size_must_be_drawable(spec, reason):
+    with pytest.raises(ValueError, match=f"^panel {spec} {reason}"):
         resolve(spec)
+
+
+# --- Every size resolve accepts ------------------------------------------------
+
+# The widest line any display vector shows, at scale 1: what the size check
+# must leave room for between the margins.
+WIDEST = max(pl.text_width(line, 1) for case in VECTORS for line in case["lines"])
+
+
+def narrowest(height):
+    """Return the narrowest panel this tall whose content box holds the widest line at 1."""
+    return 2 * pl.margin(height) + WIDEST
+
+
+def test_fr016_size_limits_come_from_the_widest_screen_line():
+    assert any(pl.WIDEST_LINE in case["lines"] for case in VECTORS)
+    assert WIDEST == pl.text_width(pl.WIDEST_LINE, 1) == pl.min_content_width() == 149
+    # Every headline fits inside the band's padding at that width.
+    assert all(pl.text_width(h, 1) + 2 * pl.BAND_PAD <= WIDEST for h in pl.TREATMENTS)
+    # At every height, one pixel narrower than the widest line needs is refused.
+    for height in range(70, pl.MAX_SIDE + 1):
+        width = narrowest(height)
+        assert resolve(f"{width}x{height}").width == width
+        with pytest.raises(ValueError, match="too narrow"):
+            resolve(f"{width - 1}x{height}")
+    # The shortest panel holds the band and a four-line screen with its stamp.
+    for width in (narrowest(69), 296, pl.MAX_SIDE):
+        assert resolve(f"{width}x70").height == 70
+        with pytest.raises(ValueError, match="too short"):
+            resolve(f"{width}x69")
+    assert 70 - 2 * pl.margin(70) == pl.min_content_height(296, 70) == 62
+
+
+def apart(a, b):
+    """Report whether two boxes share no pixel."""
+    return a.x + a.w <= b.x or b.x + b.w <= a.x or a.y + a.h <= b.y or b.y + b.h <= a.y
+
+
+def within(outer, box):
+    """Report whether `box` lies wholly inside `outer`."""
+    return (
+        outer.x <= box.x
+        and box.x + box.w <= outer.x + outer.w
+        and outer.y <= box.y
+        and box.y + box.h <= outer.y + outer.h
+    )
+
+
+SWEEP_HEIGHTS = [70, 71, 74, 75, 99, 122, 128, 141, 142, 200, 239, 240, 296, 300, 479, 480]
+SWEEP_HEIGHTS += [600, 800, 1000, 1500, 2000, 2500, 3000, 3500, 4095, 4096]
+
+
+@pytest.mark.parametrize("height", SWEEP_HEIGHTS)
+def test_fr007_every_accepted_size_keeps_every_line_inside_the_content_box(height):
+    # Narrow and tall included: the narrowest width resolve accepts at this
+    # height, a few just above it, and some wide ones.
+    least = narrowest(height)
+    widths = sorted({least, least + 1, least + 9, 2 * least, 296, 801, pl.MAX_SIDE})
+    for width in (w for w in widths if least <= w <= pl.MAX_SIDE):
+        assert resolve(f"{width}x{height}").width == width
+        for case in VECTORS:
+            for stamp in (None, "23:59"):
+                plan = pl.plan_panel(case["lines"], width, height, stamp)
+                where = (width, height, case["name"], stamp)
+                for line in [plan.headline, *plan.lines, *([plan.stamp] if stamp else [])]:
+                    assert within(plan.content, line.box), (*where, line.text)
+                head = plan.headline
+                assert head.x + head.width <= plan.band.x + plan.band.w - pl.BAND_PAD, where
+                boxes = [plan.band] + [line.box for line in plan.lines]
+                for upper, lower in zip(boxes, boxes[1:], strict=False):
+                    assert upper.y + upper.h + pl.MIN_GAP <= lower.y, where
+                if stamp:
+                    assert plan.stamp.scale >= pl.STAMP_MIN_SCALE, where
+                    assert all(apart(plan.stamp.box, box) for box in boxes), where

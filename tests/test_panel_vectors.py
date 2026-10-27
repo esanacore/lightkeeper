@@ -84,6 +84,11 @@ def test_fr016_spec_tables_match_the_code():
     assert constants["band_pad"] == pl.BAND_PAD
     assert constants["min_gap"] == pl.MIN_GAP
     assert constants["reference_headline"] == pl.REFERENCE_HEADLINE
+    assert constants["widest_line"] == pl.WIDEST_LINE
+    assert constants["max_side"] == pl.MAX_SIDE
+    # Every case is hashed as drawn, portrait kindle included: never rotated.
+    assert "as drawn" in PANEL["hash"]["input"] and "landscape" not in PANEL["hash"]["input"]
+    assert any(c["height"] > c["width"] for c in PANEL["cases"])
 
 
 def test_fr016_crc32_is_the_standard_one():

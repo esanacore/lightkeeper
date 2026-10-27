@@ -202,7 +202,8 @@ def test_fr007_headline_only_screen_renders():
 
 
 @pytest.mark.parametrize(
-    ("lines", "width", "height"), [([], 296, 128), (["X"], 99, 128), (["X"], 296, 59)]
+    ("lines", "width", "height"),
+    [([], 296, 128), (["X"], 99, 128), (["X"], 296, 59), (["X"], 128, 296), (["X"], 296, 69)],
 )
 def test_fr007_rejects_bad_input(lines, width, height):
     with pytest.raises(ValueError):
@@ -220,15 +221,29 @@ def test_fr007_bitmap_can_wrap_existing_pixels():
 @pytest.mark.parametrize("profile", PROFILE_IDS)
 def test_fr007_every_vector_fits_inside_margins_at_every_profile(profile):
     size = PROFILES[profile]
+    assert_ink_stays_inside_the_margins(size.width, size.height)
+
+
+# The narrowest panel resolve accepts at a few heights (the margin grows with
+# the height, so the narrowest width does too): every line still fits.
+@pytest.mark.parametrize(("width", "height"), [(157, 70), (165, 128), (185, 296), (221, 600)])
+def test_fr007_narrowest_accepted_sizes_keep_glyph_ink_inside_the_margins(width, height):
+    with pytest.raises(ValueError, match="too narrow"):
+        pl.plan_panel(["NO DATA"], width - 1, height)
+    assert_ink_stays_inside_the_margins(width, height)
+
+
+def assert_ink_stays_inside_the_margins(width, height):
+    """Every vector's text stays in the content box, and the margin holds only the frame."""
     # 1 for every margin pixel; pixels are 0/1 bytes, so big-integer AND masks them.
-    edge = pl.margin(size.height)
-    margin = eb.Bitmap(size.width, size.height)
-    margin.fill(0, 0, size.width, size.height)
-    margin.fill(edge, edge, size.width - 2 * edge, size.height - 2 * edge, ink=False)
+    edge = pl.margin(height)
+    margin = eb.Bitmap(width, height)
+    margin.fill(0, 0, width, height)
+    margin.fill(edge, edge, width - 2 * edge, height - 2 * edge, ink=False)
     margin_mask = int.from_bytes(margin.ink, "big")
     for case in VECTORS:
         for stamp in (None, "02:14"):
-            plan = pl.plan_panel(case["lines"], size.width, size.height, stamp)
+            plan = pl.plan_panel(case["lines"], width, height, stamp)
             for line in text_lines(plan):
                 box = line.box
                 assert plan.content.x <= box.x and box.x + box.w <= plan.content.x + plan.content.w
@@ -384,7 +399,7 @@ def test_haz014_stamp_text_is_local_24_hour_time():
 # --- Encodings -----------------------------------------------------------------
 
 
-@pytest.mark.parametrize(("width", "height"), [(296, 128), (250, 122), (101, 61)])
+@pytest.mark.parametrize(("width", "height"), [(296, 128), (250, 122), (157, 71)])
 def test_fr007_bmp_and_png_decode_to_the_same_pixels(width, height):
     lines = next(c for c in VECTORS if c["name"] == "stale_at_16_minutes")["lines"]
     bitmap = eb.render_bitmap(lines, width, height, "13:07")

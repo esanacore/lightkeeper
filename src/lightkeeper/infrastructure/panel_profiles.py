@@ -3,8 +3,9 @@
 Each profile is a width and height in pixels, in the orientation the lines
 read (landscape for the Waveshare panels, portrait for the Kindle). The six
 named here are pinned by `spec/panel_vectors.json`, so every port draws the
-same pixels at the same sizes. `resolve` also accepts any `WxH`, for panels
-that have no name yet.
+same pixels at the same sizes. `resolve` also accepts any `WxH` the layout
+can draw every screen on (`panel_layout.check_size`), for panels that have no
+name yet.
 
 Pure standard library (ADR-0005).
 """
@@ -14,11 +15,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-# The rasterizer's limits: smaller panels cannot hold four lines, and larger
-# ones would only be a typo that allocates a huge image.
-MIN_WIDTH = 100
-MIN_HEIGHT = 60
-MAX_SIDE = 4096
+from lightkeeper.infrastructure.panel_layout import check_size
 
 
 @dataclass(frozen=True)
@@ -51,7 +48,10 @@ _SIZE = re.compile(r"([0-9]{1,5})x([0-9]{1,5})")
 def resolve(spec: str) -> PanelProfile:
     """Return the profile for a name (or alias), or for a size written `WxH`.
 
-    Raises ValueError, naming the known profiles, for anything else.
+    Raises ValueError, naming the known profiles, for anything else, and,
+    naming the reason, for a size too small to hold every screen the display
+    shows (too narrow for its height, or too short) or larger than 4096 on a
+    side.
     """
     key = spec.strip().lower()
     key = ALIASES.get(key, key)
@@ -62,8 +62,5 @@ def resolve(spec: str) -> PanelProfile:
         names = ", ".join([*PROFILES, *ALIASES])
         raise ValueError(f"unknown panel {spec!r}: use one of {names}, or a size like 296x128")
     width, height = int(match.group(1)), int(match.group(2))
-    if not (MIN_WIDTH <= width <= MAX_SIDE and MIN_HEIGHT <= height <= MAX_SIDE):
-        raise ValueError(
-            f"panel {width}x{height} is outside {MIN_WIDTH}x{MIN_HEIGHT} to {MAX_SIDE}x{MAX_SIDE}"
-        )
+    check_size(width, height)
     return PanelProfile(f"{width}x{height}", width, height, "custom size")

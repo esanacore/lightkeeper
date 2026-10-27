@@ -68,7 +68,9 @@ HASH = {
     "algorithm": "CRC-32 as zlib.crc32 computes it (CRC-32/ISO-HDLC: reflected polynomial "
     "0xEDB88320, initial value and final XOR 0xFFFFFFFF); the CRC-32 of the ASCII bytes "
     "'123456789' is 3421780262 (0xCBF43926)",
-    "input": "the packed rows of the landscape image, top row first",
+    "input": "the packed rows of the image as drawn (width x height, in the orientation the "
+    "lines read, not the panel's native buffer order; the kindle profile is portrait), top "
+    "row first",
     "row": "ceil(width / 8) bytes; 1 = ink, 0 = paper; the leftmost pixel is the most "
     "significant bit of the first byte; padding bits after the last pixel are 0",
     "ink": "the number of ink pixels in the image",
@@ -82,7 +84,14 @@ RULES = [
     "fit_scale(lines, width, cap) is the largest s from cap down to 2 at which every line "
     "fits width, else 1. Characters outside the font draw as '?'.",
     "m = max(4, (h*6+50)//100). Content box (m, m, cw, ch) with cw = w-2m, ch = h-2m. "
-    "inner = cw - 2*band_pad.",
+    "inner = cw - 2*band_pad. stamp_scale = fit_scale(['00:00'], cw, max(2, h//240)) "
+    "(every stamp is five characters wide).",
+    "A size is drawable when 1 <= w <= max_side and 1 <= h <= max_side (checked first, so "
+    "no // ever divides a negative number), cw >= max(text_width(widest_line, 1), "
+    "2*band_pad + text_width(the longest headline in treatments, 1)), which is 149, and "
+    "ch >= 2*band_pad + 8 + 3*8 + 4*min_gap + 8*stamp_scale + min_gap (62 below h = 480). "
+    "Any other size is refused, never clipped: every display line then fits the content "
+    "box at scale 1, and a four-line screen with its stamp fits under the band.",
     "reserve = 3*8 + 4*min_gap, plus 8*stamp_scale + min_gap when a stamp is given. "
     "tallest = max(0, ch - 2*band_pad - reserve)//8. "
     "band_scale = fit_scale(['IN RANGE'], inner, max(1, min(max(4, h//32), tallest))). "
@@ -97,10 +106,10 @@ RULES = [
     "else cap). small (last and context lines) = fit_scale(small lines, cw, c) with "
     "c = min(cap, age) if there is an age line else cap, and on stale also at most "
     "head_scale.",
-    "stamp_scale = max(2, h//240). With a stamp and an age line, the stamp goes on the "
-    "age row when text_width(age line, age) + 5*age + text_width(stamp, stamp_scale) <= cw, "
-    "using age as computed above (before the height fitting below); otherwise, and always "
-    "without an age line, a bottom strip of 8*stamp_scale + min_gap comes off the body "
+    "With a stamp and an age line, the stamp goes on the age row when "
+    "text_width(age line, age) + 5*age + text_width(stamp, stamp_scale) <= cw, using age "
+    "as computed above (before the height fitting below); otherwise, and always without an "
+    "age line, a bottom strip of 8*stamp_scale + min_gap comes off the body "
     "region.",
     "The body region runs from the band's bottom to the content box's bottom (less the "
     "strip). Each line's row scale is its own scale, except an age row carrying the stamp: "
@@ -177,6 +186,8 @@ def panel_spec() -> dict[str, object]:
                 "reserved_body_lines": layout.RESERVED_BODY_LINES,
                 "stamp_min_scale": layout.STAMP_MIN_SCALE,
                 "reference_headline": layout.REFERENCE_HEADLINE,
+                "widest_line": layout.WIDEST_LINE,
+                "max_side": layout.MAX_SIDE,
             },
             "rules": RULES,
         },

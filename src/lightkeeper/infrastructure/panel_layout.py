@@ -24,6 +24,11 @@ Texture (hatch, dashes) lives only in the margin; glyphs, the band, the rule
 and the strike stay inside the content box. Nothing here moves or blinks:
 the plan is one still image.
 
+A panel too small for that is refused, never clipped (`check_size`): every
+accepted size holds the widest line the display shows at scale 1 inside the
+content box, and a four-line screen with its stamp under the band. The margin
+grows with the height, so a tall panel must also be wider.
+
 Sizes, all measured invariants (tests/test_panel_layout.py):
 
 - The headline band is one height for every level at a given panel size,
@@ -46,7 +51,6 @@ import re
 from dataclasses import dataclass
 
 from lightkeeper.infrastructure.font5x7 import GLYPH_HEIGHT, GLYPH_WIDTH
-from lightkeeper.infrastructure.panel_profiles import MAX_SIDE, MIN_HEIGHT, MIN_WIDTH
 
 PLAIN = "plain"
 RULE = "rule"
@@ -90,6 +94,13 @@ READABLE_SCALE = 2  # context shrinks to this before the hero shrinks at all
 RESERVED_BODY_LINES = 3  # a four-line screen has three lines under the band
 CAP_ROWS = GLYPH_HEIGHT - 1  # glyph rows above the baseline; the last is for descenders
 STAMP_MIN_SCALE = 2
+STAMP_SAMPLE = "00:00"  # every stamp is five characters, so every stamp is this wide
+
+# The widest line the display shows (application/monitor.py, pinned by
+# spec/display_vectors.json). Every accepted panel holds it at scale 1.
+WIDEST_LINE = "Confirm on primary device"
+# Larger is only a typo that would allocate a huge image.
+MAX_SIDE = 4096
 
 _STAMP_TEXT = re.compile(r"([01][0-9]|2[0-3]):[0-5][0-9]")
 
@@ -213,9 +224,54 @@ def body_cap(band_scale: int) -> int:
     return min(band_scale, max(3, band_scale // 2))
 
 
-def stamp_scale(height: int) -> int:
-    """Return the stamp's scale: 2, or more on tall panels."""
-    return max(STAMP_MIN_SCALE, height // 240)
+def stamp_scale(width: int, height: int) -> int:
+    """Return the stamp's scale: 2, or more on tall panels, never wider than the content box."""
+    content_width = width - 2 * margin(height)
+    return fit_scale([STAMP_SAMPLE], content_width, max(STAMP_MIN_SCALE, height // 240))
+
+
+def _body_reserve(strip: int) -> int:
+    """Height a four-line screen needs under the band at scale 1, gaps and stamp strip included."""
+    return RESERVED_BODY_LINES * GLYPH_HEIGHT + (RESERVED_BODY_LINES + 1) * MIN_GAP + strip
+
+
+def min_content_width() -> int:
+    """Return the narrowest content box: the widest line or padded headline at scale 1."""
+    headline = max(TREATMENTS, key=len)
+    return max(text_width(WIDEST_LINE, 1), 2 * BAND_PAD + text_width(headline, 1))
+
+
+def min_content_height(width: int, height: int) -> int:
+    """Return the shortest content box: the band and a stamped four-line screen, all at scale 1."""
+    strip = GLYPH_HEIGHT * stamp_scale(width, height) + MIN_GAP
+    return 2 * BAND_PAD + GLYPH_HEIGHT + _body_reserve(strip)
+
+
+def check_size(width: int, height: int) -> None:
+    """Refuse a panel the layout cannot draw every screen on, naming the reason.
+
+    An accepted panel holds the widest line at scale 1 inside the content box,
+    so no screen text runs into the margin or off the panel edge, and a
+    four-line screen with its stamp under the band, so no line touches
+    another. The margin grows with the height, so the narrowest accepted
+    width does too.
+    """
+    if not (1 <= width <= MAX_SIDE and 1 <= height <= MAX_SIDE):
+        raise ValueError(f"panel {width}x{height} must be 1 to {MAX_SIDE} pixels on a side")
+    edge = margin(height)
+    need = min_content_width()
+    if width - 2 * edge < need:
+        raise ValueError(
+            f"panel {width}x{height} is too narrow: at {height} px tall the margins take "
+            f"{2 * edge} px, and {WIDEST_LINE!r} needs {need} px between them, "
+            f"{2 * edge + need} px in all"
+        )
+    need = min_content_height(width, height)
+    if height - 2 * edge < need:
+        raise ValueError(
+            f"panel {width}x{height} is too short: the margins take {2 * edge} px, and the "
+            f"headline band and a four-line screen with its stamp need {need} px between them"
+        )
 
 
 def check_stamp(stamp: str) -> None:
@@ -239,14 +295,12 @@ def plan_panel(lines: list[str], width: int, height: int, stamp: str | None = No
     """Lay out `lines` on a `width` x `height` panel.
 
     `stamp`, when given, is an `HH:MM` drawn right-aligned on the age row, or
-    along the bottom of the content box when the age row has no room for it.
-    Either way its space is reserved, so it never touches another line.
+    in a strip along the bottom of the content box when there is no age line
+    or the age row has no room for it. Either way its space is reserved, so
+    it never touches another line. Raises ValueError for a panel `check_size`
+    refuses.
     """
-    if not (MIN_WIDTH <= width <= MAX_SIDE and MIN_HEIGHT <= height <= MAX_SIDE):
-        raise ValueError(
-            f"panel must be at least {MIN_WIDTH}x{MIN_HEIGHT} pixels "
-            f"and at most {MAX_SIDE} on a side"
-        )
+    check_size(width, height)
     if not lines:
         raise ValueError("nothing to draw: lines is empty")
     if stamp is not None:
@@ -255,14 +309,14 @@ def plan_panel(lines: list[str], width: int, height: int, stamp: str | None = No
     edge = margin(height)
     content = Box(edge, edge, width - 2 * edge, height - 2 * edge)
     kind = treatment(lines[0])
-    stamp_size = stamp_scale(height)
+    stamp_size = stamp_scale(width, height)
     strip = GLYPH_HEIGHT * stamp_size + MIN_GAP if stamp is not None else 0
 
     # The band: one height per panel, sized from IN RANGE. It leaves room for
-    # a four-line screen at scale 1 (and the stamp), so even a tiny panel
-    # never overlaps its lines.
+    # a four-line screen at scale 1 (and the stamp), so even the smallest
+    # panel check_size accepts never overlaps its lines.
     inner = content.w - 2 * BAND_PAD
-    reserve = RESERVED_BODY_LINES * GLYPH_HEIGHT + (RESERVED_BODY_LINES + 1) * MIN_GAP + strip
+    reserve = _body_reserve(strip)
     tallest = max(0, content.h - 2 * BAND_PAD - reserve) // GLYPH_HEIGHT
     band_scale = fit_scale([REFERENCE_HEADLINE], inner, max(1, min(headline_cap(height), tallest)))
     band = Box(content.x, content.y, content.w, 2 * BAND_PAD + GLYPH_HEIGHT * band_scale)
@@ -314,7 +368,8 @@ def plan_panel(lines: list[str], width: int, height: int, stamp: str | None = No
 
     # Shrink in glance order until the lines and their gaps fit the height:
     # context to a readable 2, the hero down to the age, then context to 1,
-    # then the age. Only panels far smaller than the profiles reach the end.
+    # then the age. check_size leaves room for any four-line screen at
+    # scale 1, so only more lines than a screen has can reach the end.
     gaps = len(body) + 1
     while GLYPH_HEIGHT * sum(row_scales()) + gaps * MIN_GAP > bottom - top:
         if small_lines and sizes.small > READABLE_SCALE:
@@ -326,7 +381,7 @@ def plan_panel(lines: list[str], width: int, height: int, stamp: str | None = No
         elif age_lines and sizes.age > 1:
             sizes.age -= 1
         else:
-            break  # still too tall: the panel edge clips the bottom
+            break  # still too tall: the lines past the content box are clipped
 
     rows = row_scales()
     gap = max(0, bottom - top - GLYPH_HEIGHT * sum(rows)) // gaps
