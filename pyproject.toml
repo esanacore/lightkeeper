@@ -38,7 +38,7 @@ omit = ["*/__main__.py"]
 
 [tool.coverage.report]
 show_missing = true
-fail_under = 90
+fail_under = 100
 
 [tool.ruff]
 line-length = 99
