@@ -157,7 +157,11 @@ def read(path):
 
 
 def vector_names():
-    """Every case name in the shared vector files under spec/."""
+    """Every case name in the shared vector files under spec/.
+
+    Display and response cases carry a `name`; panel cases name their display
+    vector in `vector`; the spoken file is a map keyed by vector name.
+    """
     names = set()
     for path in (ROOT / "spec").glob("*_vectors.json"):
         spec = json.loads(read(path))
@@ -165,7 +169,9 @@ def vector_names():
         if isinstance(cases, dict):
             names.update(cases)
         else:
-            names.update(case["name"] for case in cases if isinstance(case, dict))
+            for case in cases:
+                if isinstance(case, dict):
+                    names.update(case[key] for key in ("name", "vector") if key in case)
     return names
 
 
