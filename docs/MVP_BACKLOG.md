@@ -35,8 +35,8 @@ The phased rollout of the whole stack. Phases gate on evidence, not dates. `TODO
 See `docs/ROADMAP.md` for how phases relate and what gates each one.
 
 - [ ] Buy Tier 1 hardware from `docs/HARDWARE.md`.
-- [ ] Raspberry Pi e-paper bedside display (FR-007), side by side with the primary app for one full sensor session.
-- [ ] Home Assistant sensor and alerts (FR-008).
+- [~] Raspberry Pi e-paper bedside display (FR-007), side by side with the primary app for one full sensor session. Done: the 1-bit rasterizer and the hardened systemd service with a watchdog. Next: the SPI panel driver once the parts arrive.
+- [~] Home Assistant sensor and alerts (FR-008). Built over MQTT discovery (ADR-0010, HAZ-013) and tested against a fake broker; next, a check against a real Home Assistant (GAP-002).
 - [x] ESP32 safety rules in C++ with shared-vector parity tests (ADR-0006).
 - [ ] Xteink X4/X3 device build and side-by-side validation (FR-010).
 
@@ -49,6 +49,7 @@ See `docs/ROADMAP.md` for how phases relate and what gates each one.
 
 ## Phase 6: Community
 
-- [ ] Publish the demo page and a PyPI release.
+- [x] Publish the demo page (2026-10-24, https://esanacore.github.io/lightkeeper/).
+- [ ] PyPI release (`lightkeeper` and `lightkeeper-display` were both free on 2026-10-25).
 - [ ] Contributor guide for other CGM and controller setups.
 - [ ] First outside tester runs a display beside their primary app and reports back.

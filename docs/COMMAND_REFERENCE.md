@@ -10,6 +10,8 @@ Common commands for this repository. Commands are the same on every platform onc
 - `python -m lightkeeper --demo --demo-mgdl 62 --demo-minutes-ago 2`: try a specific simulated reading.
 - `python -m lightkeeper`: read once from Nightscout (needs `NIGHTSCOUT_URL`), exit 0 if fresh and in range, 1 if someone should look, 2 on a configuration error.
 - `python -m lightkeeper --watch --interval 60`: refresh until Ctrl+C (minimum 15 seconds).
+- `python -m lightkeeper --svg screen.svg --json status.json`: also write the screen as an SVG image and the status as JSON, each replaced atomically.
+- With `LK_MQTT_HOST` (and the other `LK_MQTT_*` settings in `docs/ENV_VARS.md`) set, every refresh is also published to Home Assistant over MQTT discovery.
 
 ## Testing
 
@@ -17,6 +19,7 @@ Common commands for this repository. Commands are the same on every platform onc
 - `python -m pytest --cov --cov-report=term-missing`: show uncovered lines.
 - `python -m pytest -k fr003`: everything verifying one requirement.
 - `make -C firmware/xteink test`: firmware host tests under AddressSanitizer and UBSan.
+- `make -C firmware/xteink coverage`: firmware line and branch coverage with gcov (Linux or WSL).
 - `python tools/gen_display_gallery.py`: regenerate `docs/DISPLAY_STATES.md`, its images, and the demo's state table after changing `spec/display_vectors.json`.
 
 ## Linting & Formatting
@@ -31,4 +34,6 @@ Common commands for this repository. Commands are the same on every platform onc
 - `bash constitution/scripts/check_compliance.sh --product .`: constitution document check.
 - `bash constitution/scripts/run_declared_tests.sh .`: run the suite exactly as CI does.
 - `bash constitution/scripts/check_secrets.sh .`: scan for committed secrets.
+- `systemctl status lightkeeper` and `journalctl -u lightkeeper -f`: on a Pi running `deploy/lightkeeper.service`, the current level and the live log.
+- `systemd-analyze security lightkeeper`: check the service's sandboxing (expect about 1.2, "OK").
 - `git submodule update --remote constitution`: pull the latest constitution, then follow `constitution/INTEGRATION.md`.

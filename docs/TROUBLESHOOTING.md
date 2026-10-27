@@ -24,9 +24,21 @@ Known issues and fixes. If a display ever shows something that disagrees with th
 
 ### Configuration error on startup
 
-- **Symptom**: Exit code 2 with "must use https" or "invalid threshold settings".
-- **Cause**: An `http://` URL, or thresholds that are out of order.
-- **Solution**: Use the HTTPS URL. Check thresholds against `docs/ENV_VARS.md`.
+- **Symptom**: Exit code 2 with "must use https", "invalid threshold settings", or an `LK_MQTT_*` message.
+- **Cause**: An `http://` URL, thresholds that are out of order, `LK_MQTT_TLS` that is not true or false, plain MQTT to a broker that is not on localhost, or an `LK_MQTT_NODE_ID` with characters other than letters, digits, `_`, and `-`.
+- **Solution**: Use the HTTPS URL. Check thresholds and MQTT settings against `docs/ENV_VARS.md`; turn TLS on for a remote broker.
+
+### "Home Assistant publish failed" in the log
+
+- **Symptom**: The display keeps working, and each cycle logs "Home Assistant publish failed: ...".
+- **Cause**: The broker is unreachable, refuses the user or password, or does not trust the TLS setup. The password never appears in the message.
+- **Solution**: Check `LK_MQTT_HOST`, `LK_MQTT_PORT` (8883 with TLS), the broker user, and its ACL. Lightkeeper reconnects on the next cycle by itself.
+
+### Home Assistant shows the Lightkeeper sensors as unavailable
+
+- **Symptom**: The three sensors read `unavailable`.
+- **Cause**: The designed behavior when the publisher stops (HAZ-013): the broker published the Last Will, or no update arrived within `expire_after` (three refresh intervals, capped at the stale limit), or the service was stopped cleanly.
+- **Solution**: Check the display device: `systemctl status lightkeeper` and `journalctl -u lightkeeper -f`. The sensors return on the next successful publish.
 
 ## Environment Reset
 

@@ -74,6 +74,7 @@ Useful options:
 
 - `--watch` refreshes until Ctrl+C, which exits cleanly. `--interval N` sets the seconds between refreshes, with a floor of 15 seconds so it never hammers the server. Output is flushed every cycle, so `journalctl -f` is live under systemd.
 - `--svg PATH` also writes each screen as an SVG image of the e-paper panel, with a small "written HH:MM UTC" stamp so a dashboard can tell a live writer from a dead one. The file is written to a temporary name and renamed, so a reader never sees a half-written image. In watch mode a failed write (full disk, locked file) is logged and retried next cycle; run once, it is exit code 2.
+- `--json PATH` writes the same status as JSON (level, glucose, trend, age, the screen's lines, any error), replaced atomically the same way. The glucose field is empty whenever the level is STALE or NO DATA. Home Assistant publishing is set up separately; see `docs/SETUP.md`.
 - `--version` prints the package version.
 
 ## Environment variables
@@ -98,7 +99,7 @@ When run without `--watch`, the exit code is a signal for scripts, cron, and Hom
 | --- | --- |
 | `0` | Fresh reading, IN RANGE. |
 | `1` | Someone should look: LOW, URGENT LOW, HIGH, URGENT HIGH, STALE, or NO DATA. |
-| `2` | Configuration error (missing `NIGHTSCOUT_URL`, an `http://` URL, a non-numeric or out-of-order threshold), or a failed `--svg` write when run once. |
+| `2` | Configuration error (missing `NIGHTSCOUT_URL`, an `http://` URL, a non-numeric or out-of-order threshold), a failed `--svg` or `--json` write when run once, or unusable `LK_MQTT_*` settings. |
 
 ## Before anyone relies on it
 

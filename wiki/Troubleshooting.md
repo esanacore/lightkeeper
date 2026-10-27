@@ -40,6 +40,12 @@ Lightkeeper is a secondary display and not a medical device. Always confirm on t
 
 **What it means:** the last fetch failed, so the display shows the last good reading it has and says so. It keeps aging and turns STALE if Nightscout stays down. This is the designed degradation path (HAZ-002), not a freeze.
 
+### Home Assistant shows the Lightkeeper sensors as unavailable
+
+**What it means:** the publisher stopped, and Home Assistant is doing what it should instead of showing an old level (HAZ-013): the broker published Lightkeeper's Last Will, no update arrived within `expire_after`, or the service was stopped cleanly. A glucose sensor that reads unknown while the level reads STALE or NO DATA is also by design: no number is published for a reading that is not current.
+
+**What to do:** on the display device, `systemctl status lightkeeper` (the Status line shows the level) and `journalctl -u lightkeeper -f`. If the log says "Home Assistant publish failed", check the broker host, port (8883 with TLS), user, password, and ACL; Lightkeeper reconnects on its own each cycle and never stops the display over it.
+
 ### A dashboard shows an image that never changes
 
 **What it means:** the writer may have died. The SVG carries a "written HH:MM UTC" stamp; if it is old, check `journalctl -u lightkeeper -f`, which is live because output is flushed every cycle. A failed write (full disk, locked file) is logged and retried instead of killing the watch loop (HAZ-011).
@@ -50,7 +56,7 @@ Lightkeeper is a secondary display and not a medical device. Always confirm on t
 
 **What you see:** "Configuration error: base_url must use https", "invalid threshold settings", or "LK_LOW must be a whole number".
 
-**What it means:** an `http://` URL, a URL with a query string or embedded login, a non-numeric threshold, or thresholds that do not satisfy `40 <= urgent low < low < high < urgent high <= 400`. The program refuses to run rather than run with settings that could hide a low (HAZ-006). Run once, a failed `--svg` write also exits 2.
+**What it means:** an `http://` URL, a URL with a query string or embedded login, a non-numeric threshold, or thresholds that do not satisfy `40 <= urgent low < low < high < urgent high <= 400`. The program refuses to run rather than run with settings that could hide a low (HAZ-006). Run once, a failed `--svg` or `--json` write also exits 2, and so do unusable `LK_MQTT_*` settings (TLS not true or false, plain MQTT to a remote broker, an invalid node id).
 
 **What to do:** use the HTTPS URL with nothing after the host, and check the thresholds against [[Getting Started]]. Thresholds change only which word the display shows; match them to the primary app's alerts.
 

@@ -46,7 +46,7 @@ Yes, with `LK_URGENT_LOW`, `LK_LOW`, `LK_HIGH`, `LK_URGENT_HIGH`, and `LK_STALE_
 For a bedside display, a Raspberry Pi Zero 2 WH and a Waveshare 2.9 inch black and white e-paper HAT; the Python code runs on it as is. For a pocket display, the Xteink X4 Pro, once the firmware's device build exists. No Mac is needed anywhere. See [[Hardware]].
 
 **Does it work with Home Assistant?**
-Today through the exit code and the `--svg` file (a `command_line` sensor and a `local_file` camera). A proper integration (FR-008) is planned.
+Yes, over MQTT discovery (ADR-0010). Set `LK_MQTT_HOST` and the other `LK_MQTT_*` settings and three sensors appear: Glucose level, Glucose, and Glucose reading age. They go `unavailable` if the publisher stops, and the glucose number is blank whenever the level is STALE or NO DATA, so an automation cannot act on an old value. Home Assistant's own Nightscout integration shows the raw number without that protection. Setup and example automations are in `docs/SETUP.md`.
 
 ## About the project
 

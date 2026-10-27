@@ -33,18 +33,18 @@ Phases 1 to 3 are about the therapy half and belong to the person with diabetes 
 
 ## Reserved requirements and likely next additions
 
-Six requirement IDs are reserved for work that has not started, each with acceptance criteria already written: FR-007 (Raspberry Pi e-paper adapter), FR-008 (Home Assistant sensor and automations), FR-010 (Xteink device build), FR-013 (mmol/L display, thresholds entered in the same unit, vectors covering both units), FR-014 (signed delta beside the arrow), and FR-015 (battery level and time since the display last reached Nightscout, visible without hiding the glucose line).
+Five requirement IDs are reserved, each with acceptance criteria already written: FR-007 (Raspberry Pi e-paper adapter; its rasterizer and service are done, the panel driver waits for hardware), FR-010 (Xteink device build), FR-013 (mmol/L display, thresholds entered in the same unit, vectors covering both units), FR-014 (signed delta beside the arrow), and FR-015 (battery level and time since the display last reached Nightscout, visible without hiding the glucose line). FR-008, Home Assistant, was promoted and built in October 2026 (ADR-0010).
 
 In rough order:
 
 - Nightscout deployment notes and a real-instance end-to-end test, closing GAP-003.
 - Hardware from [[Hardware]]: the Pi Zero 2 WH with a 2.9 inch e-paper HAT, then the Xteink X4 Pro and the ESP32-S3 bench board.
-- The Pi e-paper adapter (FR-007) and Home Assistant integration (FR-008).
+- The Pi e-paper panel driver (FR-007), and a check of the Home Assistant integration against a real install (GAP-002).
 - The Xteink device build (FR-010). See [[Firmware]].
 - Graded aging before STALE (needs a vector change and a hazard review), and distinguishing "phone stopped uploading" from "Nightscout unreachable" via Nightscout's device status.
 - mmol/L, delta, device status, IOB and COB greyed at zero, and a night profile.
 - Companion app extras (widgets, watch complication, background refresh), then the bolus request screen once ADR-0008 is accepted. See [[Companion App]].
-- PyPI release and a published demo page (Phase 6).
+- PyPI release (Phase 6); the demo page is already published.
 
 ## Versioning
 

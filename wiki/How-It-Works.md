@@ -24,7 +24,7 @@ Everything above Nightscout is configured, tested, and contributed to upstream, 
 3. `lightkeeper` requests the newest entries from Nightscout's `/api/v1/entries/sgv.json` endpoint over HTTPS, with a token that has only the readable role. It asks for twelve entries, never more than 288, and only ever issues GET.
 4. The domain layer parses each entry and drops anything untrustworthy: a type other than `sgv`, a missing, fractional, non-finite, or out-of-range value (39 to 401 mg/dL), a timestamp outside 2000 to 2100. Nothing is repaired, and one poisoned entry never discards its neighbors (HAZ-011). The newest valid reading wins; two readings with the same timestamp resolve to the lower value.
 5. The domain layer classifies that reading against the current time. Staleness comes first: older than the stale limit (15 minutes by default) or more than 2 minutes in the future means STALE, regardless of the value. Only a fresh reading is compared against the thresholds.
-6. The application layer renders three or four short ASCII lines and the CLI returns an exit code. If the fetch failed, the last good reading is re-classified against the current time, so it ages into STALE instead of freezing on screen, and the last line says "Nightscout unreachable".
+6. The application layer renders three or four short ASCII lines and the CLI returns an exit code. If the fetch failed, the last good reading is re-classified against the current time, so it ages into STALE instead of freezing on screen, and the last line says "Nightscout unreachable". The same status can be written as SVG and JSON and published to Home Assistant; under systemd, each finished cycle also pets the watchdog, so a hung cycle is restarted rather than left frozen.
 
 Glucose data is classified Restricted at every step, and the token is Confidential. [[Security and Privacy]] has the classification table and the threat model.
 
@@ -36,7 +36,7 @@ The Python package has three layers with dependencies that point inward only. A 
 | --- | --- | --- | --- |
 | domain | `src/lightkeeper/domain/` | nothing | `glucose.py` (parsing, `Trend`, `GlucoseReading`) and `status.py` (`Thresholds`, `Level`, `classify`). No I/O, no clock, no network. |
 | application | `src/lightkeeper/application/` | domain | `monitor.py`: `current_status` (fetch, parse, classify, degrade) and `render_lines`. |
-| infrastructure | `src/lightkeeper/infrastructure/` | domain | `nightscout.py` (the HTTPS client) and `svg_display.py` (the panel renderer). |
+| infrastructure | `src/lightkeeper/infrastructure/` | domain | `nightscout.py` (the HTTPS client), `svg_display.py` and `epaper_bitmap.py` (the panel renderers), `mqtt.py` and `home_assistant.py` (publishing to Home Assistant, ADR-0010), and `systemd_notify.py` (the service watchdog). |
 | composition root | `src/lightkeeper/cli.py` | all of the above | Reads the environment, builds the client and thresholds, runs the loop. |
 
 The domain layer takes `now` as an argument rather than reading a clock, which lets every safety rule be tested with plain data and a fixed time.

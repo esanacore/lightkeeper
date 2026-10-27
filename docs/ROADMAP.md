@@ -37,12 +37,12 @@ Phases 1 to 3 are mostly about the therapy half and belong to Kaitlin and her ca
 
 - Nightscout deployment notes and a real-instance end-to-end test (closes GAP-003).
 - Hardware per `docs/HARDWARE.md`: Pi Zero 2 WH with a 2.9" e-paper HAT first, then the Xteink X4 Pro and an ESP32-S3 bench board.
-- Raspberry Pi e-paper adapter for the bedside display (FR-007).
-- Home Assistant integration: sensor entity plus example automations (FR-008).
+- Raspberry Pi e-paper panel driver for the bedside display (FR-007). The rasterizer and the hardened systemd service are done; the SPI driver waits for the parts.
+- Home Assistant against a real install (FR-008 is built and tested against a fake broker; GAP-002).
 - Xteink device build: Wi-Fi, HTTPS, JSON, e-paper, deep sleep (FR-010).
 - Optional mmol/L display units, and a delta from the previous reading.
-- Companion app, read-only layer (Phase 5a), then the bolus request screen (Phase 5b).
-- PyPI release and a published demo page (Phase 6).
+- Companion app extras (widgets, watch complication, background refresh); the read-only layer (Phase 5a) builds and is tested in CI. Then the bolus request screen (Phase 5b).
+- PyPI release (Phase 6). The demo page is already published at https://esanacore.github.io/lightkeeper/.
 
 ## Versioning
 

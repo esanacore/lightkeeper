@@ -26,6 +26,8 @@ Terms used across this wiki and the repository's documentation, in alphabetical 
 
 **LoopFollow.** An iOS follower app for Loop and Trio users, and the reference client for Trio's Remote Control. Its safety model shapes HAZ-010.
 
+**MQTT discovery.** Home Assistant's convention for creating entities from retained config messages on an MQTT broker. Lightkeeper uses it for three sensors, with a Last Will and `expire_after` so they go `unavailable` when the publisher stops (ADR-0010, HAZ-013).
+
 **mg/dL and mmol/L.** The two glucose units. US practice uses mg/dL; much of the world uses mmol/L (divide mg/dL by 18.016). Lightkeeper's thresholds, vectors, and screens are in mg/dL; mmol/L is reserved requirement FR-013.
 
 **Nightscout.** The open source, self-hosted web app that stores CGM and AID data. The single data hub every Lightkeeper display reads from (ADR-0003). Trio writes to it; Lightkeeper only reads.
@@ -57,6 +59,8 @@ Terms used across this wiki and the repository's documentation, in alphabetical 
 **Trend arrow.** Nightscout's direction string (`DoubleUp`, `Flat`, `SingleDown`, and so on), rendered as plain ASCII: `^^`, `^`, `/`, `->`, `\`, `v`, `vv`, or `?` for anything unrecognized.
 
 **Trio.** The iOS open source AID app, built from source, that makes every dosing decision in the household setup (ADR-0002). Not Lightkeeper code.
+
+**Watchdog (systemd).** `WatchdogSec=` in `deploy/lightkeeper.service`: Lightkeeper checks in after every finished refresh, and systemd restarts the service if the check-ins stop, so a hung cycle never leaves a frozen screen (HAZ-002).
 
 **#WeAreNotWaiting.** The community movement of people with diabetes and their families who built open source CGM and AID tools rather than wait for commercial ones. Nightscout, xDrip, Loop, AndroidAPS, and Trio all grew from it.
 
