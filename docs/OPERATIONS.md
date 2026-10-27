@@ -5,7 +5,7 @@ Operational procedures for the parts of the stack we run. Health data is involve
 ## Deployment
 
 - **Environments**: local development (demo mode and a test Nightscout), and production (the household's real Nightscout and display devices). There is no staging for the therapy half; Trio's open-loop phase plays that role (ADR-0002).
-- **Deployment Procedure**: `lightkeeper` is installed on a display device with `pip install` from a tagged release and run as a service (systemd on a Pi). Nightscout deployment is documented when hosting is chosen (Phase 1).
+- **Deployment Procedure**: `lightkeeper` is installed on a display device with `pip install` from a tagged release (v0.2.0 or later) and run as the hardened service in `deploy/lightkeeper.service`; `docs/SETUP.md` has the steps and the upgrade procedure. Nightscout deployment is documented when hosting is chosen (Phase 1).
 - **Approvals / Gates**: tests and constitution checks green in CI; any change touching parsing, classification, rendering, or the client gets a hazard review against `docs/SAFETY.md`; Trio rebuilds happen only after reading release notes and checking community reports.
 - **Rollback**: reinstall the previous `lightkeeper` tag. For Trio, keep the previous build archived; for pods, the official Omnipod 5 app or Controller is the fallback.
 

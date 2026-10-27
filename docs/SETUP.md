@@ -182,12 +182,12 @@ Hardware is in `docs/HARDWARE.md`. Each display reads Nightscout with the readab
 
 1. Flash Raspberry Pi OS Lite (64-bit, Bookworm) with Raspberry Pi Imager. In the imager's settings set the hostname (`lightkeeper-bedside`), enable SSH, set a user, and enter the Wi-Fi.
 2. Boot, SSH in, and enable SPI: `sudo raspi-config` → Interface Options → SPI → Yes. Reboot.
-3. Install the project for a dedicated, unprivileged service user. `deploy/` is newer than v0.1.0, so clone `main` for now; switch to `--branch <tag>` once a release includes it:
+3. Install the project for a dedicated, unprivileged service user, from a release tag (v0.2.0 or later includes `deploy/`; use the newest tag from the Releases page):
 
    ```bash
    sudo apt update && sudo apt install -y python3-venv git
    sudo useradd --system --no-create-home --shell /usr/sbin/nologin lightkeeper
-   sudo git clone --recurse-submodules https://github.com/esanacore/lightkeeper /opt/lightkeeper/src
+   sudo git clone --branch v0.2.0 --recurse-submodules https://github.com/esanacore/lightkeeper /opt/lightkeeper/src
    sudo python3 -m venv /opt/lightkeeper/venv
    sudo /opt/lightkeeper/venv/bin/pip install /opt/lightkeeper/src
    ```
@@ -211,6 +211,8 @@ Hardware is in `docs/HARDWARE.md`. Each display reads Nightscout with the readab
    systemctl status lightkeeper      # the Status: line shows the current level
    journalctl -u lightkeeper -f
    ```
+
+   To upgrade later: `sudo git -C /opt/lightkeeper/src fetch --tags && sudo git -C /opt/lightkeeper/src checkout <new tag>`, then rerun the `pip install` line and `sudo systemctl restart lightkeeper`. Read the release notes first.
 
    If you change `--interval`, keep `WatchdogSec` above two intervals plus about 30 seconds. `systemd-analyze security lightkeeper` should report an exposure level around 1.2 ("OK").
 
