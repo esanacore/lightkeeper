@@ -1,0 +1,70 @@
+# Lightkeeper bedside display, as a hardened systemd service.
+# Install steps: docs/SETUP.md, "Bedside e-ink display". tests/test_deploy.py
+# checks this file against the CLI, so an option renamed there fails here.
+#
+# Safety notes:
+# - Type=notify with WatchdogSec: every finished refresh pets the watchdog.
+#   A hung cycle stops the pings and systemd restarts the service instead of
+#   leaving a frozen screen (HAZ-002). Keep WatchdogSec above two intervals
+#   plus the network timeouts if you change --interval.
+# - KillSignal=SIGINT: `systemctl stop` runs Lightkeeper's clean shutdown,
+#   which marks the Home Assistant entities offline (HAZ-013).
+
+[Unit]
+Description=Lightkeeper bedside display (read-only, secondary: confirm on the primary CGM app)
+Documentation=https://github.com/esanacore/lightkeeper/blob/main/docs/SETUP.md
+After=network-online.target time-sync.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+NotifyAccess=main
+User=lightkeeper
+Group=lightkeeper
+# Root-only file with NIGHTSCOUT_URL, NIGHTSCOUT_TOKEN, and optional LK_* settings.
+EnvironmentFile=/etc/lightkeeper.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/lightkeeper/venv/bin/python -m lightkeeper --watch --interval 60 --svg /run/lightkeeper/screen.svg --json /run/lightkeeper/status.json
+RuntimeDirectory=lightkeeper
+RuntimeDirectoryMode=0750
+UMask=0027
+WatchdogSec=180
+Restart=always
+RestartSec=10
+KillSignal=SIGINT
+TimeoutStopSec=20
+
+# Sandboxing. Lightkeeper needs outbound HTTPS (and MQTT, if configured), the
+# systemd notify socket, and its runtime directory; nothing else.
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+# The e-paper driver (FR-007) will need /dev/spidev0.0 and GPIO: then replace
+# PrivateDevices=yes with DeviceAllow= entries and add SupplementaryGroups=spi gpio.
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RemoveIPC=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+SystemCallErrorNumber=EPERM
+MemoryMax=128M
+
+[Install]
+WantedBy=multi-user.target

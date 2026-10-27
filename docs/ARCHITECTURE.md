@@ -62,6 +62,8 @@ Glucose data is **Restricted** (health data) at every step of this flow, and the
 - `src/lightkeeper/application/`: use cases that combine a data source with the domain rules, and the status payload shared by `--json` and Home Assistant.
 - `src/lightkeeper/infrastructure/`: the HTTPS Nightscout client, the publish-only MQTT client and Home Assistant discovery publisher (`mqtt.py`, `home_assistant.py`, ADR-0010), the SVG panel renderer, and the 1-bit e-paper rasterizer (`epaper_bitmap.py` with the project's own 5x8 font, `font5x7.py`), which produces the PNG previews and the Waveshare panel buffer for the Raspberry Pi display (FR-007; the SPI driver waits for hardware).
 - `src/lightkeeper/cli.py`: composition root, wires env config, clock, and client.
+- `src/lightkeeper/infrastructure/systemd_notify.py`: sd_notify (ready, watchdog, status) for the systemd service.
+- `deploy/lightkeeper.service`: the hardened systemd unit for a Pi display, checked against the CLI by `tests/test_deploy.py`.
 - `tests/`: pytest suite, test names carry requirement IDs.
 - `spec/display_vectors.json`: golden display cases every implementation must pass.
 - `firmware/xteink/`: C++17 port of the domain rules for the ESP32-C3 pocket display, with host tests.

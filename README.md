@@ -152,6 +152,7 @@ lightkeeper/
 ├── docs/                ← Requirements, architecture, safety, security, ADRs, setup, hardware, brand, display gallery
 ├── assets/brand/        ← Mark, app icon, palette, social preview
 ├── assets/diagrams/     ← README diagram source and its rendered image
+├── deploy/              ← Hardened systemd service for a Pi display
 ├── wiki/                ← Wiki source pages
 ├── demo.html            ← Offline demo of every display state
 └── constitution/        ← Eric's Engineering Constitution (git submodule)

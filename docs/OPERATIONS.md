@@ -12,6 +12,7 @@ Operational procedures for the parts of the stack we run. Health data is involve
 ## Monitoring & Observability
 
 - **Logs**: `lightkeeper` prints to stdout; under systemd, `journalctl -u lightkeeper`. Logs never contain the token.
+- **Liveness**: under `deploy/lightkeeper.service`, each finished refresh pets the systemd watchdog (`WatchdogSec=180`); a hung refresh gets the service restarted, which shows in the journal as a watchdog timeout. `systemctl status lightkeeper` shows the current level in its Status line.
 - **Metrics**: Nightscout's own reports, plus Trio's loop status uploads.
 - **Alerts**: the primary CGM app's alarms are the safety net. Home Assistant alerts (FR-008) are an extra layer, never a replacement.
 

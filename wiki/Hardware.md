@@ -60,7 +60,7 @@ Not needed: a Mac (Trio builds in the browser, the iOS app on GitHub's macOS run
 ## Wiring and setup notes
 
 - The 2.9 inch and 7.5 inch HATs plug straight onto the Pi's 40-pin header; there is no wiring. Enable SPI with `sudo raspi-config`, Interface Options, SPI, then reboot.
-- On the Pi, Lightkeeper runs as a systemd service with `--watch --interval 60 --svg /run/lightkeeper/screen.svg` and the token in a root-only `/etc/lightkeeper.env`. Until the e-paper adapter (FR-007) lands, the SVG plus any image viewer works for testing; its "written" stamp shows whether the service is alive. The service file is in `docs/SETUP.md`.
+- On the Pi, Lightkeeper runs as the hardened systemd service in `deploy/lightkeeper.service` (its own user, sandboxed, with a watchdog that restarts a hung refresh) with `--watch --interval 60 --svg /run/lightkeeper/screen.svg` and the token in a root-only `/etc/lightkeeper.env`. Until the e-paper adapter (FR-007) lands, the SVG plus any image viewer works for testing; its "written" stamp shows whether the service is alive. The service file is in `docs/SETUP.md`.
 - The ESP32-S3 bench board flashes over USB-C; hold BOOT while powering on to enter download mode.
 - Once a device is in service, record it with dates in `docs/OTS_SOFTWARE.md`, so hardware is tracked like software.
 

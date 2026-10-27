@@ -182,15 +182,17 @@ Hardware is in `docs/HARDWARE.md`. Each display reads Nightscout with the readab
 
 1. Flash Raspberry Pi OS Lite (64-bit, Bookworm) with Raspberry Pi Imager. In the imager's settings set the hostname (`lightkeeper-bedside`), enable SSH, set a user, and enter the Wi-Fi.
 2. Boot, SSH in, and enable SPI: `sudo raspi-config` → Interface Options → SPI → Yes. Reboot.
-3. Install prerequisites and the project:
+3. Install the project for a dedicated, unprivileged service user. `deploy/` is newer than v0.1.0, so clone `main` for now; switch to `--branch <tag>` once a release includes it:
 
    ```bash
    sudo apt update && sudo apt install -y python3-venv git
-   git clone --recurse-submodules https://github.com/esanacore/lightkeeper ~/lightkeeper
-   cd ~/lightkeeper && python3 -m venv .venv && . .venv/bin/activate && pip install -e .
+   sudo useradd --system --no-create-home --shell /usr/sbin/nologin lightkeeper
+   sudo git clone --recurse-submodules https://github.com/esanacore/lightkeeper /opt/lightkeeper/src
+   sudo python3 -m venv /opt/lightkeeper/venv
+   sudo /opt/lightkeeper/venv/bin/pip install /opt/lightkeeper/src
    ```
 
-4. Put the settings in `/etc/lightkeeper.env` (root-only, since it holds the token):
+4. Put the settings in `/etc/lightkeeper.env`, readable by root only (systemd reads it before dropping privileges):
 
    ```bash
    sudo install -m 600 /dev/null /etc/lightkeeper.env
@@ -201,32 +203,16 @@ Hardware is in `docs/HARDWARE.md`. Each display reads Nightscout with the readab
    EOF
    ```
 
-5. Run it as a service. Until the e-paper adapter (FR-007) lands, the service writes an SVG every minute; the adapter will draw straight to the panel.
-
-   ```ini
-   # /etc/systemd/system/lightkeeper.service
-   [Unit]
-   Description=Lightkeeper bedside display
-   After=network-online.target
-   Wants=network-online.target
-
-   [Service]
-   User=pi
-   EnvironmentFile=/etc/lightkeeper.env
-   WorkingDirectory=/home/pi/lightkeeper
-   ExecStart=/home/pi/lightkeeper/.venv/bin/python -m lightkeeper --watch --interval 60 --svg /run/lightkeeper/screen.svg
-   RuntimeDirectory=lightkeeper
-   Restart=always
-   RestartSec=10
-
-   [Install]
-   WantedBy=multi-user.target
-   ```
+5. Install and start the service from `deploy/lightkeeper.service`. It runs `--watch` as the `lightkeeper` user inside systemd's sandbox, writes `/run/lightkeeper/screen.svg` and `status.json`, and uses systemd's watchdog: every finished refresh checks in, and a refresh that hangs gets the service restarted instead of leaving a frozen screen. `systemctl stop` sends SIGINT, so the clean shutdown runs (Home Assistant sees `offline`). Until the e-paper driver (FR-007) lands, the service writes the SVG; the driver will draw straight to the panel.
 
    ```bash
+   sudo install -m 644 /opt/lightkeeper/src/deploy/lightkeeper.service /etc/systemd/system/
    sudo systemctl daemon-reload && sudo systemctl enable --now lightkeeper
+   systemctl status lightkeeper      # the Status: line shows the current level
    journalctl -u lightkeeper -f
    ```
+
+   If you change `--interval`, keep `WatchdogSec` above two intervals plus about 30 seconds. `systemd-analyze security lightkeeper` should report an exposure level around 1.2 ("OK").
 
 6. Validate before anyone relies on it: run it beside the primary app for one full sensor session and log every mismatch, freeze, or missed STALE (the manual validation step in `docs/TEST_PLAN.md`).
 

@@ -24,6 +24,7 @@ from lightkeeper.infrastructure.home_assistant import HomeAssistantPublisher
 from lightkeeper.infrastructure.mqtt import MqttError, MqttPublisher
 from lightkeeper.infrastructure.nightscout import NightscoutClient
 from lightkeeper.infrastructure.svg_display import render_svg
+from lightkeeper.infrastructure.systemd_notify import SystemdNotifier
 
 DISCLAIMER = (
     "lightkeeper is a secondary, read-only display. It is not a medical device. "
@@ -189,9 +190,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Configuration error: {exc}", file=sys.stderr)
         return 2
 
+    notifier = SystemdNotifier()
+    notifier.ready("starting")
     try:
-        return _run(args, source, thresholds, interval, home_assistant)
+        return _run(args, source, thresholds, interval, home_assistant, notifier)
     finally:
+        notifier.stopping()
         if home_assistant is not None:
             # A --watch loop that stops marks the entities unavailable; a
             # one-shot run leaves them for the next run (HAZ-013).
@@ -204,6 +208,7 @@ def _run(
     thresholds: Thresholds,
     interval: int,
     home_assistant: HomeAssistantPublisher | None,
+    notifier: SystemdNotifier,
 ) -> int:
     """Run the refresh loop: fetch, show, write, publish, sleep."""
     last_good = None
@@ -238,6 +243,9 @@ def _run(
                 # Never stops the display. The broker's will and expire_after
                 # make Home Assistant show unavailable meanwhile (HAZ-013).
                 print(f"Home Assistant publish failed: {exc}", file=sys.stderr, flush=True)
+        # A finished cycle pets the systemd watchdog; a hung one does not, and
+        # systemd restarts the service instead of leaving a frozen screen (HAZ-002).
+        notifier.alive(status.level.value + (", Nightscout unreachable" if error else ""))
         if not args.watch:
             # Exit code tells scripts (Home Assistant, cron) whether to pay attention.
             return 1 if status.level.needs_attention else 0

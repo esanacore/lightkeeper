@@ -72,7 +72,7 @@ Develop and test firmware here, not on the device the person with diabetes carri
 ## Wiring and setup notes
 
 - The 2.9" and 7.5" HATs plug straight onto the Pi's 40-pin header; no wiring. Enable SPI in `raspi-config`.
-- On the Pi, Lightkeeper runs as a systemd service with `--watch` and the e-paper adapter (FR-007, in progress); until then `--svg` plus any image viewer works for testing.
+- On the Pi, Lightkeeper runs as the hardened systemd service in `deploy/lightkeeper.service` with `--watch` and the e-paper adapter (FR-007, in progress); until then `--svg` plus any image viewer works for testing.
 - The ESP32-S3 board flashes over USB-C; hold BOOT while powering on to enter download mode.
 - Keep a written list of what you bought, with dates, in `docs/OTS_SOFTWARE.md`'s system-level table once a device is in service, so hardware is tracked like software.
 
