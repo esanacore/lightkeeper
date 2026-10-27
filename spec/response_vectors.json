@@ -239,7 +239,15 @@
         "mgdl": 109,
         "date": 1792324800000,
         "trend": "Flat"
-      }
+      },
+      "swift_also_accepts": [
+        {
+          "mgdl": 300,
+          "date": 1792324800000,
+          "trend": "Flat"
+        }
+      ],
+      "swift_note": "Apple's JSONSerialization keeps the first of two duplicate keys where Python keeps the last. Nightscout cannot send duplicates: MongoDB documents and JSON.stringify both rule them out."
     },
     {
       "name": "object_not_a_list",

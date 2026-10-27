@@ -37,3 +37,7 @@ firmware/xteink/build/
 apps/ios/Lightkeeper/Lightkeeper.xcodeproj/
 apps/ios/**/.build/
 apps/ios/**/DerivedData/
+
+# The firmware keeps its C++ libraries under lib/, which global Python
+# ignore rules often exclude.
+!firmware/xteink/lib/
