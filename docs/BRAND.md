@@ -33,9 +33,9 @@ Two neutral families and one accent. Status colors are separate from the accent 
 | Paper | `#E6E5DF` | `#DDDCD5` | E-ink panel color | 1.06 / 13.75 |
 | Fog | `#ECEBE5` | `#0E1116` | Page background | 1.00 / 1.00 |
 | Surface | `#F6F5F0` | `#161A21` | Cards and panels | 1.09 / 1.08 |
-| Line | `#CFCDC4` | `#262B33` | Borders | 1.33 / 1.33 |
+| Line | `#CFCDC4` | `#262B33` | Decorative dividers; control borders use Line strong | 1.33 / 1.33 |
 | Muted | `#5B6068` | `#9AA0A9` | Secondary text | 5.30 / 7.18 |
-| Beam | `#B8730A` | `#E0A526` | Accent: eyebrows, links, the lamp | 3.20 / 8.63 |
+| Beam | `#B8730A` | `#E0A526` | Accent: the lamp, rules, focus rings, text of 24 px or more | 3.20 / 8.63 |
 | Beam soft | `#F1DDB4` | `#3A2E13` | Accent backgrounds | 1.12 / 1.42 |
 | In range | `#2E6B4A` | `#6CC597` | Status | 5.30 / 9.07 |
 | Low, urgent low | `#B3261E` | `#FF6B5E` | Status | 5.47 / 6.77 |
@@ -74,7 +74,7 @@ Five rules keep it calm by construction:
 4. Anything that can outlive its writer says when it was written.
 5. Nothing moves, blinks, ticks every second, or makes a sound. A change is one redraw, the way e-ink swaps an image.
 
-Everything in this section is presentation only. Screen text still comes from `spec/display_vectors.json`, unchanged. All of it is new and awaits Eric's approval at review (D1): the tokens, the Keeper 5x8 name, the textures, the shadow and the icons. The two items under Proposed, not in use are written down for a decision, and no surface uses them.
+Everything in this section is presentation only. Screen text still comes from `spec/display_vectors.json`, unchanged. The two items under Proposed, not in use are written down for a decision, and no surface uses them.
 
 ### New tokens
 
@@ -86,10 +86,11 @@ Everything in this section is presentation only. Screen text still comes from `s
 | Low chip | `#EDE3DE` | `#783433` | Tint behind the LOW and URGENT LOW words | Ink 14.21, border 5.18 / Ink 7.12, border 3.22 |
 | High chip | `#EDE6DE` | `#734D29` | Tint behind the HIGH and URGENT HIGH words | Ink 14.49, border 3.33 / Ink 5.89, border 3.61 |
 | Stale chip | `#E7E6E2` | `#484C52` | Tint behind the STALE and NO DATA words | Ink 14.36, border 4.04 / Ink 6.84, border 3.28 |
+| Band text | `#E6E5DF` | `#0E1116` | Words on an Ink band and on a pressed control | 14.21 on Ink / 14.98 on Ink |
 | Night paper | `#1C1E22` | `#1C1E22` | Panel previews in dark mode, so the panel is never the brightest thing at the bedside | Night ink on it 8.30 |
 | Night ink | `#B9B7AE` | `#B9B7AE` | Panel glyphs on Night paper | 8.30 on Night paper |
 
-In dark mode, Beam text is Beam. Night paper and Night ink are the panel preview's colors in dark mode on iOS, the demo and the desktop window; in light mode the preview stays Paper and Ink. Line stays, for decorative dividers only.
+In dark mode, Beam text is Beam. Band text is Paper's value in light mode and Night's in dark mode, because dark Ink is a light color and dark Paper on it measures only 1.09:1. Night paper and Night ink are the panel preview's colors in dark mode on iOS, the demo and the desktop window; in light mode the preview stays Paper and Ink. Line stays, for decorative dividers only.
 
 ### Status color as text
 
@@ -99,16 +100,16 @@ A chip is the status word in Ink, on its chip tint, with a 2 px border in the st
 
 ### Shape grammar
 
-Designed for the 1-bit panel first; screens mirror it. Each headline gets one treatment, keyed only by the headline, so the shape still says which kind of status it is with every color removed.
+Designed for the 1-bit panel first; screens mirror it. Each headline gets one treatment, keyed only by the headline. On the 1-bit panel the shape alone says which kind of status it is, with every color removed. Screens have four shapes: the chip, the Ink band, the Ink band with a hatched margin, and the dashed frame. IN RANGE, LOW and HIGH all use the chip there and are told apart by the word and the border color, so the word is always shown and never replaced by the border.
 
 | Headline | Treatment | 1-bit panel | Screens |
 | --- | --- | --- | --- |
-| IN RANGE | `plain` | Plain headline | Ink word on its chip, 2 px green border until D2 is decided |
+| IN RANGE | `plain` | Plain headline | Ink word on its chip, 2 px green border while IN RANGE neutral stays proposed |
 | LOW | `rule` | 2 px rule under the headline, full content width | Ink word on its chip, 2 px status border |
 | HIGH | `rule` | 2 px rule under the headline, full content width | Ink word on its chip, 2 px status border |
-| URGENT LOW | `inverse` | Inverse band: paper glyphs on ink, 2 px pad | Ink band, Paper text, 4 px status-color leading rule |
-| URGENT HIGH | `inverse` | Inverse band: paper glyphs on ink, 2 px pad | Ink band, Paper text, 4 px status-color leading rule |
-| STALE - DO NOT TRUST | `stale` | Inverse band, a 4 px hatch-45 frame inside the margin, and a strike through the `last:` line (1 px at scale 2 or less, 2 px at scale 3 and up) | Ink band, Paper text, hatch in the margin only, the `last:` line struck through |
+| URGENT LOW | `inverse` | Inverse band: paper glyphs on ink, 2 px pad | Ink band with the word in Band text, 4 px status-color leading rule |
+| URGENT HIGH | `inverse` | Inverse band: paper glyphs on ink, 2 px pad | Ink band with the word in Band text, 4 px status-color leading rule |
+| STALE - DO NOT TRUST | `stale` | Inverse band, a 4 px hatch-45 frame inside the margin, and a strike through the `last:` line (1 px at scale 2 or less, 2 px at scale 3 and up) | Ink band with the word in Band text, hatch in the margin only, the `last:` line struck through |
 | NO DATA | `dashed` | 2 px dashed frame (4 on, 4 off), no number | 2 px dashed Line strong frame, no number |
 | Any other headline | `dashed` | The same as NO DATA, the most cautious treatment | The same as NO DATA |
 
@@ -122,11 +123,11 @@ Panel invariants, at every panel size:
 
 ### 1-bit collapse
 
-What each token becomes on a black and white panel, by its id in `assets/brand/tokens.json`. Backgrounds become paper and everything drawn on them becomes ink. Line becomes a 25% dither, used only inside frames.
+What each token becomes on a black and white panel, by its id in `assets/brand/tokens.json`. Backgrounds become paper and everything drawn on them becomes ink, except Band text, which is drawn on an ink band and so becomes paper. Line becomes a 25% dither, used only inside frames.
 
 | 1-bit | Tokens |
 | --- | --- |
-| paper | `night`, `paper`, `fog`, `surface`, `beam-soft`, `chip-in-range`, `chip-low`, `chip-high`, `chip-stale`, `night-paper` |
+| paper | `night`, `paper`, `fog`, `surface`, `beam-soft`, `chip-in-range`, `chip-low`, `chip-high`, `chip-stale`, `band-text`, `night-paper` |
 | ink | `ink`, `muted`, `beam`, `in-range`, `low`, `high`, `stale`, `line-strong`, `beam-text`, `night-ink` |
 | dither-25 | `line` |
 
@@ -157,12 +158,12 @@ Keeper 5x8 is the name for the project's own pixel font: the glyph table in `src
 - Bezels are 2 px Line strong with notched corners stepped in 2 px. Cards are 1 px Line strong.
 - Dividers are 1 px dashed Line, the ruled logbook. A major rule is 2 px Ink.
 - The hard shadow is `3px 3px 0` in Beam soft (light) or Line (dark), on cards and buttons only, never on chips, bands or data.
-- Touch targets are 44 px or larger. The focus ring is 2 px Beam with a 2 px offset. A pressed control is an Ink fill with Paper text.
+- Touch targets are 44 px or larger. The focus ring is 2 px Beam with a 2 px offset. A pressed control is an Ink fill with Band text.
 
 A stamp is the time an image was drawn, not the time of the reading:
 
-- Bitmap, PNG and BMP: `HH:MM` in local 24-hour time, in Keeper 5x8 at scale 2 or more on the age row. Always on for exported images and the desktop window; opt-in in the reference renderer until D3 decides whether physical panels show it.
-- SVG: `written HH:MM UTC`, unchanged until D3 is decided.
+- Bitmap, PNG and BMP: `HH:MM` in local 24-hour time, in Keeper 5x8 at scale 2 or more on the age row. Always on for exported images and the desktop window; opt-in in the reference renderer until Eric decides whether physical panels show it.
+- SVG: `written HH:MM UTC`, unchanged until that same decision.
 - Terminal: `checked HH:MM:SS`. Desktop: `checked HH:MM` in the window title. iOS: `checked HH:MM` as an absolute time.
 - Widget timelines schedule their own STALE entry.
 - Demo panels carry `SIMULATED`.
@@ -176,7 +177,7 @@ Margins, bezels, headers and empty states only, never under text. One cell is on
 | dither-12 | `#... / .... / ..#. / ....` | 4x4 Bayer, 2 of 16 cells |
 | dither-25 | `#. / ..` | 2x2, 1 of 4 cells; Line on the 1-bit panel |
 | dither-50 | `#. / .#` | Checkerboard |
-| hatch-45 | `...# / ..#. / .#.. / #...` | 1 px every 4 px, for the STALE frame only |
+| hatch-45 | `#... / ...# / ..#. / .#..` | 1 px every 4 px, for the STALE frame only: the pixels where x + y is a multiple of 4, counted from the image's top-left pixel |
 
 ### Icons and marks
 
@@ -193,7 +194,7 @@ Pixel icons are 16x16 grids in `assets/brand/pixel-icons.json`, with 2-cell outl
 | ![mark-16](../assets/brand/png/pixel-mark-16@4x.png) | `mark-16` | The pixel mark at 16 px: two arcs, following the 16 px rule above |
 | ![mark-32](../assets/brand/png/pixel-mark-32@4x.png) | `mark-32` | The pixel mark at 32 px, on a 32x32 grid: three arcs in a 60 degree sweep to the right |
 
-The three lamps share one outline and differ only inside the glass: lit, hatched or empty. `tools/gen_brand_pixels.py` renders every grid to `assets/brand/png/pixel-<name>.png` at 1x and `pixel-<name>@4x.png` at 4x with the panel's own 1-bit bitmap. The plain-text signature is `o)))`.
+The three lamps share one outline and differ only inside the glass: lit, hatched or empty. On the pixel marks, each arc keeps the 60 degree sector to within half a cell: a cell at the end of an arc may straddle the sector's edge, but its center is never more than half a cell outside it, because a 2-cell stroke a few cells from the lamp cannot hold the angle more exactly. `tools/gen_brand_pixels.py` renders every grid to `assets/brand/png/pixel-<name>.png` at 1x and `pixel-<name>@4x.png` at 4x with the panel's own 1-bit bitmap. The plain-text signature is `o)))`.
 
 ### Motion and sound
 
@@ -218,24 +219,24 @@ Only an interactive terminal running `--watch` gets the logbook frame: clear and
 
 ### User themes
 
-Desktop and terminal themes get four slots, and only four. Status colors are never themeable: they always travel with their word.
+Desktop and terminal themes get four slots, and only four. Status colors are never themeable: they always travel with their word. The accent slot may carry small text, so it defaults to Beam text, not Beam. On the default background, in both themes, the default foreground is at least 7:1, the accent at least 4.5:1 and the line at least 3:1; a user theme is held to the same minimums.
 
 | Slot | Default token |
 | --- | --- |
 | background | `fog` |
 | line | `line-strong` |
 | foreground | `ink` |
-| accent | `beam` |
+| accent | `beam-text` |
 
 ### Proposed, not in use
 
 Written down for a decision. No surface uses these until Eric decides.
 
-#### IN RANGE neutral (D2)
+#### IN RANGE neutral
 
 On glance surfaces, IN RANGE would get an Ink border and no green, so color appears only for exceptions. Until decided, IN RANGE keeps its green.
 
-#### Night profile (D15)
+#### Night profile
 
 A darker profile for the bedside at night, on black. Every color is at least 4.5:1 on its background. Never a whole-UI red tint, because red means LOW.
 

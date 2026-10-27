@@ -31,17 +31,31 @@ INK, PAPER = "#", "."
 NAME = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
 
 
+def is_grid(size: object, rows: object) -> bool:
+    """Check that rows is a square grid of '#' and '.', `size` cells on a side, size >= 1."""
+    if isinstance(size, bool) or not isinstance(size, int) or size < 1:
+        return False
+    if not isinstance(rows, list) or len(rows) != size:
+        return False
+    return all(
+        isinstance(row, str) and len(row) == size and set(row) <= {INK, PAPER} for row in rows
+    )
+
+
 def load_icons(path: Path = ICONS) -> list[dict[str, Any]]:
     """Every icon entry, after checking that its grid can be drawn as declared."""
     icons: list[dict[str, Any]] = json.loads(path.read_text(encoding="utf-8"))["icons"]
     seen: set[str] = set()
     for icon in icons:
-        name, size, rows = icon["name"], icon["size"], icon["rows"]
-        if not NAME.fullmatch(name) or name in seen:
+        name, size, rows = icon.get("name"), icon.get("size"), icon.get("rows")
+        if not isinstance(name, str) or not NAME.fullmatch(name) or name in seen:
             raise SystemExit(f"{path.name}: icon name {name!r} is malformed or repeated")
         seen.add(name)
-        if len(rows) != size or any(len(row) != size or set(row) - {INK, PAPER} for row in rows):
-            raise SystemExit(f"{path.name}: {name} must be {size} rows of {size} '#' or '.'")
+        if not is_grid(size, rows):
+            raise SystemExit(
+                f"{path.name}: {name} needs a whole-number size of at least 1"
+                f" and that many rows of that many '#' or '.' (size {size!r})"
+            )
     return icons
 
 

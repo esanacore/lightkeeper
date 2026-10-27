@@ -58,8 +58,12 @@ CODE = re.compile(r"`([^`]*)`")
 STATUS_COLORS = sorted({entry["color"] for entry in STATUS.values()})
 CHIPS = sorted({entry["chip"] for entry in STATUS.values()})
 BORDER = {entry["chip"]: entry["color"] for entry in STATUS.values()}  # chip -> status color
+BANDS = {name: entry for name, entry in TOKENS["treatment"].items() if "band" in entry}
+CONTROL = TOKENS["control"]
+THEME_DEFAULTS = TOKENS["theme"]["defaults"]
+THEMES = ("light", "dark")
 # Where text and data sit, per theme. Dark Fog is Night; dark Paper is a light
-# e-ink panel, never a ground for dark-theme text.
+# e-ink panel, never a ground for dark-theme text and never text on the dark Ink band.
 GROUNDS = {"light": ("fog", "paper", "surface"), "dark": ("fog", "surface")}
 
 
@@ -224,6 +228,7 @@ def test_nfr005_new_token_ratios_are_measured():
     measured = {
         "line-strong": pairs_on("line-strong", GROUNDS["light"], ("night", "surface")),
         "beam-text": pairs_on("beam-text", GROUNDS["light"], ("night", "surface")),
+        "band-text": pairs_on("band-text", ("ink",), ("ink",)),
         "night-paper": [("dark", "night-ink", "night-paper")],
         "night-ink": [("dark", "night-ink", "night-paper")],
     }
@@ -267,7 +272,43 @@ MINIMUMS = (
         for theme in ("light", "dark")
     ]
     + [("Night ink on Night paper", dark("night-ink"), dark("night-paper"), 7)]
-    + [("Paper on Ink (inverse band)", light("paper"), light("ink"), 7)]
+    # The URGENT and STALE words on their Ink band, and a pressed control, in both themes.
+    + [
+        (
+            f"{name} band text on {theme} band",
+            COLOR[entry["band_text"]][theme],
+            COLOR[entry["band"]][theme],
+            7,
+        )
+        for name, entry in BANDS.items()
+        for theme in THEMES
+    ]
+    + [
+        (
+            f"pressed text on {theme} pressed fill",
+            COLOR[CONTROL["pressed_text"]][theme],
+            COLOR[CONTROL["pressed_fill"]][theme],
+            7,
+        )
+        for theme in THEMES
+    ]
+    + [
+        (f"control {part} on {theme} {g}", COLOR[CONTROL[part]][theme], COLOR[g][theme], 3)
+        for part in ("border", "focus_ring")
+        for theme, grounds in GROUNDS.items()
+        for g in grounds
+    ]
+    # Theme defaults on the default background: the accent may carry small text.
+    + [
+        (
+            f"theme {slot} on {theme} background",
+            COLOR[THEME_DEFAULTS[slot]][theme],
+            COLOR[THEME_DEFAULTS["background"]][theme],
+            minimum,
+        )
+        for slot, minimum in (("foreground", 7), ("accent", 4.5), ("line", 3))
+        for theme in THEMES
+    ]
     + [
         (f"Ink on {theme} {g}", COLOR["ink"][theme], COLOR[g][theme], 7)
         for theme, grounds in GROUNDS.items()
@@ -348,6 +389,32 @@ def test_nfr005_shape_grammar_reads_with_all_color_removed():
     assert set(TOKENS["treatment"]) == set(groups)
 
 
+def test_nfr005_treatments_differ_on_the_panel_and_on_screens():
+    for side in ("panel", "screen"):
+        texts = [entry[side] for entry in TOKENS["treatment"].values()]
+        assert len(set(texts)) == len(texts), f"two treatments share one {side} description"
+
+
+def test_nfr005_bands_name_their_text_color_in_both_themes():
+    # URGENT and STALE words sit on an Ink band. Their color is a token of its own,
+    # Paper's value in light and Night's in dark, because dark Paper on dark Ink is 1.09:1.
+    assert set(BANDS) == {"inverse", "stale"}
+    for name, entry in BANDS.items():
+        assert (entry["band"], entry["band_text"]) == ("ink", "band-text"), name
+        assert f"in {COLOR[entry['band_text']]['name']}" in entry["screen"], name
+    assert COLOR["band-text"]["light"] == COLOR["paper"]["light"]
+    assert COLOR["band-text"]["dark"] == COLOR["night"]["dark"]
+
+
+def test_nfr005_controls_mirror_tokens_json():
+    name = {part: COLOR[token]["name"] for part, token in CONTROL.items()}
+    assert set(name) == {"border", "focus_ring", "pressed_fill", "pressed_text"}
+    fill, text = name["pressed_fill"], name["pressed_text"]
+    assert f"A pressed control is an {fill} fill with {text}." in DOC
+    assert f"The focus ring is 2 px {name['focus_ring']} with a 2 px offset." in DOC
+    assert f"Controls are 44 px or larger, with {name['border']} borders" in DOC
+
+
 def test_nfr005_unknown_headline_gets_the_most_cautious_treatment():
     unknown = TOKENS["unknown_headline"]
     no_data = STATUS["NO DATA"]
@@ -391,8 +458,10 @@ def test_nfr005_textures_match_their_definitions():
     assert (len(texture["dither-12"]), len(ink_cells(texture["dither-12"]))) == (4, 2)
     assert (len(texture["dither-25"]), len(ink_cells(texture["dither-25"]))) == (2, 1)
     assert ink_cells(texture["dither-50"]) == {(0, 0), (1, 1)}
-    # hatch-45: one rising diagonal, 1 px every 4 px.
-    assert ink_cells(texture["hatch-45"]) == {(3 - y, y) for y in range(4)}
+    # hatch-45: one rising diagonal, 1 px every 4 px, in the panel renderer's phase: it
+    # inks the pixels where x + y is a multiple of 4.
+    hatch = {(x, y) for x in range(4) for y in range(4) if (x + y) % 4 == 0}
+    assert ink_cells(texture["hatch-45"]) == hatch
     rows = table("### Texture")
     assert {row[0]: plain(row[1]) for row in rows} == {
         name: " / ".join(cells) for name, cells in texture.items()
@@ -448,20 +517,20 @@ def test_nfr005_terminal_codes_keep_meaning_without_color():
 
 def test_nfr005_proposals_are_labelled_and_unused():
     proposed = TOKENS["proposed"]
-    assert {key: (p["decision"], p["state"]) for key, p in proposed.items()} == {
-        "in-range-neutral": ("D2", "proposed, not in use"),
-        "night-profile": ("D15", "proposed, not in use"),
+    assert {key: p["state"] for key, p in proposed.items()} == {
+        "in-range-neutral": "proposed, not in use",
+        "night-profile": "proposed, not in use",
     }
     assert "### Proposed, not in use" in DOC.splitlines()
-    assert "#### IN RANGE neutral (D2)" in DOC.splitlines()
-    assert "#### Night profile (D15)" in DOC.splitlines()
-    # Until D2 is decided IN RANGE keeps its green, and the neutral border is Ink.
+    assert "#### IN RANGE neutral" in DOC.splitlines()
+    assert "#### Night profile" in DOC.splitlines()
+    # Until IN RANGE neutral is decided IN RANGE keeps its green; the neutral border is Ink.
     assert STATUS["IN RANGE"]["color"] == "in-range"
     assert proposed["in-range-neutral"]["border"] == "ink"
     night = proposed["night-profile"]["colors"]
     in_use = {token[theme] for token in COLOR.values() for theme in ("light", "dark")}
     assert not set(night.values()) & in_use
-    rows = table("#### Night profile (D15)")
+    rows = table("#### Night profile")
     assert {row[0]: HEX.findall(row[1]) for row in rows} == {
         key.replace("-", " ").capitalize(): [value] for key, value in night.items()
     }
@@ -542,10 +611,18 @@ def test_nfr005_marks_keep_their_arcs_and_sweep_right(name):
     body = next(group for group in groups if (cx, cy) in group)
     arcs = [group for group in groups if group is not body]
     assert len(arcs) == entry["arcs"] == {"mark-16": 2, "mark-32": 3}[name]
+    edge = math.radians(30)  # the sector is 30 degrees either side of horizontal
     for arc in arcs:
-        angles = [math.degrees(math.atan2(cy - y - 0.5, x + 0.5 - cx)) for x, y in arc]
-        assert all(x + 0.5 > cx for x, _ in arc), "an arc sits left of the lamp"
-        assert max(abs(a) for a in angles) <= 36, "an arc leaves the 60 degree sector"
+        centers = [(x + 0.5 - cx, cy - y - 0.5) for x, y in arc]  # from the lamp, y up
+        assert all(dx > 0 for dx, _ in centers), "an arc sits left of the lamp"
+        # Pixel tolerance: a 2-cell stroke a few cells from the lamp cannot hold 60
+        # degrees exactly, so the end cell of an arc may straddle the sector's edge,
+        # with its center at most half a cell outside it (mark-16's inner arc needs
+        # 0.42), and only one cell at each end may lie outside at all.
+        outside = [abs(dy) * math.cos(edge) - dx * math.sin(edge) for dx, dy in centers]
+        assert max(outside) <= 0.5, "an arc leaves the 60 degree sector"
+        assert sum(distance > 0 for distance in outside) <= 2, "an arc overruns the sector"
+        angles = [math.degrees(math.atan2(dy, dx)) for dx, dy in centers]
         assert max(angles) >= 24 and min(angles) <= -24, "an arc stops short of the sweep"
         assert {(x, 2 * cy - 1 - y) for x, y in arc} == arc, "an arc is not symmetric"
 
@@ -599,8 +676,26 @@ DOT = {"name": "dot", "size": 2, "rows": ["#.", ".#"]}
         [{**DOT, "rows": ["#.", ".x"]}],
         [{**DOT, "name": "Bad_Name"}],
         [DOT, DOT],
+        [{**DOT, "size": 0, "rows": []}],
+        [{**DOT, "name": 7}],
+        [{**DOT, "size": "2"}],
+        [{**DOT, "size": True, "rows": ["#"]}],
+        [{**DOT, "rows": [["#", "."], [".", "#"]]}],
+        [{"name": "dot", "size": 2}],
     ],
-    ids=["short row", "missing row", "odd character", "bad name", "repeated name"],
+    ids=[
+        "short row",
+        "missing row",
+        "odd character",
+        "bad name",
+        "repeated name",
+        "empty grid",
+        "non-string name",
+        "non-integer size",
+        "boolean size",
+        "rows not strings",
+        "no rows",
+    ],
 )
 def test_nfr005_generator_refuses_malformed_grids(tmp_path, icons):
     path = tmp_path / "pixel-icons.json"
