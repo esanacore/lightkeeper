@@ -12,6 +12,10 @@ An open source type 1 diabetes management stack, built by Eric and Kaitlin along
 
 ## Current Capabilities
 
+![The bedside display: a Raspberry Pi Zero 2 WH and a 2.9 inch e-paper panel in the printed enclosure, standing at a 15 degree lean and showing IN RANGE, 112 mg/dL, 3 min ago](hardware/enclosure/renders/hero.png)
+
+The bedside display, rendered from its enclosure's CAD model; the screen is drawn by the same code the Pi runs. Build it with [`docs/ASSEMBLY.md`](docs/ASSEMBLY.md).
+
 - `lightkeeper`: reads the latest glucose from a self-hosted Nightscout site using a read-only token, and turns it into a short plain-text status (IN RANGE, LOW, URGENT LOW, HIGH, URGENT HIGH, STALE, NO DATA) sized for a small e-ink screen.
 - Old or future-dated readings always show as **STALE - DO NOT TRUST**, never as a current number.
 - If Nightscout goes down, the display degrades to the last good reading, which then ages into STALE on its own instead of freezing.
@@ -19,7 +23,8 @@ An open source type 1 diabetes management stack, built by Eric and Kaitlin along
 - Home Assistant over MQTT discovery: level, glucose, and age sensors that go `unavailable` if the publisher stops and never show a number for a stale reading. `--json PATH` writes the same status for dashboards.
 - `--demo` mode runs with canned data and no network at all.
 - `--svg screen.svg` saves each screen as an image of the e-paper panel, for dashboards or previews. Every possible screen is pictured in [`docs/DISPLAY_STATES.md`](docs/DISPLAY_STATES.md).
-- Firmware groundwork for an Xteink X4/X3 pocket e-ink display: the same safety rules in C++, proven identical to the Python version by shared test vectors.
+- Raspberry Pi bedside display groundwork: a 1-bit e-paper rasterizer, a hardened systemd service with a watchdog, and a printable enclosure with renders, STLs, and a bill of materials ([`docs/BOM.md`](docs/BOM.md)). The panel driver waits for the hardware.
+- Firmware groundwork for an Xteink X4/X3 pocket e-ink display: the same safety rules in C++, proven identical to the Python version by shared test vectors, plus a heap-free, fuzzed parser for Nightscout's responses.
 - An iOS companion app (read-only layer): the same rules in Swift, verified against the same vectors on GitHub's macOS runners, with the Nightscout token kept in the Keychain.
 
 ## How It Fits Together
