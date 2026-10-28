@@ -27,15 +27,14 @@ struct ContentView: View {
                         SetupCard(problem: model.settings.urlProblem) { showSettings = true }
                     }
                     PanelPreview(lines: model.lines)
-                    Text("Lightkeeper is a secondary display and not a medical device. "
-                        + "Always confirm on the primary CGM app.")
+                    Text(Self.disclaimer)
                         .font(.footnote)
                         .foregroundStyle(Palette.muted)
                 }
                 .padding(16)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .background(Palette.fog.ignoresSafeArea())
+            .background(Palette.fog)
             .refreshable { await model.refreshNow() }
             // Inline, so the app's name is never larger than the status.
             .navigationTitle("Lightkeeper")
@@ -51,12 +50,14 @@ struct ContentView: View {
         }
     }
 
+    private static let disclaimer = "Lightkeeper is a secondary display and not a medical device. "
+        + "Always confirm on the primary CGM app."
+
     /// When the app last asked Nightscout, and since when it has failed to
     /// answer: absolute times, so nothing on screen counts seconds.
     private var captions: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(model.isChecking || model.lastRefresh == nil
-                 ? checkingCaption : checkedCaption(model.lastRefresh ?? Date()))
+            Text(checkedText)
                 .foregroundStyle(Palette.muted)
             if let since = model.offlineSince {
                 Text(offlineCaption(since: since))
@@ -65,38 +66,50 @@ struct ContentView: View {
         }
         .font(.system(.footnote, design: .monospaced))
     }
+
+    /// "checking Nightscout..." while a refresh someone asked for runs, and
+    /// before the first answer; "checked HH:MM" after.
+    private var checkedText: String {
+        guard !model.isChecking, let last = model.lastRefresh else { return checkingCaption }
+        return checkedCaption(last)
+    }
 }
 
 /// Status, hero, age and context: one VoiceOver element that reads the
-/// spoken form of the same Status.
+/// spoken form of the same Status. Every text style comes from the
+/// presentation, where the hierarchy is tested against every vector.
 struct GlanceView: View {
     let presentation: ScreenPresentation
     /// The fresh number scales with Dynamic Type from today's 96 pt.
-    @ScaledMetric(relativeTo: .largeTitle) private var heroSize: CGFloat = 96
+    @ScaledMetric(relativeTo: .largeTitle)
+    private var heroSize: CGFloat = CGFloat(ScreenPresentation.heroPointSize)
+    /// The arrow scales with it, 40 pt beside 96 pt, so it is never demoted.
+    @ScaledMetric(relativeTo: .largeTitle)
+    private var arrowSize: CGFloat = CGFloat(ScreenPresentation.arrowPointSize)
     /// A sensor sentinel ("LOW (<40)") is wider than a number, so it starts smaller and wraps.
-    @ScaledMetric(relativeTo: .largeTitle) private var wordSize: CGFloat = 48
-    /// The arrow keeps its proportion to the number (40 pt beside 96 pt).
-    private static let arrowRatio: CGFloat = 40.0 / 96.0
+    @ScaledMetric(relativeTo: .largeTitle)
+    private var wordSize: CGFloat = CGFloat(ScreenPresentation.wordPointSize)
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            StatusMark(chip: presentation.chip, banner: presentation.banner)
+            StatusMark(chip: presentation.chip, banner: presentation.banner,
+                       style: presentation.statusStyle.textStyle)
             hero
             if let line = presentation.secondary {
                 // STALE's last: line: an old value, struck, never above body size.
                 Text(line.text)
-                    .font(.system(.body, design: .monospaced))
+                    .font(.system(ScreenPresentation.secondaryStyle.textStyle, design: .monospaced))
                     .strikethrough(line.struck, color: Palette.muted)
                     .foregroundStyle(line.struck ? Palette.muted : Palette.ink)
             }
             if let age = presentation.age {
                 Text(age)
-                    .font(.system(.title3, design: .monospaced, weight: .semibold))
+                    .font(.system(ScreenPresentation.ageStyle.textStyle, design: .monospaced, weight: .semibold))
                     .foregroundStyle(Palette.ink)
             }
             ForEach(Array(presentation.context.enumerated()), id: \.offset) { _, line in
                 Text(line)
-                    .font(.system(.body, design: .monospaced))
+                    .font(.system(ScreenPresentation.contextStyle.textStyle, design: .monospaced))
                     .foregroundStyle(Palette.ink)
             }
         }
@@ -117,7 +130,7 @@ struct GlanceView: View {
                     .minimumScaleFactor(0.5)
                 VStack(alignment: .leading, spacing: 0) {
                     Text(presentation.hero.arrowSymbol ?? "")
-                        .font(.system(size: heroSize * Self.arrowRatio, weight: .semibold))
+                        .font(.system(size: arrowSize, weight: .semibold))
                     Text(unit)
                         .font(.subheadline)
                         .foregroundStyle(Palette.muted)
@@ -130,12 +143,27 @@ struct GlanceView: View {
                 .font(.system(size: wordSize, weight: .heavy))
                 .foregroundStyle(Palette.ink)
         case .none:
-            if presentation.banner == .noData {
-                // A placeholder where a number would be; never larger than the banner.
-                Text("--")
-                    .font(.system(.title, design: .monospaced))
+            if let placeholder = presentation.placeholder {
+                // Where a number would be on NO DATA: no digit, smaller than the banner.
+                Text(placeholder)
+                    .font(.system(ScreenPresentation.placeholderStyle.textStyle, design: .monospaced))
                     .foregroundStyle(Palette.ink)
             }
+        }
+    }
+}
+
+extension ScreenPresentation.TextStyle {
+    /// The SwiftUI text style of the same name.
+    var textStyle: Font.TextStyle {
+        switch self {
+        case .footnote: return .footnote
+        case .subheadline: return .subheadline
+        case .body: return .body
+        case .title3: return .title3
+        case .title2: return .title2
+        case .title: return .title
+        case .largeTitle: return .largeTitle
         }
     }
 }
@@ -146,26 +174,30 @@ struct GlanceView: View {
 struct StatusMark: View {
     let chip: ScreenPresentation.Chip
     let banner: ScreenPresentation.Banner
+    /// From ScreenPresentation.statusStyle: never smaller than .title3.
+    let style: Font.TextStyle
     private static let hatchWidth: CGFloat = 8
 
     var body: some View {
         switch banner {
         case .none:
             Text(chip.word)
-                .font(.system(.title3, weight: .semibold))
+                .font(.system(style, weight: .semibold))
                 .foregroundStyle(Palette.ink)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 4)
                 .background(Palette.chip(chip.tone), in: RoundedRectangle(cornerRadius: 2))
-                .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(Palette.status(chip.tone), lineWidth: 2))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 2).strokeBorder(Palette.status(chip.tone), lineWidth: 2)
+                }
         case .urgent:
-            band(.title2)
+            band
                 .overlay(alignment: .leading) {
                     Rectangle().fill(Palette.status(chip.tone)).frame(width: 4)
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 2))
         case .stale:
-            band(.title)
+            band
                 .clipShape(RoundedRectangle(cornerRadius: 2))
                 // The hatch sits in the margin beside the band, never under the word.
                 .padding(.leading, Self.hatchWidth + 4)
@@ -174,27 +206,27 @@ struct StatusMark: View {
                 }
         case .noData:
             Text(chip.word)
-                .font(.system(.title, weight: .bold))
+                .font(.system(style, weight: .bold))
                 .foregroundStyle(Palette.ink)
                 .padding(.horizontal, 12)
-                .padding(.vertical, 8)
+                .padding(.vertical, 12)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Palette.surface)
-                .overlay(
+                .overlay {
                     RoundedRectangle(cornerRadius: 2)
                         .strokeBorder(Palette.lineStrong, style: StrokeStyle(lineWidth: 2, dash: [4, 4]))
-                )
+                }
         }
     }
 
     /// A full-width Ink band with the word in Band text.
-    private func band(_ style: Font.TextStyle) -> some View {
+    private var band: some View {
         Text(chip.word)
             .font(.system(style, weight: .bold))
             .foregroundStyle(Palette.bandText)
             .padding(.leading, 16)
             .padding(.trailing, 12)
-            .padding(.vertical, 8)
+            .padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Palette.ink)
     }
@@ -241,9 +273,7 @@ struct SetupCard: View {
             Text("Add your Nightscout site to start")
                 .font(.system(.title2, weight: .semibold))
                 .foregroundStyle(Palette.ink)
-            Text(problem.map { "The saved address cannot be used. \($0)" }
-                 ?? "Lightkeeper reads glucose from your own Nightscout site and never changes it. "
-                 + "Add the site's address and a readable token in Settings.")
+            Text(message)
                 .foregroundStyle(Palette.ink)
             Button("Open Settings", action: openSettings)
                 .buttonStyle(LogbookButtonStyle())
@@ -251,8 +281,18 @@ struct SetupCard: View {
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Palette.surface)
-        .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(Palette.lineStrong, lineWidth: 1))
-        .background(RoundedRectangle(cornerRadius: 2).fill(Palette.hardShadow).offset(x: 3, y: 3))
+        .overlay {
+            RoundedRectangle(cornerRadius: 2).strokeBorder(Palette.lineStrong, lineWidth: 1)
+        }
+        .background {
+            RoundedRectangle(cornerRadius: 2).fill(Palette.hardShadow).offset(x: 3, y: 3)
+        }
+    }
+
+    private var message: String {
+        if let problem { return "The saved address cannot be used. \(problem)" }
+        return "Lightkeeper reads glucose from your own Nightscout site and never changes it. "
+            + "Add the site's address and a readable token in Settings."
     }
 }
 
@@ -267,8 +307,12 @@ struct LogbookButtonStyle: ButtonStyle {
             .frame(minHeight: 44)
             .background(configuration.isPressed ? Palette.ink : Palette.surface,
                         in: RoundedRectangle(cornerRadius: 2))
-            .overlay(RoundedRectangle(cornerRadius: 2).strokeBorder(Palette.lineStrong, lineWidth: 1))
-            .background(RoundedRectangle(cornerRadius: 2).fill(Palette.hardShadow).offset(x: 3, y: 3))
+            .overlay {
+                RoundedRectangle(cornerRadius: 2).strokeBorder(Palette.lineStrong, lineWidth: 1)
+            }
+            .background {
+                RoundedRectangle(cornerRadius: 2).fill(Palette.hardShadow).offset(x: 3, y: 3)
+            }
     }
 }
 
@@ -290,7 +334,7 @@ struct PanelPreview: View {
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Palette.panelPaper, in: NotchedRectangle())
-        .overlay(NotchedRectangle().strokeBorder(Palette.lineStrong, lineWidth: 2))
+        .overlay { NotchedRectangle().strokeBorder(Palette.lineStrong, lineWidth: 2) }
         .accessibilityHidden(true)
     }
 }

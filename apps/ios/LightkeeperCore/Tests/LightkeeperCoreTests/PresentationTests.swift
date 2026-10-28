@@ -185,11 +185,18 @@ final class PresentationTests: XCTestCase {
             let p = c.presentation
             XCTAssertEqual(p.banner, .noData, c.name)
             XCTAssertEqual(p.hero, .none, c.name)
+            XCTAssertEqual(p.placeholder, "--", c.name)
             XCTAssertNil(p.secondary, c.name)
             XCTAssertNil(p.age, c.name)
             XCTAssertEqual(p.context, Array(c.lines.dropFirst()), c.name)
-            let shown = ([p.chip.word] + p.context).joined(separator: " ")
+            let shown = ([p.chip.word, p.placeholder ?? ""] + p.context).joined(separator: " ")
             XCTAssertFalse(shown.contains(where: \.isNumber), "\(c.name): no digit anywhere")
+        }
+    }
+
+    func testOnlyNoDataShowsThePlaceholder() throws {
+        for c in try cases() where c.status.level != .noData {
+            XCTAssertNil(c.presentation.placeholder, c.name)
         }
     }
 
@@ -213,7 +220,8 @@ final class PresentationTests: XCTestCase {
         XCTAssertEqual(p.accessibilityLabel, "In range. 112 milligrams per deciliter, steady. 3 minutes ago.")
     }
 
-    /// The panel preview draws `lines`, and the glance draws each of them once, in order.
+    /// The panel preview draws `lines`, and the glance draws each of them once,
+    /// in order. NO DATA's "--" placeholder is the only text that is not a line.
     func testEveryVectorLineIsShownOnceInOrder() throws {
         for c in try cases() {
             let p = c.presentation
@@ -252,6 +260,84 @@ final class PresentationTests: XCTestCase {
                        Set(tokens.status.values.map(\.color)))
     }
 
+    // MARK: The type hierarchy
+
+    typealias Style = ScreenPresentation.TextStyle
+
+    /// Every other text style on the screen, beside the status word's.
+    func otherStyles(_ p: ScreenPresentation) -> [Style] {
+        var styles = p.context.map { _ in ScreenPresentation.contextStyle }
+        if p.age != nil { styles.append(ScreenPresentation.ageStyle) }
+        if p.secondary != nil { styles.append(ScreenPresentation.secondaryStyle) }
+        if p.placeholder != nil { styles.append(ScreenPresentation.placeholderStyle) }
+        return styles
+    }
+
+    func testOnStaleAndNoDataTheBannerIsTheLargestText() throws {
+        for c in try cases(.stale, .noData) {
+            let p = c.presentation
+            XCTAssertEqual(p.hero, .none, "\(c.name): nothing is set as a hero")
+            XCTAssertGreaterThanOrEqual(p.statusStyle, .title2, c.name)
+            XCTAssertFalse(otherStyles(p).isEmpty, c.name)
+            for style in otherStyles(p) {
+                XCTAssertGreaterThan(p.statusStyle, style, "\(c.name): \(style) is not below the banner")
+            }
+        }
+    }
+
+    func testTheStatusWordIsNeverACaption() throws {
+        var shapes = try cases().map(\.presentation)
+        shapes.append(ScreenPresentation(lines: ["SOMETHING NEW"], accessibilityLabel: ""))
+        for p in shapes {
+            XCTAssertGreaterThanOrEqual(p.statusStyle, .title3, p.chip.word)
+        }
+        let byBanner = Dictionary(shapes.map { ($0.banner, $0.statusStyle) }, uniquingKeysWith: { a, _ in a })
+        XCTAssertEqual(byBanner, [.none: .title3, .urgent: .title2, .stale: .title, .noData: .title])
+    }
+
+    func testTheStaleLastLineIsNeverAboveTheAgeAndTheAgeIsNeverSmallPrint() {
+        XCTAssertLessThanOrEqual(ScreenPresentation.secondaryStyle, .body)
+        XCTAssertLessThanOrEqual(ScreenPresentation.secondaryStyle, ScreenPresentation.ageStyle)
+        XCTAssertGreaterThanOrEqual(ScreenPresentation.ageStyle, .body)
+        XCTAssertGreaterThanOrEqual(ScreenPresentation.contextStyle, .body)
+    }
+
+    func testTheArrowKeepsItsProportionToTheNumber() {
+        XCTAssertEqual(ScreenPresentation.heroPointSize, 96)
+        XCTAssertEqual(ScreenPresentation.arrowPointSize / ScreenPresentation.heroPointSize, 40.0 / 96.0)
+        XCTAssertLessThan(ScreenPresentation.wordPointSize, ScreenPresentation.heroPointSize)
+    }
+
+    /// Apple's iOS Dynamic Type sizes in points, xSmall to AX5, for the styles
+    /// in TextStyle's order. The hierarchy above relies on this order holding
+    /// at every size, strictly from body up.
+    func testTheTypeRampKeepsItsOrderAtEveryTextSize() {
+        let ramp: [[Int]] = [
+            // footnote, subheadline, body, title3, title2, title, largeTitle
+            [12, 12, 14, 17, 19, 25, 31],  // xSmall
+            [12, 13, 15, 18, 20, 26, 32],  // Small
+            [12, 14, 16, 19, 21, 27, 33],  // Medium
+            [13, 15, 17, 20, 22, 28, 34],  // Large, the default
+            [15, 17, 19, 22, 24, 30, 36],  // xLarge
+            [17, 19, 21, 24, 26, 32, 38],  // xxLarge
+            [19, 21, 23, 26, 28, 34, 40],  // xxxLarge
+            [23, 25, 28, 31, 34, 38, 44],  // AX1
+            [27, 30, 33, 37, 39, 43, 48],  // AX2
+            [33, 36, 40, 43, 44, 48, 52],  // AX3
+            [38, 42, 47, 49, 50, 53, 56],  // AX4
+            [44, 49, 53, 55, 56, 58, 60],  // AX5
+        ]
+        XCTAssertEqual(Style.allCases.map(\.rawValue), Array(0..<7))
+        for sizes in ramp {
+            XCTAssertEqual(sizes.count, Style.allCases.count)
+            XCTAssertEqual(sizes, sizes.sorted(), "\(sizes)")
+            let fromBody = Array(sizes[Style.body.rawValue...])
+            XCTAssertEqual(Set(fromBody).count, fromBody.count, "strict from body up: \(sizes)")
+        }
+        XCTAssertLessThan(Style.footnote, .largeTitle)
+        XCTAssertFalse(Style.title < .title)
+    }
+
     // MARK: Beyond the vectors
 
     func testAnUnknownHeadlineGetsTheMostCautiousShape() {
@@ -259,6 +345,7 @@ final class PresentationTests: XCTestCase {
             let p = ScreenPresentation(lines: [headline, "120 mg/dL ->", "1 min ago"], accessibilityLabel: "")
             XCTAssertEqual(p.banner, .noData, "\(headline)")
             XCTAssertEqual(p.hero, .none, "\(headline): an unplanned headline never shows a number")
+            XCTAssertEqual(p.placeholder, "--", "\(headline)")
             XCTAssertEqual(p.context, ["120 mg/dL ->", "1 min ago"], "\(headline)")
         }
         let empty = ScreenPresentation(lines: [], accessibilityLabel: "")

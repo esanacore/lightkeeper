@@ -19,8 +19,8 @@ final class GlucoseModel: ObservableObject {
     /// next good fetch.
     @Published private(set) var offlineSince: Date?
     /// True while a refresh someone asked for (pull to refresh, a settings
-    /// save) is running. The timer's refreshes never set it, so nothing on
-    /// screen changes once a minute just because the app checked.
+    /// save) is running. The timer's refreshes never set it, so the caption
+    /// does not flip to "checking Nightscout..." and back once a minute.
     @Published private(set) var isChecking = false
     @Published var settings: Settings {
         didSet {
@@ -147,8 +147,16 @@ struct Settings {
 
     /// The thresholds step this far, in mg/dL, on the settings screen.
     static let thresholdStep = 5
-    /// Stale after, in minutes: never below one reading interval plus a
-    /// minute, and never above an hour (D16 decides whether to lower the cap).
+    /// The settings screen's stepper bounds, in mg/dL. Each starts on the
+    /// 5 mg/dL grid the defaults sit on, so a step never lands on an odd
+    /// value at a bound. Thresholds still decides which sets are valid.
+    static let urgentLowRange = 40...100
+    static let lowRange = 45...150
+    static let highRange = 100...350
+    static let urgentHighRange = 105...400
+    /// Stale after, in minutes, one minute per step: never below one reading
+    /// interval plus a minute, and never above an hour (D16 decides whether
+    /// to lower the cap).
     static let staleRange = 6...60
     /// Above this many minutes the settings screen shows a caution.
     static let staleCautionAbove = 15

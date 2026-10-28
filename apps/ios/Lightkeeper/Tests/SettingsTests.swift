@@ -154,4 +154,21 @@ final class SettingsTests: XCTestCase {
         XCTAssertEqual(Settings.staleRange, 6...60, "the 60-minute cap stays until D16 decides")
         XCTAssertEqual(Settings.staleCautionAbove, 15)
     }
+
+    func testEveryStepperBoundAndDefaultSitsOnTheFiveStepGrid() {
+        let d = Settings()
+        let rows: [(String, ClosedRange<Int>, Int)] = [
+            ("urgent low", Settings.urgentLowRange, d.urgentLow), ("low", Settings.lowRange, d.low),
+            ("high", Settings.highRange, d.high), ("urgent high", Settings.urgentHighRange, d.urgentHigh),
+        ]
+        for (name, range, value) in rows {
+            XCTAssertTrue(range.contains(value), name)
+            XCTAssertEqual((value - range.lowerBound) % Settings.thresholdStep, 0, name)
+            XCTAssertEqual((range.upperBound - range.lowerBound) % Settings.thresholdStep, 0, name)
+        }
+        // The bounds never reach past what Thresholds accepts (40...400).
+        XCTAssertEqual(Settings.urgentLowRange.lowerBound, 40)
+        XCTAssertEqual(Settings.urgentHighRange.upperBound, 400)
+        XCTAssertTrue(Settings.staleRange.contains(d.staleMinutes))
+    }
 }

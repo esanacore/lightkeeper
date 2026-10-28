@@ -101,7 +101,8 @@ public final class NightscoutClient: NSObject, URLSessionTaskDelegate {
         }
         guard Self.isSiteName(host) else {
             throw NightscoutError.badURL(
-                "The site name has a character no web address can have. Check it for typos.")
+                "The site name can only have letters, digits, hyphens, and single dots between its "
+                    + "parts. Check it for typos.")
         }
         self.baseURL = url
         self.token = token

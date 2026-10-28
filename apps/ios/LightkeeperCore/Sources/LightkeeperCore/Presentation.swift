@@ -18,6 +18,8 @@
 // - STALE has no hero: no large number, no separate arrow, no unit. Its
 //   `last:` line is shown verbatim, struck through, at body size.
 // - NO DATA and an unknown headline never show a number.
+// - On STALE and NO DATA the banner is set larger than anything else on
+//   the screen; the status word is never smaller than .title3.
 // - The accessibility label is spokenText(status:error:), from the same
 //   Status, so VoiceOver hears exactly what the screen shows.
 
@@ -85,11 +87,45 @@ public struct ScreenPresentation: Equatable, Sendable {
         public let struck: Bool
     }
 
+    /// A Dynamic Type text style, smallest first. The view sets each element
+    /// in the SwiftUI style of the same name. Apple's type ramp keeps this
+    /// order at every content size, from xSmall to AX5, so an element that
+    /// is larger here is never smaller on the phone at any text size.
+    public enum TextStyle: Int, Comparable, CaseIterable, Sendable {
+        case footnote, subheadline, body, title3, title2, title, largeTitle
+
+        public static func < (lhs: TextStyle, rhs: TextStyle) -> Bool {
+            lhs.rawValue < rhs.rawValue
+        }
+    }
+
+    /// The fresh number's size at the default text size, in points. It
+    /// scales with Dynamic Type relative to .largeTitle.
+    public static let heroPointSize = 96.0
+    /// The arrow beside the number: 40 pt beside 96 pt, the same proportion
+    /// at every text size, so the arrow is never demoted.
+    public static let arrowPointSize = 40.0
+    /// A sensor sentinel ("LOW (<40)") is wider than a number, so it starts smaller.
+    public static let wordPointSize = 48.0
+    /// The age line, in Ink: the number's partner, never small print.
+    public static let ageStyle = TextStyle.title3
+    /// STALE's struck `last:` line: never above body size, never above the age.
+    public static let secondaryStyle = TextStyle.body
+    /// The context lines ("Confirm on primary device", "Nightscout unreachable").
+    public static let contextStyle = TextStyle.body
+    /// The "--" where NO DATA has no number: smaller than its banner.
+    public static let placeholderStyle = TextStyle.title2
+    /// What NO DATA shows where a number would be. It has no digit in it.
+    public static let placeholderText = "--"
+
     /// Exactly `renderLines(status, fetchError:)`: the panel preview draws these.
     public let lines: [String]
     public let chip: Chip
     public let banner: Banner
     public let hero: Hero
+    /// `placeholderText` under the NO DATA banner (and an unknown headline's);
+    /// nil on every other screen.
+    public let placeholder: String?
     /// STALE's `last:` line, struck; nil on every other screen.
     public let secondary: Line?
     /// The age line ("3 min ago"), in Ink; nil where the screen has none (NO DATA).
@@ -137,10 +173,23 @@ public struct ScreenPresentation: Equatable, Sendable {
         self.chip = Chip(word: headline, tone: tone)
         self.banner = banner
         self.hero = hero
+        self.placeholder = banner == .noData ? Self.placeholderText : nil
         self.secondary = secondary
         self.age = age
         self.context = context
         self.accessibilityLabel = accessibilityLabel
+    }
+
+    /// The status word's text style: .title3 in a chip, so it is never a
+    /// caption; .title2 on the URGENT band; .title on the STALE and NO DATA
+    /// banners, which have no hero, so the banner is the largest thing on
+    /// the screen.
+    public var statusStyle: TextStyle {
+        switch banner {
+        case .none: return .title3
+        case .urgent: return .title2
+        case .stale, .noData: return .title
+        }
     }
 
     /// The shape and colour family for a headline. Mirrors the status table

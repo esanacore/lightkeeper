@@ -80,21 +80,29 @@ struct SettingsView: View {
         } header: {
             Text("Nightscout")
         } footer: {
-            Text("Make a readable token in Nightscout: Admin Tools, Subjects, add a subject with the "
-                + "readable role, and copy its access token here. Never paste the API secret: it can "
-                + "change your Nightscout, and Lightkeeper only ever reads. The token stays in this "
-                + "phone's Keychain and travels only in a request header, never in an address.")
+            Text(Self.tokenFootnote)
         }
     }
 
+    private static let tokenFootnote = "Make a readable token in Nightscout: Admin Tools, Subjects, "
+        + "add a subject with the readable role, and copy its access token here. Never paste the "
+        + "API secret: it can change your Nightscout, and Lightkeeper only ever reads. The token "
+        + "stays in this phone's Keychain and travels only in a request header, never in an address."
+
+    private static let thresholdsFootnote = "Thresholds change only which word the display shows. "
+        + "They do not affect dosing or the primary app's alarms. Match them to the alert settings "
+        + "already in the primary app."
+
     private var thresholdsSection: some View {
         Section {
-            Stepper("Urgent low: \(draft.urgentLow)", value: $draft.urgentLow, in: 40...100,
-                    step: Settings.thresholdStep)
-            Stepper("Low: \(draft.low)", value: $draft.low, in: 41...150, step: Settings.thresholdStep)
-            Stepper("High: \(draft.high)", value: $draft.high, in: 100...350, step: Settings.thresholdStep)
-            Stepper("Urgent high: \(draft.urgentHigh)", value: $draft.urgentHigh, in: 101...400,
-                    step: Settings.thresholdStep)
+            Stepper("Urgent low: \(draft.urgentLow)", value: $draft.urgentLow,
+                    in: Settings.urgentLowRange, step: Settings.thresholdStep)
+            Stepper("Low: \(draft.low)", value: $draft.low,
+                    in: Settings.lowRange, step: Settings.thresholdStep)
+            Stepper("High: \(draft.high)", value: $draft.high,
+                    in: Settings.highRange, step: Settings.thresholdStep)
+            Stepper("Urgent high: \(draft.urgentHigh)", value: $draft.urgentHigh,
+                    in: Settings.urgentHighRange, step: Settings.thresholdStep)
             Stepper("Stale after: \(draft.staleMinutes) min", value: $draft.staleMinutes,
                     in: Settings.staleRange)
             if let caution = draft.staleCaution {
@@ -107,8 +115,7 @@ struct SettingsView: View {
         } header: {
             Text("Display thresholds (mg/dL)")
         } footer: {
-            Text("Thresholds change only which word the display shows. They do not affect dosing or "
-                + "the primary app's alarms. Match them to the alert settings already in the primary app.")
+            Text(Self.thresholdsFootnote)
         }
     }
 
