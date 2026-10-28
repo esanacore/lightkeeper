@@ -53,31 +53,41 @@ def read(relative: Path) -> str:
 
 
 def dump(value: object) -> str:
-    """JSON for a value inside the page script, indented to match it."""
+    """Format a value as JSON for the page script, indented to match it."""
     return json.dumps(value, indent=2).replace("\n", "\n" + INDENT)
 
 
 def dump_font(font: dict[str, object]) -> str:
-    """The font as JSON with one glyph per line, as spec/font5x8.json writes it."""
+    """Format the font as JSON with one glyph per line, as spec/font5x8.json has it."""
     glyphs = font["glyphs"]
     assert isinstance(glyphs, dict)
-    head = [f"  {json.dumps(key)}: {json.dumps(value)}," for key, value in font.items()]
+    head = [f"  {json.dumps(k)}: {json.dumps(v)}," for k, v in font.items() if k != "glyphs"]
     rows = [f"    {json.dumps(char)}: {json.dumps(cells)}" for char, cells in glyphs.items()]
-    keep = [line for line, key in zip(head, font, strict=True) if key != "glyphs"]
-    lines = ["{", *keep, '  "glyphs": {', ",\n".join(rows), "  }", "}"]
+    lines = ["{", *head, '  "glyphs": {', ",\n".join(rows), "  }", "}"]
     return "\n".join(lines).replace("\n", "\n" + INDENT)
 
 
 def check_inline(name: str, text: str) -> None:
-    """Refuse text that would end the page's script element early or start a comment in it."""
+    """Refuse text that would break the page script it is copied into.
+
+    `</script` would end the script element early, and `<!--` or `<script`
+    switch the HTML parser into a state where it might. A block marker would
+    make this script, or tools/gen_display_gallery.py, cut the page in the
+    wrong place.
+    """
     lowered = text.lower()
     for marker in ("</script", "<!--", "<script"):
         if marker in lowered:
-            raise SystemExit(f"{name} contains {marker!r}, which cannot sit inside an inline script")
+            raise SystemExit(
+                f"{name} contains {marker!r}, which cannot sit inside an inline script"
+            )
+    for marker in ("BEGIN GENERATED", "END GENERATED"):
+        if marker in text:
+            raise SystemExit(f"{name} contains {marker!r}, which marks where the page is cut")
 
 
 def block(page_bytes: int) -> str:
-    """The generated block, from its BEGIN line up to (not including) the END line."""
+    """Return the generated block, from its BEGIN line up to (not including) the END line."""
     script = read(PANEL_JS)
     if not script.endswith("\n"):
         raise SystemExit(f"{PANEL_JS.as_posix()} must end with a newline")
@@ -89,7 +99,9 @@ def block(page_bytes: int) -> str:
         if entry["name"] in LAMPS
     }
     if set(lamps) != set(LAMPS):
-        raise SystemExit(f"{ICONS.as_posix()} is missing a lamp: {sorted(set(LAMPS) - set(lamps))}")
+        raise SystemExit(
+            f"{ICONS.as_posix()} is missing a lamp: {sorted(set(LAMPS) - set(lamps))}"
+        )
     profiles = {
         profile.name: {
             "width": profile.width,
@@ -98,10 +110,9 @@ def block(page_bytes: int) -> str:
         }
         for profile in PROFILES.values()
     }
-    text = "".join(
+    check_inline(PANEL_JS.as_posix(), script)
+    data = "".join(
         [
-            f"{BEGIN} (tools/gen_demo_panel.py from {SOURCES} and the panel profiles)\n",
-            script,
             f"{INDENT}const font = {dump_font(font)};\n",
             f"{INDENT}const spoken = {dump(spoken)};\n",
             f"{INDENT}const lampIcons = {dump({name: lamps[name] for name in LAMPS})};\n",
@@ -110,8 +121,9 @@ def block(page_bytes: int) -> str:
             f"{INDENT}const pageBytes = {page_bytes};\n",
         ]
     )
-    check_inline("the generated panel block", text)
-    return text
+    check_inline(f"the data from {SOURCES}", data)
+    header = f"{BEGIN} (tools/gen_demo_panel.py from {SOURCES} and the panel profiles)\n"
+    return header + script + data
 
 
 def render(page: str) -> str:

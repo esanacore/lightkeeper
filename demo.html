@@ -397,11 +397,12 @@
         margin: 0 0 12px;
       }
 
-      /* A 2 px Line strong bezel with 2 px stepped notches at the corners. */
+      /* A 2 px Line strong bezel with 2 px stepped notches at the corners. The
+         notch clips the bezel itself, so the panel scrolls (and shows its focus
+         ring) inside it, and the SIMULATED stamp stays put. */
       .bezel {
         position: relative;
         padding: 8px 8px 32px;
-        overflow-x: auto;
         border: 2px solid var(--line-strong);
         background-color: var(--surface);
         background-image: var(--dither-25);
@@ -424,8 +425,20 @@
 
       @media (min-width: 640px) {
         .bezel {
-          padding: 16px 16px 40px;
+          padding: 16px 16px 32px;
         }
+      }
+
+      /* A panel wider than the screen scrolls sideways; it is never shrunk. */
+      .bezel-view,
+      .scroll {
+        overflow-x: auto;
+      }
+
+      .bezel-view:focus-visible,
+      .scroll:focus-visible {
+        outline: 2px solid var(--beam);
+        outline-offset: 2px;
       }
 
       canvas {
@@ -593,15 +606,20 @@
         font-size: 0.875rem;
       }
 
-      .scroll {
-        overflow-x: auto;
-      }
-
+      /* The phone card's type sizes. A fresh number is the hero; the status
+         chip comes first and is never below 1.25rem semibold; an URGENT, STALE
+         or NO DATA banner is the largest thing on the card, so under an URGENT
+         banner the number steps down, and STALE and NO DATA have no number.
+         tests/test_demo_panel.py holds these in that order. */
       .phone {
+        --phone-chip: 1.25rem;
+        --phone-banner: 1.75rem;
+        --phone-hero: 2.5rem;
+        --phone-urgent-hero: 1.5rem;
         display: grid;
         justify-items: start;
         gap: 8px;
-        padding: 16px;
+        padding: 12px;
         border: 2px solid var(--line-strong);
         border-radius: 2px;
         background: var(--fog);
@@ -611,14 +629,19 @@
         margin: 0;
       }
 
+      .phone .chip {
+        font-size: var(--phone-chip);
+      }
+
       .phone .chip-frame:not([data-shape="plain"]):not([data-shape="rule"]) {
         width: 100%;
       }
 
       .phone .chip-frame:not([data-shape="plain"]):not([data-shape="rule"]) .chip {
         display: flex;
-        font-size: 1.75rem;
+        font-size: var(--phone-banner);
         font-weight: 700;
+        line-height: 1.25;
       }
 
       .hero {
@@ -630,10 +653,14 @@
       }
 
       .hero .num {
-        font-size: 2.5rem;
+        font-size: var(--phone-hero);
         font-weight: 800;
         font-variant-numeric: tabular-nums;
         line-height: 1.1;
+      }
+
+      .phone .chip-frame[data-shape="inverse"] ~ .hero .num {
+        font-size: var(--phone-urgent-hero);
       }
 
       .hero .unit {
@@ -644,8 +671,9 @@
         font: 700 1.25rem/1.5 var(--mono);
       }
 
+      /* A sensor limit in words: only ever under an URGENT banner. */
       .hero .word {
-        font-size: 1.75rem;
+        font-size: var(--phone-urgent-hero);
         font-weight: 800;
       }
 
@@ -725,6 +753,7 @@
           border-color: Highlight;
           color: HighlightText;
           background: Highlight;
+          box-shadow: none;
         }
       }
 
@@ -810,9 +839,11 @@
 
         <figure class="screen" id="screen" data-view="pixels">
           <p class="chip-row" aria-hidden="true"><span class="chip-frame" id="chip"></span></p>
-          <div class="bezel" id="bezel">
-            <canvas id="panel" width="296" height="128" aria-hidden="true"></canvas>
-            <output id="result" class="result" role="status" aria-live="polite" aria-atomic="true"></output>
+          <div class="bezel">
+            <div class="bezel-view" id="bezel-view">
+              <canvas id="panel" width="296" height="128" aria-hidden="true"></canvas>
+              <output id="result" class="result" role="status" aria-live="polite" aria-atomic="true"></output>
+            </div>
             <span class="sim" aria-hidden="true">SIMULATED</span>
           </div>
           <figcaption id="panel-caption"></figcaption>
@@ -868,7 +899,9 @@
     <script>
       // The states below are generated from spec/display_vectors.json, the same
       // cases the Python and firmware tests run. Edit the vectors, then run
-      // tools/gen_display_gallery.py; tests/test_gallery.py fails if this drifts.
+      // tools/gen_display_gallery.py and then tools/gen_demo_panel.py (the
+      // colophon's page size counts this block); tests/test_gallery.py and
+      // tests/test_demo_panel.py fail if either drifts.
       // BEGIN GENERATED STATES (tools/gen_display_gallery.py from spec/display_vectors.json)
       const states = {
         "in_range_flat": {
@@ -2103,7 +2136,7 @@
         }
       };
       const defaultProfile = "waveshare_2in9";
-      const pageBytes = 95880;
+      const pageBytes = 97380;
       // END GENERATED PANEL
 
       // Page script. What a surface says comes only from the generated states,
@@ -2182,7 +2215,7 @@
       const own = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
       const byId = (id) => document.getElementById(id);
       const screen = byId("screen");
-      const bezel = byId("bezel");
+      const bezelView = byId("bezel-view");
       const panel = byId("panel");
       const mini = byId("mini");
       const output = byId("result");
@@ -2261,7 +2294,7 @@
       const groupsBox = byId("groups");
       groups.forEach(([title, map], index) => {
         const section = document.createElement("section");
-        const heading = document.createElement("h4");
+        const heading = document.createElement("h3");
         heading.className = "label";
         heading.id = `group-${index}`;
         heading.textContent = title;
@@ -2346,17 +2379,19 @@
         return true;
       }
 
-      // Whole-number scale only: 2x where it fits on a screen 640 px or wider, else 1x.
+      // Whole-number scale only: 2x on a screen 640 px or wider when the panel
+      // fits at 2x, else 1x. A panel wider than the room scrolls; it is never
+      // shrunk or smoothed.
       function fitPanel() {
         const size = profiles[profile];
-        const style = getComputedStyle(bezel);
-        const room = bezel.clientWidth - Number.parseFloat(style.paddingLeft) - Number.parseFloat(style.paddingRight);
+        const room = bezelView.clientWidth;
         const wide = window.matchMedia("(min-width: 640px)").matches;
         const scale = wide && size.width * 2 <= room ? 2 : 1;
         panel.style.width = `${size.width * scale}px`;
         panel.style.height = `${size.height * scale}px`;
         const scroll = size.width * scale > room ? "; scroll sideways to see all of it" : "";
-        byId("panel-caption").textContent = `${size.description}: ${size.width} × ${size.height} pixels, shown at ${scale}x${scroll}.`;
+        const shown = view === "text" ? "; showing its lines as text" : `, shown at ${scale}x${scroll}`;
+        byId("panel-caption").textContent = `${size.description}: ${size.width} × ${size.height} pixels${shown}.`;
       }
 
       // --- the surfaces -------------------------------------------------------
@@ -2490,6 +2525,7 @@
         view = name === "text" ? "text" : "pixels";
         screen.dataset.view = view;
         press(viewGroup, "view", view);
+        fitPanel();
         if (!remember) return;
         try {
           localStorage.setItem(VIEW_KEY, view);
