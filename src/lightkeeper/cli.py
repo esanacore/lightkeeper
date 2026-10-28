@@ -1,134 +1,127 @@
 """Command-line entry point: `python -m lightkeeper`.
 
 This is the composition root, the one place that wires real settings,
-the real clock, and the real Nightscout client together.
+the real clock, and the real Nightscout client together. The settings
+themselves are read and checked in `lightkeeper.config`; the names that
+used to live here are re-exported.
+
+Honest output (FR-006): stdout is exactly the vector lines, so pipes, cron
+and systemd read what they always have; only an interactive terminal running
+--watch gets the logbook frame. What went wrong, and which setting to check,
+goes to stderr, redacted, once per change of what failed. An interrupted or
+misconfigured run never reports "fresh and in range": it exits 130 or 2.
 """
 
 from __future__ import annotations
 
 import argparse
+import errno
 import functools
 import json
 import os
+import shutil
 import sys
+import textwrap
 import time
-from datetime import UTC, datetime, timedelta
+import urllib.parse
+from collections.abc import Callable, Mapping
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, TextIO
 
 from lightkeeper import __version__
 from lightkeeper.application.monitor import EntrySource, current_status, render_lines
 from lightkeeper.application.status_payload import status_payload
+from lightkeeper.config import (
+    DEMO_MGDL,
+    DEMO_MINUTES_AGO,
+    DEMO_TREND,
+    ConfigError,
+    DemoSource,
+    home_assistant_from_env,
+    source_from_env,
+    thresholds_from_env,
+)
+from lightkeeper.domain.glucose import Trend
 from lightkeeper.domain.status import Thresholds
+from lightkeeper.infrastructure import terminal_view
+from lightkeeper.infrastructure.epaper_bitmap import Bitmap, render_bitmap, stamp_text
 from lightkeeper.infrastructure.home_assistant import HomeAssistantPublisher
-from lightkeeper.infrastructure.mqtt import MqttError, MqttPublisher
-from lightkeeper.infrastructure.nightscout import NightscoutClient
+from lightkeeper.infrastructure.mqtt import MqttError
+from lightkeeper.infrastructure.nightscout import NightscoutClient, NightscoutError
+from lightkeeper.infrastructure.panel_profiles import (
+    ALIASES,
+    DEFAULT_PROFILE,
+    PROFILES,
+    PanelProfile,
+    resolve,
+)
 from lightkeeper.infrastructure.svg_display import render_svg
 from lightkeeper.infrastructure.systemd_notify import SystemdNotifier
+
+__all__ = [
+    "DISCLAIMER",
+    "ConfigError",
+    "DemoSource",
+    "build_parser",
+    "describe_write_error",
+    "home_assistant_from_env",
+    "main",
+    "panel_image",
+    "source_from_env",
+    "thresholds_from_env",
+    "write_bmp",
+    "write_json",
+    "write_png",
+    "write_svg",
+]
 
 DISCLAIMER = (
     "lightkeeper is a secondary, read-only display. It is not a medical device. "
     "Always confirm on the primary CGM app before acting."
 )
 
+MIN_INTERVAL_SECONDS = 15
+DEFAULT_INTERVAL_SECONDS = 60
+SEPARATOR = "-" * 24  # between --watch cycles on plain output
+EXIT_INTERRUPTED = 130  # 128 + SIGINT, as shells report Ctrl+C
+ENV_VARS_URL = "https://github.com/esanacore/lightkeeper/blob/main/docs/ENV_VARS.md"
+TREND_NAMES = [trend.value for trend in Trend]
+_DEMO_ONLY = ("demo_mgdl", "demo_minutes_ago", "demo_trend")
 
-class DemoSource:
-    """Canned readings for trying the display with no Nightscout at all."""
+EPILOG = f"""\
+examples:
+  lightkeeper --demo                    canned reading, no network
+  lightkeeper --demo --demo-mgdl 62 --demo-trend SingleDown
+  lightkeeper                           read Nightscout once
+  lightkeeper --watch --interval 60     refresh until Ctrl+C
+  lightkeeper --watch --svg screen.svg --json status.json
+  lightkeeper --bmp panel.bmp --panel 800x480
 
-    def __init__(self, mgdl: int = 112, minutes_ago: int = 3, direction: str = "Flat") -> None:
-        """Serve one reading of `mgdl`, `minutes_ago` minutes old, with `direction`."""
-        self._mgdl = mgdl
-        self._minutes_ago = minutes_ago
-        self._direction = direction
+exit codes:
+  0    fresh and in range
+  1    someone should look: low, high, STALE, NO DATA, or Nightscout unreachable
+  2    configuration error: a setting or option that cannot be used, or a
+       file a one-shot run could not write
+  130  a one-shot run stopped with Ctrl+C (--watch stopped that way exits 0)
 
-    def fetch_entries(self, count: int = 12) -> list[Any]:
-        """Return a single Nightscout-shaped entry; `count` is ignored."""
-        when = datetime.now(UTC) - timedelta(minutes=self._minutes_ago)
-        return [
-            {
-                "type": "sgv",
-                "sgv": self._mgdl,
-                "date": int(when.timestamp() * 1000),
-                "direction": self._direction,
-            }
-        ]
+environment:
+  NIGHTSCOUT_URL      your Nightscout site, https only (not needed with --demo)
+  NIGHTSCOUT_TOKEN    a token with the readable role, never the API secret
+  LK_URGENT_LOW, LK_LOW, LK_HIGH, LK_URGENT_HIGH, LK_STALE_MINUTES
+                      the display thresholds in mg/dL, and minutes until STALE
+  LK_MQTT_HOST        turns on Home Assistant over MQTT (see LK_MQTT_*)
+  NO_COLOR            set and not empty: no color in the --watch frame
 
-
-def _int_env(name: str, default: int) -> int:
-    raw = os.environ.get(name)
-    if raw is None or raw == "":
-        return default
-    try:
-        return int(raw)
-    except ValueError:
-        raise SystemExit(f"{name} must be a whole number, got {raw!r}") from None
-
-
-def thresholds_from_env() -> Thresholds:
-    """Build thresholds from LK_* environment variables (see docs/ENV_VARS.md)."""
-    try:
-        return Thresholds(
-            urgent_low=_int_env("LK_URGENT_LOW", 55),
-            low=_int_env("LK_LOW", 70),
-            high=_int_env("LK_HIGH", 180),
-            urgent_high=_int_env("LK_URGENT_HIGH", 250),
-            stale_after=timedelta(minutes=_int_env("LK_STALE_MINUTES", 15)),
-        )
-    except ValueError as exc:
-        raise SystemExit(f"invalid threshold settings: {exc}") from None
-
-
-_TRUE = frozenset({"1", "true", "yes", "on"})
-_FALSE = frozenset({"0", "false", "no", "off"})
-
-
-def _bool_env(name: str, default: bool) -> bool:
-    raw = os.environ.get(name, "").strip().lower()
-    if raw == "":
-        return default
-    if raw in _TRUE:
-        return True
-    if raw in _FALSE:
-        return False
-    raise ValueError(f"{name} must be true or false, got {raw!r}")
-
-
-def home_assistant_from_env(
-    interval_seconds: int, thresholds: Thresholds
-) -> HomeAssistantPublisher | None:
-    """Build the Home Assistant publisher from LK_MQTT_* variables, or None when unset.
-
-    Raises ValueError for an unusable configuration (see docs/ENV_VARS.md).
-    """
-    host = os.environ.get("LK_MQTT_HOST", "").strip()
-    if not host:
-        return None
-    tls = _bool_env("LK_MQTT_TLS", True)
-    port = _int_env("LK_MQTT_PORT", 8883 if tls else 1883)
-    node_id = os.environ.get("LK_MQTT_NODE_ID") or "lightkeeper"
-    mqtt = MqttPublisher(
-        host,
-        port,
-        client_id=f"lightkeeper-{node_id}",
-        username=os.environ.get("LK_MQTT_USERNAME") or None,
-        password=os.environ.get("LK_MQTT_PASSWORD") or None,
-        tls=tls,
-    )
-    return HomeAssistantPublisher(
-        mqtt,
-        interval_seconds=interval_seconds,
-        stale_seconds=int(thresholds.stale_after.total_seconds()),
-        node_id=node_id,
-        discovery_prefix=os.environ.get("LK_MQTT_DISCOVERY_PREFIX") or "homeassistant",
-    )
+every variable:
+  {ENV_VARS_URL}
+"""
 
 
 def write_json(path: str, payload: dict[str, Any]) -> None:
     """Write the status as JSON, replacing the file in one step (like write_svg)."""
-    target = Path(path)
-    temp = target.with_name(target.name + ".tmp")
-    temp.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    os.replace(temp, target)
+    text = json.dumps(payload, indent=2, sort_keys=True) + "\n"
+    _replace(Path(path), lambda temp: temp.write_text(text, encoding="utf-8"))
 
 
 def write_svg(path: str, lines: list[str], written_at: datetime | None = None) -> None:
@@ -138,62 +131,376 @@ def write_svg(path: str, lines: list[str], written_at: datetime | None = None) -
     image never sees a half-written file. The optional `written_at` stamp
     lets a viewer tell a live writer from a dead one (see HAZ-011).
     """
-    target = Path(path)
+    svg = render_svg(lines, written_at=written_at)
+    _replace(Path(path), lambda temp: temp.write_text(svg, encoding="utf-8"))
+
+
+def write_png(path: str, bitmap: Bitmap) -> None:
+    """Write the panel pixels as a 1-bit PNG, replacing the file in one step."""
+    data = bitmap.to_png()
+    _replace(Path(path), lambda temp: temp.write_bytes(data))
+
+
+def write_bmp(path: str, bitmap: Bitmap) -> None:
+    """Write the panel pixels as a 1-bit BMP, replacing the file in one step."""
+    data = bitmap.to_bmp()
+    _replace(Path(path), lambda temp: temp.write_bytes(data))
+
+
+def _replace(target: Path, write: Callable[[Path], object]) -> None:
+    """Write through a temporary file beside `target`, then rename it into place.
+
+    A reader never sees a half-written file. A failed write, or one cut
+    short by Ctrl+C, removes the temporary file and raises again: the
+    caller reports an OSError, and main() handles the interrupt.
+    """
     temp = target.with_name(target.name + ".tmp")
-    temp.write_text(render_svg(lines, written_at=written_at), encoding="utf-8")
-    os.replace(temp, target)
+    try:
+        write(temp)
+        os.replace(temp, target)
+    except BaseException:
+        try:
+            temp.unlink(missing_ok=True)
+        except OSError:
+            pass  # the folder itself is the problem; the caller reports that
+        raise
+
+
+def panel_image(lines: list[str], profile: PanelProfile, written_at: datetime) -> Bitmap:
+    """Draw the panel pixels, stamped with the local `HH:MM` of `written_at` (HAZ-014).
+
+    Exported images always carry the stamp, so a dashboard, a TRMNL or a
+    Kindle showing an image that stopped updating says when it was drawn.
+    """
+    return render_bitmap(lines, profile.width, profile.height, stamp=stamp_text(written_at))
+
+
+def describe_write_error(exc: OSError, target: str) -> str:
+    """Say in plain words why `target` could not be written.
+
+    Never the temporary file's name or a raw error number: the person only
+    knows the path they asked for. The folder is looked at first, because
+    Windows reports a missing folder or a folder in the way as other errors.
+    """
+    folder = os.path.dirname(target) or "."
+    if not os.path.exists(folder):
+        return f"the folder {folder} does not exist"
+    if not os.path.isdir(folder):
+        return f"{folder} is a file, not a folder"
+    if os.path.isdir(target):
+        return f"{target} is a folder"
+    if isinstance(exc, PermissionError):
+        return "permission denied"
+    if exc.errno == errno.ENOSPC:
+        return "the disk is full"
+    if exc.errno == errno.EROFS:
+        return "the disk is read-only"
+    reason = (exc.strerror or "the write failed").rstrip(".")
+    return reason[:1].lower() + reason[1:]
+
+
+def _trend(text: str) -> str:
+    """Accept a Nightscout trend name in any case; argparse then checks the choice."""
+    return next((name for name in TREND_NAMES if name.lower() == text.lower()), text)
+
+
+def _panel(text: str) -> PanelProfile:
+    try:
+        return resolve(text)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from None
 
 
 def build_parser() -> argparse.ArgumentParser:
     """Command-line options for `python -m lightkeeper`."""
-    parser = argparse.ArgumentParser(prog="lightkeeper", description=DISCLAIMER)
+    parser = argparse.ArgumentParser(
+        prog="lightkeeper",
+        description=textwrap.fill(DISCLAIMER, 79),
+        epilog=EPILOG,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument("--demo", action="store_true", help="use canned data, no network")
-    parser.add_argument("--demo-mgdl", type=int, default=112, help="glucose value for --demo")
-    parser.add_argument("--demo-minutes-ago", type=int, default=3, help="reading age for --demo")
+    parser.add_argument(
+        "--demo-mgdl",
+        type=int,
+        metavar="MGDL",
+        help=f"glucose value for --demo (default {DEMO_MGDL})",
+    )
+    parser.add_argument(
+        "--demo-minutes-ago",
+        type=int,
+        metavar="MINUTES",
+        help=f"reading age for --demo (default {DEMO_MINUTES_AGO})",
+    )
+    parser.add_argument(
+        "--demo-trend",
+        type=_trend,
+        choices=TREND_NAMES,
+        metavar="TREND",
+        help=f"trend for --demo: {', '.join(TREND_NAMES)} (default {DEMO_TREND})",
+    )
     parser.add_argument("--watch", action="store_true", help="refresh until Ctrl+C")
-    parser.add_argument("--interval", type=int, default=60, help="seconds between refreshes")
+    parser.add_argument(
+        "--interval",
+        type=int,
+        default=DEFAULT_INTERVAL_SECONDS,
+        metavar="SECONDS",
+        help=(
+            f"seconds between refreshes (default {DEFAULT_INTERVAL_SECONDS}, "
+            f"minimum {MIN_INTERVAL_SECONDS})"
+        ),
+    )
+    parser.add_argument(
+        "--no-color",
+        action="store_true",
+        help="no color in the interactive --watch frame (as NO_COLOR does)",
+    )
     parser.add_argument(
         "--svg", metavar="PATH", help="also write the screen as an SVG image to PATH"
     )
     parser.add_argument(
         "--json", metavar="PATH", help="also write the status as JSON to PATH (for dashboards)"
     )
+    parser.add_argument(
+        "--png",
+        metavar="PATH",
+        help="also write the panel pixels as a 1-bit PNG to PATH, stamped with the time",
+    )
+    parser.add_argument(
+        "--bmp",
+        metavar="PATH",
+        help="also write the panel pixels as a 1-bit BMP to PATH, stamped with the time",
+    )
+    names = [*PROFILES, *(f"{alias} (= {name})" for alias, name in ALIASES.items())]
+    parser.add_argument(
+        "--panel",
+        type=_panel,
+        default=resolve(DEFAULT_PROFILE),
+        metavar="PROFILE",
+        help=(
+            f"panel for --png and --bmp: {', '.join(names)}, or a size like 800x480 "
+            f"(default {DEFAULT_PROFILE})"
+        ),
+    )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     return parser
+
+
+class _RecordingSource:
+    """Passes fetches through and notes what the last failed one was, for the diagnostics.
+
+    current_status turns any failure into a STALE or NO DATA screen and a
+    message; this wrapper lets the CLI also see which link failed, so
+    monitor.py stays as it is. Only the kind and the hint are kept, never the
+    exception: its traceback would keep every frame of the failed fetch alive
+    until the next one.
+    """
+
+    def __init__(self, source: EntrySource) -> None:
+        self._source = source
+        self.failure: tuple[str, str] | None = None  # (kind, hint) of a NightscoutError
+
+    def fetch_entries(self, count: int = 12) -> list[Any]:
+        self.failure = None
+        try:
+            return self._source.fetch_entries(count)
+        except NightscoutError as exc:
+            self.failure = (exc.kind, exc.hint)
+            raise
+
+
+class _Diagnostics:
+    """One stderr line per change of what failed, and one on recovery.
+
+    Advice about settings, never screen text: the screen says "Nightscout
+    unreachable" whatever the kind. Every line is redacted, and a failure
+    that repeats every cycle is reported once, not once a minute.
+    """
+
+    def __init__(self, secrets: list[str]) -> None:
+        self._secrets = [s for s in secrets if s]
+        self._last: tuple[str, str] | None = None  # what was last reported
+        self.advice: str | None = None  # what to check, while something is failing
+
+    def _redact(self, text: str) -> str:
+        for secret in self._secrets:
+            for form in (secret, urllib.parse.quote(secret, safe=""), repr(secret)[1:-1]):
+                text = text.replace(form, "***")
+        return text
+
+    def update(self, error: str | None, failure: tuple[str, str] | None) -> str | None:
+        """Return the stderr line for this cycle, or None when nothing changed.
+
+        `failure` is the (kind, hint) of a Nightscout failure; any other error
+        is reported with its own message.
+        """
+        if error is None:
+            if self._last is None:
+                return None
+            self._last = self.advice = None
+            return "lightkeeper: Nightscout reachable again"
+        if failure is not None:
+            kind, advice = failure
+            self.advice = self._redact(advice)
+            # A Nightscout hint is fixed text for its kind and status, so a new
+            # hint is a real change (HTTP 404, then 500), never just a new cycle.
+            key = (kind, self.advice)
+        else:
+            # Any other message may differ every cycle; that it failed is the news.
+            self.advice = self._redact(f"could not read the readings: {error}")
+            key = ("other", "")
+        if key == self._last:
+            return None
+        self._last = key
+        return f"lightkeeper: {self.advice}"
+
+
+def _warn(text: str) -> None:
+    """Print one line on stderr; with no stderr at all, nowhere, and never on stdout.
+
+    print() to a stderr of None (pythonw, a Windows service, `2>&-`) would
+    fall back to stdout, which must stay exactly the vector lines.
+    """
+    if sys.stderr is not None:
+        print(text, file=sys.stderr, flush=True)
+
+
+def _isatty(stream: TextIO | None) -> bool:
+    """Return True only for an open stream on an interactive terminal.
+
+    No stdout at all (None under pythonw, a Windows service, a detached
+    process, or `>&-`) and a closed stream are not terminals: the screen is
+    then shown nowhere, but the files are still written (HAZ-011).
+    """
+    isatty = getattr(stream, "isatty", None)
+    if isatty is None:
+        return False
+    try:
+        return bool(isatty())
+    except (OSError, ValueError):  # ValueError: the stream is closed
+        return False
+
+
+class _Screen:
+    """Shows each cycle: the plain vector lines, or the logbook frame.
+
+    The frame is only for --watch on an interactive terminal whose TERM is
+    not `dumb`. Everything else gets exactly the vector lines. A `stream` of
+    None shows nothing (print() to a None stdout writes nothing).
+    """
+
+    def __init__(
+        self,
+        args: argparse.Namespace,
+        stream: TextIO | None,
+        environ: Mapping[str, str],
+    ) -> None:
+        self._stream = stream
+        self.framed = terminal_view.wants_frame(args.watch, _isatty(stream), environ)
+        self._escapes = self.framed and terminal_view.enable_vt()
+        self._color = terminal_view.wants_color(args.no_color, environ)
+        self._drawn = False
+
+    def show(
+        self,
+        lines: list[str],
+        now: datetime,
+        interval: int,
+        advice: str | None,
+        note: str | None,
+    ) -> None:
+        """Show one cycle's screen, and `advice` on stderr when there is a new line."""
+        # flush=True: under systemd stdout is block-buffered, and a buffered
+        # screen that only appears hours later is useless in `journalctl -f`.
+        if not self.framed:
+            print("\n".join(lines), file=self._stream, flush=True)
+            self._advise(advice)
+            return
+        # Before the redraw: on the same terminal the redraw then erases the
+        # stderr copy, and the note under the footer keeps it in view.
+        self._advise(advice)
+        frame = terminal_view.render_frame(
+            lines,
+            now,
+            interval,
+            escapes=self._escapes,
+            color=self._color,
+            columns=shutil.get_terminal_size().columns,
+            note=note,
+            first=not self._drawn,
+        )
+        self._drawn = True
+        print(frame, end="", file=self._stream, flush=True)
+
+    def _advise(self, advice: str | None) -> None:
+        if advice is not None:
+            _warn(advice)
+
+    def end_cycle(self) -> None:
+        """Mark the end of a --watch cycle on plain output."""
+        if not self.framed:
+            print(SEPARATOR, file=self._stream, flush=True)
+
+    def close(self) -> None:
+        """Leave the terminal's text attributes as they were, whatever was interrupted."""
+        if self._escapes and self._drawn:
+            print(terminal_view.RESET, end="", file=self._stream, flush=True)
+
+
+def _check_demo_flags(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
+    """Refuse the demo options without --demo: canned data must never look real."""
+    given = [
+        f"--{name.replace('_', '-')}" for name in _DEMO_ONLY if getattr(args, name) is not None
+    ]
+    if given and not args.demo:
+        verb = "needs" if len(given) == 1 else "need"
+        parser.error(
+            f"{' and '.join(given)} {verb} --demo: canned readings are shown only with --demo"
+        )
 
 
 def main(argv: list[str] | None = None) -> int:
     """Run once (or with --watch, until stopped) and return the exit code.
 
-    0 means fresh and in range, 1 means someone should look, 2 means bad configuration.
+    0 means fresh and in range, 1 means someone should look, 2 means bad
+    configuration, and 130 means a one-shot run was stopped with Ctrl+C
+    (never 0, which would read as fresh and in range to cron or Home
+    Assistant). A --watch loop stopped with Ctrl+C exits 0.
     """
-    args = build_parser().parse_args(argv)
-    thresholds = thresholds_from_env()
-
-    if args.demo:
-        source: EntrySource = DemoSource(mgdl=args.demo_mgdl, minutes_ago=args.demo_minutes_ago)
-    else:
-        url = os.environ.get("NIGHTSCOUT_URL")
-        if not url:
-            print("Set NIGHTSCOUT_URL (see docs/ENV_VARS.md) or use --demo.", file=sys.stderr)
-            return 2
-        try:
-            source = NightscoutClient(url, token=os.environ.get("NIGHTSCOUT_TOKEN") or None)
-        except ValueError as exc:
-            print(f"Configuration error: {exc}", file=sys.stderr)
-            return 2
-
-    interval = max(args.interval, 15)
+    watch = False
     try:
+        parser = build_parser()
+        args = parser.parse_args(argv)
+        watch = args.watch
+        return _start(parser, args)
+    except KeyboardInterrupt:
+        if watch:
+            return 0
+        _warn("lightkeeper: stopped")
+        return EXIT_INTERRUPTED
+
+
+def _start(parser: argparse.ArgumentParser, args: argparse.Namespace) -> int:
+    """Check every setting, then run; exit 2 before anything is shown if one is unusable."""
+    _check_demo_flags(parser, args)
+    interval = max(args.interval, MIN_INTERVAL_SECONDS)
+    try:
+        thresholds = thresholds_from_env()
+        # NightscoutClient is looked up here, at call time, so tests can stand in for it.
+        source = source_from_env(args, client_factory=NightscoutClient)
         home_assistant = home_assistant_from_env(interval, thresholds)
-    except ValueError as exc:
-        print(f"Configuration error: {exc}", file=sys.stderr)
+    except ValueError as exc:  # ConfigError, naming the setting, or a library's own check
+        _warn(f"Configuration error: {exc}")
         return 2
 
     notifier = SystemdNotifier()
     notifier.ready("starting")
     try:
-        return _run(args, source, thresholds, interval, home_assistant, notifier)
+        screen = _Screen(args, sys.stdout, os.environ)
+        try:
+            return _run(args, source, thresholds, interval, home_assistant, notifier, screen)
+        finally:
+            screen.close()
     finally:
         notifier.stopping()
         if home_assistant is not None:
@@ -209,31 +516,39 @@ def _run(
     interval: int,
     home_assistant: HomeAssistantPublisher | None,
     notifier: SystemdNotifier,
+    screen: _Screen,
 ) -> int:
-    """Run the refresh loop: fetch, show, write, publish, sleep."""
+    """Run the refresh loop: fetch, show, advise, write, publish, sleep."""
+    recorder = _RecordingSource(source)
+    diagnostics = _Diagnostics([os.environ.get("NIGHTSCOUT_TOKEN", "").strip()])
     last_good = None
     while True:
         now = datetime.now(UTC)
-        status, error = current_status(source, now, thresholds, last_good)
+        status, error = current_status(recorder, now, thresholds, last_good)
         if error is None:
             last_good = status
         lines = render_lines(status, error)
-        # flush=True: under systemd stdout is block-buffered, and a buffered
-        # screen that only appears hours later is useless in `journalctl -f`.
-        print("\n".join(lines), flush=True)
+        advice = diagnostics.update(error, recorder.failure)
+        screen.show(lines, now, interval, advice, diagnostics.advice)
         payload = status_payload(status, error, now)
-        outputs: list[tuple[str, functools.partial[None]]] = []
+        outputs: list[tuple[str, Callable[[], None]]] = []
         if args.svg:
             outputs.append((args.svg, functools.partial(write_svg, args.svg, lines, now)))
         if args.json:
             outputs.append((args.json, functools.partial(write_json, args.json, payload)))
+        if args.png or args.bmp:
+            bitmap = panel_image(lines, args.panel, now)
+            if args.png:
+                outputs.append((args.png, functools.partial(write_png, args.png, bitmap)))
+            if args.bmp:
+                outputs.append((args.bmp, functools.partial(write_bmp, args.bmp, bitmap)))
         for target, write in outputs:
             try:
                 write()
             except OSError as exc:
                 # A full disk or a locked file must not kill the watch loop
                 # (HAZ-011); the next cycle retries. Run-once reports it.
-                print(f"Could not write {target}: {exc}", file=sys.stderr, flush=True)
+                _warn(f"Could not write {target}: {describe_write_error(exc, target)}")
                 if not args.watch:
                     return 2
         if home_assistant is not None:
@@ -242,18 +557,15 @@ def _run(
             except MqttError as exc:
                 # Never stops the display. The broker's will and expire_after
                 # make Home Assistant show unavailable meanwhile (HAZ-013).
-                print(f"Home Assistant publish failed: {exc}", file=sys.stderr, flush=True)
+                _warn(f"Home Assistant publish failed: {exc}")
         # A finished cycle pets the systemd watchdog; a hung one does not, and
         # systemd restarts the service instead of leaving a frozen screen (HAZ-002).
         notifier.alive(status.level.value + (", Nightscout unreachable" if error else ""))
         if not args.watch:
             # Exit code tells scripts (Home Assistant, cron) whether to pay attention.
             return 1 if status.level.needs_attention else 0
-        print("-" * 24, flush=True)
-        try:
-            time.sleep(interval)
-        except KeyboardInterrupt:
-            return 0
+        screen.end_cycle()
+        time.sleep(interval)
 
 
 if __name__ == "__main__":  # pragma: no cover

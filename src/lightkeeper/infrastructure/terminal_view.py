@@ -1,0 +1,266 @@
+"""The interactive `--watch` screen: the vector lines in an ASCII logbook frame.
+
+Only an interactive terminal running `--watch` gets this (docs/BRAND.md,
+Terminal); `wants_frame` says when. Piped, systemd and `--json` output stays
+exactly the vector lines. This module builds the text of one redraw from the
+lines alone, the way `panel_layout` plans a panel from them: the status shape
+comes from the headline (`lines[0]`), so nothing is classified again.
+
+    o))) lightkeeper   checked 02:14:07
+    +-----------------------------+
+    |  IN RANGE                   |
+    |  112 mg/dL ->               |
+    |  3 min ago                  |
+    +-----------------------------+
+    next check in 60s - Ctrl+C to stop - secondary display, confirm on the primary app
+
+Shape before hue: each status keeps a cue without color (assets/brand/
+tokens.json, `terminal`). LOW and HIGH are underlined across the content
+width, the panel's rule; URGENT LOW, URGENT HIGH, STALE, NO DATA and any
+other headline are in reverse video, a band; the STALE `last:` line is
+struck through. NO_COLOR and --no-color drop only the color codes (30 to
+37). Never dim, blink or bright black, never the bell, and ASCII only: any
+other character in a line is drawn as `?`, so no line can carry an escape.
+
+A note, when the CLI has advice about a failing setting, goes under the
+footer, outside the frame: it is never screen text.
+
+Nothing moves between checks. A redraw homes the cursor, rewrites the frame
+row by row, and erases what is left below it. Erase-display (`ESC [2J`) is
+sent only before the first frame: some terminals, Windows Terminal among
+them, move the screen into the scrollback on it, so sending it on every
+redraw would grow the scrollback once a minute. The footer and the note are
+broken to the terminal's width, down to the frame's own 31 columns: a row
+that wrapped would be erased only on its first screen row next time, leaving
+its tail under the next frame. (The 35-column header wraps below 35 columns,
+but always the same way, so nothing is left behind.)
+
+Pure standard library (ADR-0005); imports no application code.
+"""
+
+from __future__ import annotations
+
+import sys
+import textwrap
+from collections.abc import Mapping, Sequence
+from datetime import datetime
+from typing import Any
+
+from lightkeeper.infrastructure.panel_layout import LAST, WIDEST_LINE, roles_for, treatment
+
+SIGNATURE = "o)))"
+PADDING = 2  # spaces between the frame and the text, on both sides
+
+# SGR parameters per headline (assets/brand/tokens.json, `terminal.sgr`,
+# keyed there by level; here by the headline the display shows).
+SGR = {
+    "IN RANGE": "32",
+    "LOW": "4;31",
+    "HIGH": "4;33",
+    "URGENT LOW": "1;7;31",
+    "URGENT HIGH": "1;7;33",
+    "STALE - DO NOT TRUST": "7",
+    "NO DATA": "7",
+}
+UNKNOWN_SGR = "7"  # the most cautious treatment, as NO DATA
+STALE_LAST_SGR = "9"  # strike through the STALE `last:` line
+COLOR_CODES = range(30, 38)
+
+ESC = "\x1b"
+HOME = ESC + "[H"
+CLEAR_SCREEN = ESC + "[2J"
+ERASE_ROW = ESC + "[2K"  # the whole row the cursor is on
+ERASE_BELOW = ESC + "[J"  # from the cursor to the end of the screen
+RESET = ESC + "[0m"
+
+# The narrowest frame (the widest vector line, padding and the two bars).
+# Below it the box itself wraps, so a footer or a note is not broken further.
+MIN_COLUMNS = len(WIDEST_LINE) + 2 * PADDING + 2
+
+# Windows console API (wincon.h).
+STD_OUTPUT_HANDLE = -11
+ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
+
+
+def wants_frame(watch: bool, isatty: bool, environ: Mapping[str, str]) -> bool:
+    """Return True only for `--watch` on an interactive terminal whose TERM is not `dumb`."""
+    return watch and isatty and environ.get("TERM", "").strip().lower() != "dumb"
+
+
+def wants_color(no_color: bool, environ: Mapping[str, str]) -> bool:
+    """Return False for --no-color, or NO_COLOR set to anything but empty (no-color.org)."""
+    return not no_color and not environ.get("NO_COLOR")
+
+
+def headline_codes(headline: str, color: bool = True) -> str:
+    """Return the SGR parameters for a headline; without `color`, only the shape cues."""
+    codes = SGR.get(headline, UNKNOWN_SGR)
+    if color:
+        return codes
+    return ";".join(code for code in codes.split(";") if int(code) not in COLOR_CODES)
+
+
+def _ascii(text: str) -> str:
+    """Printable ASCII only: anything else, control characters included, becomes `?`."""
+    return "".join(char if " " <= char <= "~" else "?" for char in text)
+
+
+def _styled(text: str, codes: str, escapes: bool) -> str:
+    if not escapes or not codes:
+        return text
+    return f"{ESC}[{codes}m{text}{RESET}"
+
+
+def footer_rows(interval_seconds: int, columns: int) -> list[str]:
+    """Return the footer rows, none wider than `columns` (from MIN_COLUMNS up).
+
+    Its parts share a row where they fit, and a part wider than the terminal
+    is broken between words. A row wider than the terminal would wrap, and
+    the next redraw, erasing only the first screen row of it, would leave
+    its tail behind.
+    """
+    parts = [
+        f"next check in {interval_seconds}s",
+        "Ctrl+C to stop",
+        "secondary display, confirm on the primary app",
+    ]
+    columns = max(columns, MIN_COLUMNS)
+    rows = textwrap.wrap(parts[0], columns)
+    for part in parts[1:]:
+        joined = f"{rows[-1]} - {part}"
+        if len(joined) <= columns:
+            rows[-1] = joined
+        else:
+            rows.extend(textwrap.wrap(part, columns))
+    return rows
+
+
+def frame_rows(
+    lines: Sequence[str],
+    checked_at: datetime,
+    interval_seconds: int,
+    *,
+    escapes: bool = True,
+    color: bool = True,
+    columns: int = 80,
+    note: str | None = None,
+) -> list[str]:
+    """Return the rows of one frame: header, the boxed lines, the footer, then any note.
+
+    `checked_at` is shown in local time, as `HH:MM:SS` (a naive time is taken
+    as local already). With `escapes` off nothing but ASCII text is
+    returned, for a terminal that cannot act on escape codes. `note` is
+    wrapped to `columns` under the footer, unstyled.
+    """
+    if not lines:
+        raise ValueError("nothing to draw: lines is empty")
+    clean = [_ascii(line) for line in lines]
+    width = max(len(WIDEST_LINE), *(len(line) for line in clean))
+    struck = {
+        index
+        for index, role in enumerate(roles_for(treatment(clean[0]), len(clean) - 1), start=1)
+        if role == LAST
+    }
+    pad = " " * PADDING
+    rule = "+" + "-" * (width + 2 * PADDING) + "+"
+    rows = [f"{SIGNATURE} lightkeeper   checked {checked_at.astimezone():%H:%M:%S}", rule]
+    for index, line in enumerate(clean):
+        if index == 0:
+            # Underline and reverse span the content width: the panel's rule and band.
+            body = _styled(line.ljust(width), headline_codes(line, color), escapes)
+        else:
+            codes = STALE_LAST_SGR if index in struck else ""
+            body = _styled(line, codes, escapes) + " " * (width - len(line))
+        rows.append(f"|{pad}{body}{pad}|")
+    rows.append(rule)
+    rows.extend(footer_rows(interval_seconds, columns))
+    if note:
+        rows.extend(textwrap.wrap(_ascii(note), max(columns, MIN_COLUMNS)))
+    return rows
+
+
+def render_frame(
+    lines: Sequence[str],
+    checked_at: datetime,
+    interval_seconds: int,
+    *,
+    escapes: bool = True,
+    color: bool = True,
+    columns: int = 80,
+    note: str | None = None,
+    first: bool = False,
+) -> str:
+    """Return the text of one redraw, ready to write to the terminal.
+
+    With `escapes`, the frame replaces the last one in place: home, each row
+    erased and rewritten, then everything below erased. `first` clears the
+    screen once before that. Without `escapes`, the plain frame and a blank
+    line, so successive frames stay apart.
+    """
+    rows = frame_rows(
+        lines,
+        checked_at,
+        interval_seconds,
+        escapes=escapes,
+        color=color,
+        columns=columns,
+        note=note,
+    )
+    if not escapes:
+        return "\n".join(rows) + "\n\n"
+    # Each row is erased before it is written, not after: erasing after a row
+    # exactly as wide as the terminal would erase its last character.
+    start = CLEAR_SCREEN + HOME if first else HOME
+    return start + "".join(ERASE_ROW + row + "\n" for row in rows) + ERASE_BELOW
+
+
+def _kernel32() -> Any:
+    """Return kernel32 with the console functions typed, or None off Windows.
+
+    A private instance, so the argument and result types set here never
+    change `ctypes.windll.kernel32` for anything else in the process. HANDLE
+    is pointer-sized, so it must not be left as the default C int.
+    """
+    import ctypes
+
+    loader = getattr(ctypes, "WinDLL", None)
+    if loader is None:
+        return None
+    kernel32 = loader("kernel32", use_last_error=True)
+    handle, dword = ctypes.c_void_p, ctypes.c_uint32
+    kernel32.GetStdHandle.argtypes = [dword]
+    kernel32.GetStdHandle.restype = handle
+    kernel32.GetConsoleMode.argtypes = [handle, ctypes.POINTER(dword)]
+    kernel32.GetConsoleMode.restype = ctypes.c_int
+    kernel32.SetConsoleMode.argtypes = [handle, dword]
+    kernel32.SetConsoleMode.restype = ctypes.c_int
+    return kernel32
+
+
+def enable_vt(platform: str = sys.platform, kernel32: Any = None) -> bool:
+    """Make sure stdout acts on escape codes; False means draw the plain frame.
+
+    Terminals on Linux and macOS, and over SSH, already do. The Windows
+    console does once ENABLE_VIRTUAL_TERMINAL_PROCESSING is set on stdout
+    (Windows 10 and later; Windows Terminal has it set already). If that
+    fails, the frame is drawn without escape codes rather than as garbage.
+    `kernel32` is injectable for tests.
+    """
+    if platform != "win32":
+        return True
+    import ctypes
+
+    try:
+        api = kernel32 if kernel32 is not None else _kernel32()
+        if api is None:
+            return False
+        mode = ctypes.c_uint32()
+        # The argument is a DWORD, so -11 is passed as its unsigned 32-bit form.
+        handle = api.GetStdHandle(STD_OUTPUT_HANDLE & 0xFFFFFFFF)
+        if not api.GetConsoleMode(handle, ctypes.byref(mode)):
+            return False
+        if mode.value & ENABLE_VIRTUAL_TERMINAL_PROCESSING:
+            return True
+        return bool(api.SetConsoleMode(handle, mode.value | ENABLE_VIRTUAL_TERMINAL_PROCESSING))
+    except (AttributeError, OSError, TypeError, ValueError, ctypes.ArgumentError):
+        return False

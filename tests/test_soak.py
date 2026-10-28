@@ -117,6 +117,18 @@ def test_gap004_three_day_watch_soak(monkeypatch, tmp_path):
     # how much depends on the platform), but a leak keeps growing in the
     # second. Only allocations made by src/lightkeeper are counted, because
     # the test's own recording list grows by design.
+    #
+    # The limit sits between noise and a leak, closer to the leak than it
+    # should. CPython 3.14 leaves some short-lived blocks (strftime and
+    # isoformat results among them) allocated after they are dropped, still
+    # attributed to the line that made them; a plain loop of `strftime` with no
+    # Lightkeeper code shows it, and in this suite it reached about 11 KB in the
+    # second window, depending on what ran before. The smallest leak there is,
+    # one more pointer a cycle (a list keeping a reference to a shared object),
+    # measured about 16.7 KB in the second window: just above the limit, so it
+    # is caught, but with about 2% to spare. A leaked new object a cycle adds
+    # its own size on top (at least 2,000 x 36 bytes = 72 KB). Separating noise
+    # from a leak by more (growth across three windows, say) is follow-up work.
     def ours(later, earlier):
         stats = later.compare_to(earlier, "filename")
         mine = [s for s in stats if os.path.join("src", "lightkeeper") in s.traceback[0].filename]
@@ -124,7 +136,7 @@ def test_gap004_three_day_watch_soak(monkeypatch, tmp_path):
 
     first, _ = ours(memory["mid"], memory["start"])
     second, top = ours(memory["end"], memory["mid"])
-    assert second < 8 * 1024, f"still growing in the second window ({first=}): {top}"
+    assert second < 16 * 1024, f"still growing in the second window ({first=}): {top}"
 
     by_cycle = {c: (level, age) for c, level, age in levels}
     # Fresh readings show their true age on day 3: no drift from jitter.
