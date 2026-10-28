@@ -3,11 +3,18 @@
 Runs a tiny fake Nightscout on localhost so the real urllib fetcher, real
 JSON decoding, and real error paths are exercised end to end. This partially
 closes GAP-003; a test against a real Nightscout deployment is still open.
+
+FR-006: each failure names its kind in plain words, over the same socket; DNS
+and certificate failures, which need the outside world, go through an
+injected opener in front of the real fetcher.
 """
 
 import json
+import socket
+import ssl
 import threading
 import time
+import urllib.error
 from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
@@ -16,9 +23,12 @@ import pytest
 
 from lightkeeper.application.monitor import current_status, render_lines
 from lightkeeper.domain.status import Level, Thresholds
+from lightkeeper.infrastructure import nightscout
 from lightkeeper.infrastructure.nightscout import NightscoutClient, NightscoutError
 
 TOKEN = "readable-integration-token"
+# Modes in which the fake answers with this HTTP status after the token check.
+STATUS_MODES = {"forbidden": 403, "missing": 404, "broken": 500}
 
 
 class FakeNightscout(BaseHTTPRequestHandler):
@@ -58,6 +68,10 @@ class FakeNightscout(BaseHTTPRequestHandler):
             self._send(200, b"[" + b"1," * 600_000 + b"1]")
         elif FakeNightscout.mode == "html":
             self._send(200, b"<html>maintenance</html>")
+        elif FakeNightscout.mode == "object":
+            self._send(200, b'{"status": "ok"}')
+        elif FakeNightscout.mode in STATUS_MODES:
+            self._send(STATUS_MODES[FakeNightscout.mode], b'{"status": "error"}')
         else:
             self._send(200, json.dumps(FakeNightscout.entries).encode())
 
