@@ -70,7 +70,9 @@ def glyph_table(spec: dict[str, object]) -> list[tuple[int, list[str]]]:
             raise ValueError(f"glyph {char!r} is outside printable ASCII")
         if len(rows) != HEIGHT or any(len(row) != WIDTH or set(row) - {"#", "."} for row in rows):
             raise ValueError(f"glyph {char!r} is not {HEIGHT} rows of {WIDTH} '#' or '.' cells")
-    return [(code, list(glyphs.get(chr(code), glyphs[fallback]))) for code in range(FIRST, LAST + 1)]
+    return [
+        (code, list(glyphs.get(chr(code), glyphs[fallback]))) for code in range(FIRST, LAST + 1)
+    ]
 
 
 def row_literal(row: str) -> str:
@@ -100,17 +102,22 @@ def render(spec: dict[str, object]) -> str:
     return "\n".join(lines)
 
 
-def build(font: Path = FONT) -> str:
-    """Return the header text generated from the font file."""
+def build(font: Path) -> str:
+    """Return the header text generated from a font file."""
     return render(json.loads(font.read_text(encoding="utf-8")))
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Write the header, or with --check report whether it is current."""
+    """Write the header, or with --check report whether it is current.
+
+    Reads FONT and writes HEADER, looked up when called, so a test can point
+    them at a scratch directory. A header that differs only in CRLF line
+    endings (a Windows checkout) counts as current.
+    """
     parser = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
     parser.add_argument("--check", action="store_true", help="exit 1 if the header is stale")
     args = parser.parse_args(argv)
-    text = build()
+    text = build(FONT)
     current = HEADER.read_text(encoding="utf-8").replace("\r\n", "\n") if HEADER.exists() else ""
     if current == text:
         return 0
@@ -119,7 +126,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     HEADER.parent.mkdir(parents=True, exist_ok=True)
     HEADER.write_text(text, encoding="utf-8", newline="\n")
-    print(f"wrote {HEADER.relative_to(ROOT).as_posix()}")
+    print(f"wrote {HEADER.name}")
     return 0
 
 
