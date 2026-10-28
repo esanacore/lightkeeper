@@ -4,7 +4,7 @@
 Check sensor and phone
 Confirm on primary device
 Nightscout unreachable</desc>
-<rect x="0.5" y="0.5" width="295" height="127" fill="#E6E5DF" stroke="#5B6068"/>
+<rect x="0.5" y="0.5" width="295" height="127" fill="#E6E5DF" stroke="#7D7B74"/>
 <line x1="5" y1="6" x2="291" y2="6" stroke="#15171C" stroke-width="2" stroke-dasharray="4 4"/>
 <line x1="5" y1="122" x2="291" y2="122" stroke="#15171C" stroke-width="2" stroke-dasharray="4 4"/>
 <line x1="6" y1="7" x2="6" y2="121" stroke="#15171C" stroke-width="2" stroke-dasharray="4 4" stroke-dashoffset="2"/>

@@ -5,7 +5,7 @@ last: 45 mg/dL v
 40 min ago
 Confirm on primary device</desc>
 <defs><pattern id="lk-hatch" width="4" height="4" patternUnits="userSpaceOnUse"><rect x="0" y="0" width="1" height="1" fill="#15171C"/><rect x="3" y="1" width="1" height="1" fill="#15171C"/><rect x="2" y="2" width="1" height="1" fill="#15171C"/><rect x="1" y="3" width="1" height="1" fill="#15171C"/></pattern></defs>
-<rect x="0.5" y="0.5" width="295" height="127" fill="#E6E5DF" stroke="#5B6068"/>
+<rect x="0.5" y="0.5" width="295" height="127" fill="#E6E5DF" stroke="#7D7B74"/>
 <rect x="4" y="4" width="288" height="4" fill="url(#lk-hatch)"/>
 <rect x="4" y="120" width="288" height="4" fill="url(#lk-hatch)"/>
 <rect x="4" y="8" width="4" height="112" fill="url(#lk-hatch)"/>

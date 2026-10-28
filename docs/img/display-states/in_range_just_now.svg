@@ -3,7 +3,7 @@
 <desc>IN RANGE
 150 mg/dL ^
 just now</desc>
-<rect x="0.5" y="0.5" width="295" height="127" fill="#E6E5DF" stroke="#5B6068"/>
+<rect x="0.5" y="0.5" width="295" height="127" fill="#E6E5DF" stroke="#7D7B74"/>
 <text x="14" y="33" fill="#15171C" font-family="IBM Plex Mono, DejaVu Sans Mono, Consolas, monospace" font-size="24" textLength="115" font-weight="700">IN RANGE</text>
 <text x="12" y="69" fill="#15171C" font-family="IBM Plex Mono, DejaVu Sans Mono, Consolas, monospace" font-size="20" textLength="132">150 mg/dL ^</text>
 <text x="12" y="98" fill="#15171C" font-family="IBM Plex Mono, DejaVu Sans Mono, Consolas, monospace" font-size="15" textLength="72">just now</text>

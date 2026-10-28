@@ -5,7 +5,8 @@ Used for three things: the docs gallery of every display state, the
 previewing layouts before real e-paper hardware exists.
 
 The image is the 1-bit panel in brand colors (docs/BRAND.md): Paper and Ink,
-with Muted only for the stamp and the panel's edge. Each status gets the same
+with Muted only for the stamp and Line strong only for the panel's edge (its
+bezel, the same colour the demo page gives it). Each status gets the same
 shape it gets on the panel, from the same table (`panel_layout.TREATMENTS`),
 drawn with plain rect, line and pattern elements, so the shape looks the same
 whatever fonts the viewer has:
@@ -23,9 +24,11 @@ the panel's rules: the headline band is one height for every level at a
 given panel size, and a headline longer than IN RANGE is drawn narrower and
 stretched to the band's full height, as the panel draws it, so STALE - DO
 NOT TRUST is never shorter than IN RANGE; on fresh screens the value line
-(the number and its arrow) is the hero, larger than the lines under it but
-never larger than the headline, so the status word is never smaller than
-the number; the age is never smaller than the context lines; and on STALE
+(the number and its arrow) is the hero: at least as large as the lines under
+it, and larger where the width allows (on a narrow panel the longest line
+fitted to the width can bring the hero down to the age's size), but never
+larger than the headline, so the status word is never smaller than the
+number; the age is never smaller than the context lines; and on STALE
 the `last:` line is never larger than the age, so an old value is never the
 hero. When the lines do not fit the height, context shrinks first, then the
 hero (not below the age).
@@ -37,11 +40,16 @@ the panel even at the smallest size is drawn narrower rather than past the
 margin.
 
 Pure standard library. The output is static SVG with no scripts or links,
-and every line of text is XML-escaped, so it is safe to embed anywhere.
+and every line of text is XML-escaped, so it is safe to embed anywhere. One
+thing to know when inlining: a STALE image defines its hatch as a pattern
+with an id, and ids are shared by the whole page. Embed each file with
+`<img>` or `<object>`, or give each inlined image its own `id_prefix`, so a
+hidden copy cannot take a visible one's hatch with it.
 """
 
 from __future__ import annotations
 
+import re
 from datetime import UTC, datetime
 from xml.sax.saxutils import escape
 
@@ -72,11 +80,16 @@ DEFAULT_HEIGHT = 128
 # Brand tokens, light theme (assets/brand/tokens.json, held there by the tests).
 PAPER = "#E6E5DF"  # Paper
 INK = "#15171C"  # Ink
-STAMP = "#5B6068"  # Muted, 5.01:1 on Paper: the stamp and the panel's edge
+STAMP = "#5B6068"  # Muted, 5.01:1 on Paper: the stamp
+LINE_STRONG = "#7D7B74"  # Line strong, the brand's bezel colour: the panel's edge
 
 # IBM Plex Mono is the brand's data face; the others are where it is missing.
 FONT = "IBM Plex Mono, DejaVu Sans Mono, Consolas, monospace"
-HATCH_ID = "lk-hatch"
+# The hatch pattern's id is "<id prefix>-hatch". A prefix is a letter, then
+# letters, digits, "-" or "_", so the id is valid and needs no escaping.
+ID_PREFIX = "lk"
+HATCH_ID = f"{ID_PREFIX}-hatch"
+ID_PREFIX_SHAPE = re.compile(r"[A-Za-z][A-Za-z0-9_-]*")
 
 # Monospace glyphs are about 0.6 of the font size wide (IBM Plex Mono and
 # DejaVu Sans Mono; Consolas is a little narrower). `textLength` makes the
@@ -157,9 +170,9 @@ def default_title(lines: list[str]) -> str:
     return " / ".join(lines)
 
 
-def _hatch_frame(inset: int, width: int, height: int) -> list[str]:
+def _hatch_frame(inset: int, width: int, height: int, hatch_id: str) -> list[str]:
     """Return a ring HATCH_WIDTH wide, `inset` from the edge, filled with the hatch."""
-    fill = f"url(#{HATCH_ID})"
+    fill = f"url(#{hatch_id})"
     side = height - 2 * inset - 2 * HATCH_WIDTH
     ring_w = width - 2 * inset
     return [
@@ -202,6 +215,8 @@ def render_svg(
     height: int = DEFAULT_HEIGHT,
     title: str | None = None,
     written_at: datetime | None = None,
+    *,
+    id_prefix: str = ID_PREFIX,
 ) -> str:
     """Return an SVG document showing `lines` the way the panel would.
 
@@ -211,12 +226,17 @@ def render_svg(
     carries them one per line. When `written_at` is given, a small "written
     HH:MM UTC" stamp is drawn at the bottom right, in a strip of its own, so
     a dashboard viewer can tell a live writer from one that died and left
-    its last image behind.
+    its last image behind. `id_prefix` starts every id the image defines (a
+    STALE image's hatch is "<id_prefix>-hatch"), so several images inlined
+    in one page can each keep their own.
     """
     if width < 100 or height < 60:
         raise ValueError("panel must be at least 100x60 pixels")
     if not lines:
         raise ValueError("nothing to draw: lines is empty")
+    if not ID_PREFIX_SHAPE.fullmatch(id_prefix):
+        raise ValueError("id_prefix must be a letter, then letters, digits, '-' or '_'")
+    hatch_id = f"{id_prefix}-hatch"
 
     kind = treatment(lines[0])
     margin = round(min(width, height) * MARGIN_RATIO)
@@ -307,16 +327,16 @@ def render_svg(
             f'<rect x="{x}" y="{y}" width="1" height="1" fill="{INK}"/>' for x, y in HATCH_CELLS
         )
         parts.append(
-            f'<defs><pattern id="{HATCH_ID}" width="{HATCH_PITCH}" height="{HATCH_PITCH}" '
+            f'<defs><pattern id="{hatch_id}" width="{HATCH_PITCH}" height="{HATCH_PITCH}" '
             f'patternUnits="userSpaceOnUse">{cells}</pattern></defs>'
         )
     parts.append(
         f'<rect x="0.5" y="0.5" width="{width - 1}" height="{height - 1}" '
-        f'fill="{PAPER}" stroke="{STAMP}"/>'
+        f'fill="{PAPER}" stroke="{LINE_STRONG}"/>'
     )
     # The frame sits in the margin, centred, clear of every line of text.
     if kind == STALE:
-        parts += _hatch_frame((margin - HATCH_WIDTH) // 2, width, height)
+        parts += _hatch_frame((margin - HATCH_WIDTH) // 2, width, height, hatch_id)
     elif kind == DASHED:
         parts += _dashed_frame((margin - DASH_WIDTH) // 2, width, height)
     banded = kind in (INVERSE, STALE)

@@ -3,7 +3,7 @@
 <desc>LOW
 79 mg/dL \
 2 min ago</desc>
-<rect x="0.5" y="0.5" width="295" height="127" fill="#E6E5DF" stroke="#5B6068"/>
+<rect x="0.5" y="0.5" width="295" height="127" fill="#E6E5DF" stroke="#7D7B74"/>
 <text x="14" y="33" fill="#15171C" font-family="IBM Plex Mono, DejaVu Sans Mono, Consolas, monospace" font-size="24" textLength="43" font-weight="700">LOW</text>
 <rect x="12" y="38" width="272" height="2" fill="#15171C"/>
 <text x="12" y="69" fill="#15171C" font-family="IBM Plex Mono, DejaVu Sans Mono, Consolas, monospace" font-size="20" textLength="120">79 mg/dL \</text>

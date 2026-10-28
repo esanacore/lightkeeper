@@ -3,7 +3,7 @@
 <desc>URGENT LOW
 55 mg/dL vv
 1 min ago</desc>
-<rect x="0.5" y="0.5" width="295" height="127" fill="#E6E5DF" stroke="#5B6068"/>
+<rect x="0.5" y="0.5" width="295" height="127" fill="#E6E5DF" stroke="#7D7B74"/>
 <rect x="12" y="12" width="272" height="28" fill="#15171C"/>
 <text x="14" y="33" fill="#E6E5DF" font-family="IBM Plex Mono, DejaVu Sans Mono, Consolas, monospace" font-size="24" textLength="144" font-weight="700">URGENT LOW</text>
 <text x="12" y="69" fill="#15171C" font-family="IBM Plex Mono, DejaVu Sans Mono, Consolas, monospace" font-size="20" textLength="132">55 mg/dL vv</text>

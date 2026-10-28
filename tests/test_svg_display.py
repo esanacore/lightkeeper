@@ -365,6 +365,20 @@ def test_fr011_hatch_is_the_brand_hatch_counted_from_the_top_left_pixel():
     assert ["".join(row) for row in grid] == TOKENS["texture"]["hatch-45"]["cells"]
 
 
+def test_fr011_an_id_prefix_keeps_the_hatch_of_each_inlined_image_its_own():
+    # Ids are page-wide: inlined side by side, each STALE image needs its own,
+    # or hiding the first one can take the visible one's hatch with it.
+    assert render_svg(STALE_LINES, id_prefix=sd.ID_PREFIX) == render_svg(STALE_LINES)
+    for prefix in ("lk", "bedside", "Kitchen_2-b"):
+        root = ET.fromstring(render_svg(STALE_LINES, id_prefix=prefix))
+        assert [p.get("id") for p in root.iter(f"{{{NS['svg']}}}pattern")] == [f"{prefix}-hatch"]
+        fills = {e.get("fill") for e in root.iter() if "url(" in e.get("fill", "")}
+        assert fills == {f"url(#{prefix}-hatch)"}
+    for bad in ("", "1st", "a b", 'x" onload="y', "a)", "a\n"):  # never escapes the attribute
+        with pytest.raises(ValueError, match="id_prefix"):
+            render_svg(STALE_LINES, id_prefix=bad)
+
+
 @pytest.mark.parametrize(("width", "height"), ALL_SIZES)
 def test_fr011_texture_stays_in_the_margin_never_under_text(width, height):
     content = content_box(width, height)
@@ -497,6 +511,7 @@ def test_fr011_colors_are_the_brand_tokens():
     assert sd.PAPER == color["paper"]["light"]
     assert sd.INK == color["ink"]["light"]
     assert sd.STAMP == color["muted"]["light"]
+    assert sd.LINE_STRONG == color["line-strong"]["light"]  # bezels, as on the demo page
     for case in VECTORS:
         root = ET.fromstring(render_svg(case["lines"], written_at=WRITTEN))
         used = {
@@ -505,11 +520,12 @@ def test_fr011_colors_are_the_brand_tokens():
             for name in ("fill", "stroke")
             if element.get(name) is not None
         }
-        assert used <= {sd.PAPER, sd.INK, sd.STAMP, HATCH}, case["name"]
-        # Muted is chrome only: the stamp and the panel's edge.
+        assert used <= {sd.PAPER, sd.INK, sd.STAMP, sd.LINE_STRONG, HATCH}, case["name"]
+        # Chrome only: Muted for the stamp, Line strong for the panel's edge.
         muted = [e for e in root.iter() if sd.STAMP in (e.get("fill"), e.get("stroke"))]
-        assert [e.tag.split("}")[1] for e in muted] == ["rect", "text"]
-        assert muted[1].text == "written 23:59 UTC"
+        assert [(e.tag.split("}")[1], e.text) for e in muted] == [("text", "written 23:59 UTC")]
+        edge = [e for e in root.iter() if sd.LINE_STRONG in (e.get("fill"), e.get("stroke"))]
+        assert [(e.tag.split("}")[1], e.get("stroke")) for e in edge] == [("rect", sd.LINE_STRONG)]
 
 
 def test_fr011_every_line_names_the_brand_font_stack_and_holds_its_width():
