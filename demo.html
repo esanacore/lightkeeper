@@ -4,317 +4,891 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Lightkeeper demo</title>
+    <meta name="description" content="Lightkeeper is a read-only, secondary glucose display for e-ink panels, bedside clocks and iOS, fed from a self-hosted Nightscout site. This demo shows every display state, pixel for pixel, with simulated data. Not a medical device.">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Lightkeeper">
+    <meta property="og:title" content="Lightkeeper demo: every display state, pixel for pixel">
+    <meta property="og:description" content="A read-only, secondary glucose display for e-ink panels, bedside clocks and iOS. Every screen it can show, simulated in your browser. Not a medical device.">
+    <meta property="og:url" content="https://esanacore.github.io/lightkeeper/">
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ECEBE5">
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0E1116">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cstyle%3Eg%7Bfill:%2315171C%7D@media (prefers-color-scheme:dark)%7Bg%7Bfill:%23E6E5DF%7D%7D%3C/style%3E%3CclipPath id='s'%3E%3Cpath d='M96 120L256 27.6V212.4Z'/%3E%3C/clipPath%3E%3Cg clip-path='url(%23s)'%3E%3Ccircle cx='96' cy='120' r='108' opacity='.32'/%3E%3Ccircle cx='96' cy='120' r='66' opacity='.7'/%3E%3C/g%3E%3Cg%3E%3Crect x='88' y='120' width='16' height='104' rx='3'/%3E%3Crect x='60' y='222' width='72' height='10' rx='3'/%3E%3Ccircle cx='96' cy='120' r='24'/%3E%3C/g%3E%3C/svg%3E">
     <style>
+      /* Brand tokens, from assets/brand/tokens.json (docs/BRAND.md, Keeper's
+         Logbook). tests/test_demo_panel.py checks every value here and in both
+         dark blocks against that file. Textures are 1 CSS px a cell. */
       :root {
         color-scheme: light dark;
-        --bg: #ECEBE5;
-        --surface: #F6F5F0;
-        --border: #CFCDC4;
-        --text: #15171C;
-        --muted: #5B6068;
-        --accent: #B8730A;
+        --night: #0E1116;
+        --ink: #15171C;
         --paper: #E6E5DF;
-        --paper-edge: #B9B9B3;
-        --paper-ink: #121212;
-        font-family: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+        --fog: #ECEBE5;
+        --surface: #F6F5F0;
+        --line: #CFCDC4;
+        --muted: #5B6068;
+        --beam: #B8730A;
+        --beam-soft: #F1DDB4;
+        --in-range: #2E6B4A;
+        --low: #B3261E;
+        --high: #B86A00;
+        --stale: #6B6F76;
+        --line-strong: #7D7B74;
+        --beam-text: #8C5800;
+        --chip-inrange: #E4E6E0;
+        --chip-low: #EDE3DE;
+        --chip-high: #EDE6DE;
+        --chip-stale: #E7E6E2;
+        --band-text: #E6E5DF;
+        --night-paper: #1C1E22;
+        --night-ink: #B9B7AE;
+        --panel-paper: #E6E5DF;
+        --panel-ink: #15171C;
+        --shadow-hard: 3px 3px 0 #F1DDB4;
+        --dither-12: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Cpath fill='%237D7B74' d='M0 0h1v1h-1zM2 2h1v1h-1z'/%3E%3C/svg%3E");
+        --dither-25: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2'%3E%3Cpath fill='%237D7B74' d='M0 0h1v1h-1z'/%3E%3C/svg%3E");
+        --dither-50: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2'%3E%3Cpath fill='%237D7B74' d='M0 0h1v1h-1zM1 1h1v1h-1z'/%3E%3C/svg%3E");
+        --hatch: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Cpath fill='%236B6F76' d='M0 0h1v1h-1zM3 1h1v1h-1zM2 2h1v1h-1zM1 3h1v1h-1z'/%3E%3C/svg%3E");
+        --display: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
+        --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+        --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
       }
 
       @media (prefers-color-scheme: dark) {
         :root:not([data-theme="light"]) {
-          --bg: #0E1116;
+          color-scheme: dark;
+          --ink: #E6E5DF;
+          --paper: #DDDCD5;
+          --fog: #0E1116;
           --surface: #161A21;
-          --border: #262B33;
-          --text: #E6E5DE;
+          --line: #262B33;
           --muted: #9AA0A9;
-          --accent: #E0A526;
+          --beam: #E0A526;
+          --beam-soft: #3A2E13;
+          --in-range: #6CC597;
+          --low: #FF6B5E;
+          --high: #F5A341;
+          --stale: #9AA0A9;
+          --line-strong: #646C77;
+          --beam-text: #E0A526;
+          --chip-inrange: #335D4A;
+          --chip-low: #783433;
+          --chip-high: #734D29;
+          --chip-stale: #484C52;
+          --band-text: #0E1116;
+          --panel-paper: #1C1E22;
+          --panel-ink: #B9B7AE;
+          --shadow-hard: 3px 3px 0 #262B33;
+          --dither-12: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Cpath fill='%23646C77' d='M0 0h1v1h-1zM2 2h1v1h-1z'/%3E%3C/svg%3E");
+          --dither-25: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2'%3E%3Cpath fill='%23646C77' d='M0 0h1v1h-1z'/%3E%3C/svg%3E");
+          --dither-50: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2'%3E%3Cpath fill='%23646C77' d='M0 0h1v1h-1zM1 1h1v1h-1z'/%3E%3C/svg%3E");
+          --hatch: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Cpath fill='%239AA0A9' d='M0 0h1v1h-1zM3 1h1v1h-1zM2 2h1v1h-1zM1 3h1v1h-1z'/%3E%3C/svg%3E");
         }
       }
 
       :root[data-theme="dark"] {
-        --bg: #0E1116;
+        color-scheme: dark;
+        --ink: #E6E5DF;
+        --paper: #DDDCD5;
+        --fog: #0E1116;
         --surface: #161A21;
-        --border: #262B33;
-        --text: #E6E5DE;
+        --line: #262B33;
         --muted: #9AA0A9;
-        --accent: #E0A526;
+        --beam: #E0A526;
+        --beam-soft: #3A2E13;
+        --in-range: #6CC597;
+        --low: #FF6B5E;
+        --high: #F5A341;
+        --stale: #9AA0A9;
+        --line-strong: #646C77;
+        --beam-text: #E0A526;
+        --chip-inrange: #335D4A;
+        --chip-low: #783433;
+        --chip-high: #734D29;
+        --chip-stale: #484C52;
+        --band-text: #0E1116;
+        --panel-paper: #1C1E22;
+        --panel-ink: #B9B7AE;
+        --shadow-hard: 3px 3px 0 #262B33;
+        --dither-12: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Cpath fill='%23646C77' d='M0 0h1v1h-1zM2 2h1v1h-1z'/%3E%3C/svg%3E");
+        --dither-25: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2'%3E%3Cpath fill='%23646C77' d='M0 0h1v1h-1z'/%3E%3C/svg%3E");
+        --dither-50: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2'%3E%3Cpath fill='%23646C77' d='M0 0h1v1h-1zM1 1h1v1h-1z'/%3E%3C/svg%3E");
+        --hatch: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Cpath fill='%239AA0A9' d='M0 0h1v1h-1zM3 1h1v1h-1zM2 2h1v1h-1zM1 3h1v1h-1z'/%3E%3C/svg%3E");
       }
 
-      * {
+      :root[data-theme="light"] {
+        color-scheme: light;
+      }
+
+      *,
+      *::before,
+      *::after {
         box-sizing: border-box;
       }
 
+      /* The texture lives in the margin; the truth lives in the middle. The
+         body's dither shows only around the flat page column. */
       body {
         margin: 0;
-        padding: clamp(24px, 5vw, 64px) 16px;
-        color: var(--text);
-        background: var(--bg);
-        line-height: 1.65;
+        padding: 32px 16px;
+        color: var(--ink);
+        background-color: var(--fog);
+        background-image: var(--dither-12);
+        background-size: 4px 4px;
+        image-rendering: pixelated;
+        font: 400 1rem/1.5 var(--body);
       }
 
       main {
-        width: min(100%, 900px);
+        max-width: 960px;
         margin: 0 auto;
+        padding: 24px 12px;
+        background: var(--fog);
+      }
+
+      @media (min-width: 640px) {
+        body {
+          padding: 64px 24px;
+        }
+
+        main {
+          padding: 32px;
+        }
+      }
+
+      a {
+        color: var(--beam-text);
+        text-underline-offset: 0.2em;
+      }
+
+      code {
+        font-family: var(--mono);
+      }
+
+      button:focus-visible,
+      summary:focus-visible,
+      a:focus-visible {
+        outline: 2px solid var(--beam);
+        outline-offset: 2px;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
+      /* --- masthead ------------------------------------------------------ */
+
+      header {
+        margin: 0 0 32px;
+        padding: 0 0 24px;
+        border-bottom: 2px solid var(--ink);
+      }
+
+      .kicker {
+        margin: 0 0 12px;
+        color: var(--beam-text);
+        font: 600 0.75rem/1.5 var(--mono);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
       }
 
       .masthead {
         display: flex;
         align-items: center;
-        gap: 14px;
+        gap: 12px;
         margin: 0 0 8px;
       }
 
       .masthead svg {
-        width: 40px;
-        height: 40px;
+        width: 48px;
+        height: 48px;
         flex: none;
       }
 
       h1 {
         margin: 0;
-        font-size: clamp(2rem, 5vw, 2.75rem);
+        font: 800 2.5rem/1.1 var(--display);
         letter-spacing: -0.03em;
-        font-weight: 700;
-      }
-
-      .kicker {
-        margin: 0 0 20px;
-        color: var(--accent);
-        font-size: 0.8rem;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        font-weight: 600;
       }
 
       .tagline {
-        margin: 0 0 28px;
+        margin: 0;
         max-width: 62ch;
         color: var(--muted);
-        font-size: 1.1rem;
+        font-size: 1.25rem;
       }
 
       .notice {
-        margin: 0 0 32px;
-        padding: 14px 16px;
-        border: 1px solid var(--border);
-        border-left: 3px solid var(--accent);
+        margin: 0 0 48px;
+        padding: 12px 16px;
+        border: 1px solid var(--line-strong);
+        border-left: 4px solid var(--beam);
+        border-radius: 2px;
         background: var(--surface);
-        color: var(--muted);
-        font-size: 0.92rem;
+      }
+
+      /* --- logbook sections ---------------------------------------------- */
+
+      section {
+        margin: 0 0 48px;
       }
 
       .sec-head {
         display: flex;
+        flex-wrap: wrap;
         justify-content: space-between;
-        align-items: baseline;
-        gap: 16px;
-        margin: 0 0 12px;
-        padding-bottom: 8px;
-        border-bottom: 1px solid var(--border);
+        align-items: center;
+        gap: 8px 16px;
+        margin: 0 0 16px;
+        padding: 0 0 8px;
+        border-bottom: 1px dashed var(--line);
       }
 
       .sec-head h2 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
         margin: 0;
-        font-size: 1.15rem;
+        font: 700 1.25rem/1.4 var(--display);
         letter-spacing: -0.01em;
       }
 
-      .sec-head .n {
+      .sec-head h2::before {
+        content: "";
+        width: 12px;
+        height: 12px;
+        flex: none;
+        background-image: var(--dither-50);
+        background-size: 2px 2px;
+      }
+
+      .stamp {
+        display: inline-block;
+        padding: 0 8px;
+        border: 1px solid var(--line-strong);
+        border-radius: 2px;
         color: var(--muted);
-        font-family: "IBM Plex Mono", ui-monospace, Consolas, monospace;
-        font-size: 0.75rem;
-        letter-spacing: 0.1em;
-      }
-
-      .panels {
-        display: grid;
-        gap: 1px;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        margin: 0 0 36px;
-        padding: 0;
-        list-style: none;
-        border: 1px solid var(--border);
-        background: var(--border);
-      }
-
-      .panels li {
-        padding: 18px;
-        background: var(--surface);
-      }
-
-      .panels strong {
-        display: block;
-        margin-bottom: 6px;
-      }
-
-      .panels span {
-        color: var(--muted);
-        font-size: 0.9rem;
-      }
-
-      .stage {
-        padding: 20px;
-        border: 1px solid var(--border);
-        background: var(--surface);
-      }
-
-      .stage p {
-        margin: 0 0 12px;
-        color: var(--muted);
-      }
-
-      .group {
-        margin: 14px 0 0;
-      }
-
-      .group h3 {
-        margin: 0 0 6px;
-        font-size: 0.75rem;
+        font: 600 0.75rem/1.5 var(--mono);
         letter-spacing: 0.1em;
         text-transform: uppercase;
-        color: var(--muted);
-        font-weight: 600;
+        white-space: nowrap;
       }
 
-      .states {
+      .promises {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .promises li,
+      .card {
+        min-width: 0;
+        padding: 16px;
+        border: 1px solid var(--line-strong);
+        border-radius: 2px;
+        background: var(--surface);
+        box-shadow: var(--shadow-hard);
+      }
+
+      .promises strong {
+        display: block;
+        margin: 0 0 4px;
+      }
+
+      .promises span {
+        color: var(--muted);
+        font-size: 0.875rem;
+      }
+
+      .lede {
+        margin: 0 0 24px;
+        max-width: 70ch;
+      }
+
+      /* --- controls -------------------------------------------------------- */
+
+      .label {
+        margin: 0 0 8px;
+        color: var(--muted);
+        font: 600 0.75rem/1.5 var(--mono);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .choices {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
+        margin: 0;
       }
 
       button {
-        padding: 8px 14px;
-        color: var(--text);
-        border: 1px solid var(--border);
-        border-radius: 4px;
-        background: transparent;
+        min-width: 44px;
+        min-height: 44px;
+        padding: 8px 12px;
+        border: 2px solid var(--line-strong);
+        border-radius: 2px;
+        color: var(--ink);
+        background: var(--surface);
+        box-shadow: var(--shadow-hard);
         font: inherit;
-        font-size: 0.92rem;
         cursor: pointer;
       }
 
       button:hover {
-        border-color: var(--accent);
+        border-color: var(--ink);
       }
 
       button[aria-pressed="true"] {
-        border-color: var(--accent);
-        background: var(--accent);
-        color: #0E1116;
-        font-weight: 650;
+        border-color: var(--ink);
+        color: var(--band-text);
+        background: var(--ink);
+        font-weight: 600;
       }
 
-      button:focus-visible,
-      a:focus-visible {
-        outline: 2px solid var(--accent);
-        outline-offset: 3px;
+      details {
+        margin: 24px 0 0;
+        border: 1px solid var(--line-strong);
+        border-radius: 2px;
+        background: var(--surface);
       }
+
+      summary {
+        padding: 12px 16px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      details[open] summary {
+        border-bottom: 1px dashed var(--line);
+      }
+
+      .groups {
+        display: grid;
+        gap: 24px;
+        padding: 16px;
+      }
+
+      .groups section {
+        margin: 0;
+      }
+
+      .viewbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px 32px;
+        margin: 32px 0 24px;
+      }
+
+      /* --- the panel ------------------------------------------------------- */
 
       .screen {
+        margin: 0;
+      }
+
+      .chip-row {
+        margin: 0 0 12px;
+      }
+
+      /* A 2 px Line strong bezel with 2 px stepped notches at the corners. The
+         notch clips the bezel itself, so the panel scrolls (and shows its focus
+         ring) inside it, and the SIMULATED stamp stays put. */
+      .bezel {
         position: relative;
-        width: min(100%, 380px);
-        margin: 20px 0 0;
+        padding: 8px 8px 32px;
+        border: 2px solid var(--line-strong);
+        background-color: var(--surface);
+        background-image: var(--dither-25);
+        background-size: 2px 2px;
+        clip-path: polygon(
+          2px 0,
+          calc(100% - 2px) 0,
+          calc(100% - 2px) 2px,
+          100% 2px,
+          100% calc(100% - 2px),
+          calc(100% - 2px) calc(100% - 2px),
+          calc(100% - 2px) 100%,
+          2px 100%,
+          2px calc(100% - 2px),
+          0 calc(100% - 2px),
+          0 2px,
+          2px 2px
+        );
       }
 
-      .eink {
+      @media (min-width: 640px) {
+        .bezel {
+          padding: 16px 16px 32px;
+        }
+      }
+
+      /* A panel wider than the screen scrolls sideways; it is never shrunk. */
+      .bezel-view,
+      .scroll {
+        overflow-x: auto;
+      }
+
+      .bezel-view:focus-visible,
+      .scroll:focus-visible {
+        outline: 2px solid var(--beam);
+        outline-offset: 2px;
+      }
+
+      canvas {
         display: block;
-        padding: 18px 20px 26px;
-        border: 2px solid var(--paper-edge);
-        border-radius: 6px;
-        background: var(--paper);
-        color: var(--paper-ink);
-        font-family: "IBM Plex Mono", ui-monospace, Consolas, monospace;
-        font-size: 1.05rem;
-        line-height: 1.5;
-        min-height: 7rem;
+        image-rendering: crisp-edges;
+        image-rendering: pixelated;
       }
 
-      .eink .first {
-        font-weight: 700;
+      .screen[data-view="text"] #panel {
+        display: none;
+      }
+
+      .screen[data-view="pixels"] .result {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
+      .result {
+        display: block;
+        max-width: 592px;
+        padding: 16px;
+        color: var(--panel-ink);
+        background: var(--panel-paper);
+        font: 400 1rem/1.5 var(--mono);
+      }
+
+      .result .line {
+        display: block;
+      }
+
+      .result .line:first-child {
         font-size: 1.25rem;
+        font-weight: 700;
       }
 
       .sim {
         position: absolute;
-        right: 10px;
-        bottom: 8px;
-        color: #5b5b57;
-        font-family: "IBM Plex Mono", ui-monospace, Consolas, monospace;
-        font-size: 0.62rem;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
+        right: 8px;
+        bottom: 4px;
+        padding: 0 8px;
+        border: 2px solid var(--muted);
+        color: var(--muted);
+        background: var(--surface);
+        font: 700 0.75rem/1.5 var(--mono);
+        letter-spacing: 0.16em;
       }
 
-      .exit {
+      .screen figcaption {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 0.875rem;
+      }
+
+      .story {
+        margin: 16px 0 0;
+        max-width: 70ch;
+      }
+
+      .dev {
+        margin: 16px 0 0;
+        color: var(--muted);
+        font-size: 0.875rem;
+      }
+
+      .dev code {
+        color: var(--ink);
+      }
+
+      /* --- status chip: the word plus a shape; color is the second cue ----- */
+
+      [data-tone="in-range"] {
+        --tone: var(--in-range);
+        --tint: var(--chip-inrange);
+      }
+
+      [data-tone="low"] {
+        --tone: var(--low);
+        --tint: var(--chip-low);
+      }
+
+      [data-tone="high"] {
+        --tone: var(--high);
+        --tint: var(--chip-high);
+      }
+
+      [data-tone="stale"] {
+        --tone: var(--stale);
+        --tint: var(--chip-stale);
+      }
+
+      .chip-frame {
+        display: inline-block;
+        max-width: 100%;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 12px;
+        border: 2px solid var(--tone);
+        border-radius: 2px;
+        color: var(--ink);
+        background: var(--tint);
+        font: 600 1.25rem/1.5 var(--body);
+      }
+
+      .chip svg {
+        width: 16px;
+        height: 16px;
+        flex: none;
+      }
+
+      [data-shape="inverse"] .chip,
+      [data-shape="stale"] .chip {
+        border-color: var(--ink);
+        color: var(--band-text);
+        background: var(--ink);
+      }
+
+      [data-shape="inverse"] .chip {
+        border-left: 4px solid var(--tone);
+      }
+
+      /* STALE: the Ink band, with the hatch in the margin around it only. */
+      .chip-frame[data-shape="stale"] {
+        padding: 4px;
+        background-image: var(--hatch);
+        background-size: 4px 4px;
+      }
+
+      [data-shape="dashed"] .chip {
+        border: 2px dashed var(--line-strong);
+        background: var(--surface);
+      }
+
+      /* --- same state everywhere ------------------------------------------- */
+
+      .surfaces {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .card h3 {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 4px 8px;
+        margin: 0 0 12px;
+        font: 600 1rem/1.5 var(--body);
+      }
+
+      .card .note {
         margin: 12px 0 0;
         color: var(--muted);
-        font-family: "IBM Plex Mono", ui-monospace, Consolas, monospace;
-        font-size: 0.85rem;
+        font-size: 0.875rem;
       }
 
-      .exit-key {
-        margin: 4px 0 0;
+      /* The phone card's type sizes. A fresh number is the hero; the status
+         chip comes first and is never below 1.25rem semibold; an URGENT, STALE
+         or NO DATA banner is the largest thing on the card, so under an URGENT
+         banner the number steps down, and STALE and NO DATA have no number.
+         tests/test_demo_panel.py holds these in that order. */
+      .phone {
+        --phone-chip: 1.25rem;
+        --phone-banner: 1.75rem;
+        --phone-hero: 2.5rem;
+        --phone-urgent-hero: 1.5rem;
+        display: grid;
+        justify-items: start;
+        gap: 8px;
+        padding: 12px;
+        border: 2px solid var(--line-strong);
+        border-radius: 2px;
+        background: var(--fog);
+      }
+
+      .phone p {
+        margin: 0;
+      }
+
+      .phone .chip {
+        font-size: var(--phone-chip);
+      }
+
+      .phone .chip-frame:not([data-shape="plain"]):not([data-shape="rule"]) {
+        width: 100%;
+      }
+
+      .phone .chip-frame:not([data-shape="plain"]):not([data-shape="rule"]) .chip {
+        display: flex;
+        font-size: var(--phone-banner);
+        font-weight: 700;
+        line-height: 1.25;
+      }
+
+      .hero {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 8px;
+        font-family: var(--display);
+      }
+
+      .hero .num {
+        font-size: var(--phone-hero);
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.1;
+      }
+
+      .phone .chip-frame[data-shape="inverse"] ~ .hero .num {
+        font-size: var(--phone-urgent-hero);
+      }
+
+      .hero .unit {
+        font: 600 1rem/1.5 var(--body);
+      }
+
+      .hero .arrow {
+        font: 700 1.25rem/1.5 var(--mono);
+      }
+
+      /* A sensor limit in words: only ever under an URGENT banner. */
+      .hero .word {
+        font-size: var(--phone-urgent-hero);
+        font-weight: 800;
+      }
+
+      .struck {
         color: var(--muted);
-        font-size: 0.85rem;
+        text-decoration: line-through;
+        font-family: var(--mono);
       }
 
-      .exit-key code {
-        font-family: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+      .age {
+        font: 600 1rem/1.5 var(--mono);
+      }
+
+      .ctx {
+        font-size: 0.875rem;
+      }
+
+      .ha {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px 16px;
+        margin: 0;
+        padding: 12px 16px;
+        border: 1px solid var(--line-strong);
+        border-radius: 2px;
+        background: var(--fog);
+      }
+
+      .ha dd {
+        margin: 0;
+        text-align: right;
+        font: 600 1rem/1.5 var(--mono);
+      }
+
+      .cli {
+        margin: 0;
+        padding: 12px 16px;
+        overflow-x: auto;
+        border: 1px dashed var(--line-strong);
+        border-radius: 2px;
+        background: var(--fog);
+        font: 400 1rem/1.5 var(--mono);
       }
 
       footer {
-        margin-top: 40px;
+        padding: 16px 0 0;
+        border-top: 2px solid var(--ink);
         color: var(--muted);
-        font-size: 0.9rem;
+        font-size: 0.875rem;
       }
 
-      a {
-        color: var(--accent);
+      footer h2 {
+        margin: 0 0 8px;
+        font: 600 0.75rem/1.5 var(--mono);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      footer p {
+        margin: 0 0 8px;
+        max-width: 75ch;
+      }
+
+      /* Texture is decoration only: gone in high contrast, forced colors and print. */
+      @media (prefers-contrast: more), (forced-colors: active), print {
+        body,
+        .bezel,
+        .sec-head h2::before,
+        .chip-frame[data-shape="stale"] {
+          background-image: none;
+        }
+      }
+
+      @media (forced-colors: active) {
+        button[aria-pressed="true"] {
+          forced-color-adjust: none;
+          border-color: Highlight;
+          color: HighlightText;
+          background: Highlight;
+          box-shadow: none;
+        }
+      }
+
+      @media print {
+        button,
+        .promises li,
+        .card {
+          box-shadow: none;
+        }
+      }
+
+      /* Nothing on this page moves; this keeps it that way under reduced motion. */
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+          scroll-behavior: auto !important;
+        }
       }
     </style>
   </head>
   <body>
     <main>
-      <p class="kicker">Interactive demo · simulated data</p>
-      <div class="masthead">
-        <svg viewBox="0 0 256 256" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs><clipPath id="sector"><path d="M96 120 L256 27.6 L256 212.4 Z"/></clipPath></defs><g clip-path="url(#sector)"><circle cx="96" cy="120" r="152" fill="var(--accent)" opacity="0.16"/><circle cx="96" cy="120" r="108" fill="var(--accent)" opacity="0.42"/><circle cx="96" cy="120" r="66" fill="var(--accent)"/></g><rect x="88" y="120" width="16" height="104" rx="3" fill="var(--text)"/><rect x="60" y="222" width="72" height="10" rx="3" fill="var(--text)"/><circle cx="96" cy="120" r="24" fill="var(--text)"/><circle cx="96" cy="120" r="11" fill="var(--accent)"/></svg>
-        <h1>Lightkeeper</h1>
-      </div>
-      <p class="tagline">Read-only glucose displays for e-ink screens, bedside clocks, and iOS, fed from a self-hosted Nightscout site. Built for one household first, shared with the type 1 open source community.</p>
+      <header>
+        <p class="kicker">Interactive demo · simulated data</p>
+        <div class="masthead">
+          <svg viewBox="0 0 256 256" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs><clipPath id="sector"><path d="M96 120 L256 27.6 L256 212.4 Z"/></clipPath></defs><g clip-path="url(#sector)"><circle cx="96" cy="120" r="152" fill="var(--beam)" opacity="0.16"/><circle cx="96" cy="120" r="108" fill="var(--beam)" opacity="0.42"/><circle cx="96" cy="120" r="66" fill="var(--beam)"/></g><rect x="88" y="120" width="16" height="104" rx="3" fill="var(--ink)"/><rect x="60" y="222" width="72" height="10" rx="3" fill="var(--ink)"/><circle cx="96" cy="120" r="24" fill="var(--ink)"/><circle cx="96" cy="120" r="11" fill="var(--beam)"/></svg>
+          <h1>Lightkeeper</h1>
+        </div>
+        <p class="tagline">Read-only glucose displays for e-ink screens, bedside clocks, and iOS, fed from a self-hosted Nightscout site. Built for one household first, shared with the type 1 open source community.</p>
+      </header>
 
       <p class="notice">
         Everything on this page is simulated in your browser with made-up readings. The real tool needs a Nightscout site and a read-only token (see the README).
         It is a secondary display, not a medical device: always confirm on the primary CGM app.
       </p>
 
-      <div class="sec-head"><h2>Three promises</h2><span class="n">01 · RULES</span></div>
-      <ul class="panels">
-        <li>
-          <strong>Never shows old data as current</strong>
-          <span>Readings older than 15 minutes, or dated in the future, show as STALE - DO NOT TRUST.</span>
-        </li>
-        <li>
-          <strong>Fails loudly, not silently</strong>
-          <span>If Nightscout goes down, the last value ages into STALE instead of freezing on screen.</span>
-        </li>
-        <li>
-          <strong>Read-only by design</strong>
-          <span>It never talks to the pump or sensor. Dosing stays in Trio.</span>
-        </li>
-      </ul>
+      <section aria-labelledby="rules-title">
+        <div class="sec-head"><h2 id="rules-title">Three promises</h2><span class="stamp">01 · Rules</span></div>
+        <ul class="promises">
+          <li>
+            <strong>Never shows old data as current</strong>
+            <span>Readings older than 15 minutes, or dated in the future, show as STALE - DO NOT TRUST.</span>
+          </li>
+          <li>
+            <strong>Fails visibly, not silently</strong>
+            <span>If Nightscout goes down, the last value ages into STALE instead of freezing on screen.</span>
+          </li>
+          <li>
+            <strong>Read-only by design</strong>
+            <span>It never talks to the pump or sensor. Dosing stays in Trio.</span>
+          </li>
+        </ul>
+      </section>
 
-      <div class="sec-head"><h2 id="stage-title">Every display state</h2><span class="n">02 · STATES</span></div>
-      <section class="stage" aria-labelledby="stage-title">
-        <p>Each button is one of the shared golden vectors that the Python tool, the C++ firmware, and the Swift app must all render identically. Pick one to see exactly what the panel shows.</p>
-        <div id="groups"></div>
-        <div class="screen">
-          <output id="result" role="status" aria-live="polite" class="eink"></output>
-          <span class="sim" aria-hidden="true">Simulated</span>
+      <section aria-labelledby="stage-title">
+        <div class="sec-head"><h2 id="stage-title">See a state</h2><span class="stamp">02 · States</span></div>
+        <p class="lede">Each button is one of the shared golden vectors that the Python tool, the C++ firmware, and the Swift app must all render identically. The panel shows its real 1-bit pixels, drawn in your browser by a port of the reference rasterizer and pinned to the same pixel vectors (<code>spec/panel_vectors.json</code>).</p>
+
+        <p class="label" id="story-title">Start here</p>
+        <p class="choices" id="story-choices" role="group" aria-labelledby="story-title"></p>
+
+        <details id="all-states">
+          <summary id="all-states-title">All vectors</summary>
+          <div class="groups" id="groups"></div>
+        </details>
+
+        <div class="viewbar">
+          <div>
+            <p class="label" id="profile-title">Panel size</p>
+            <p class="choices" id="profile-choices" role="group" aria-labelledby="profile-title"></p>
+          </div>
+          <div>
+            <p class="label" id="view-title">Show</p>
+            <p class="choices" id="view-choices" role="group" aria-labelledby="view-title">
+              <button type="button" data-view="pixels" aria-pressed="true">Pixels</button>
+              <button type="button" data-view="text" aria-pressed="false">Text</button>
+            </p>
+          </div>
         </div>
-        <p class="exit" id="exit"></p>
-        <p class="exit-key">Exit codes: <code>0</code> fresh and in range · <code>1</code> someone should look · <code>2</code> configuration error (never shown here; the program refuses to start)</p>
+
+        <figure class="screen" id="screen" data-view="pixels">
+          <p class="chip-row" aria-hidden="true"><span class="chip-frame" id="chip"></span></p>
+          <div class="bezel">
+            <div class="bezel-view" id="bezel-view" role="group" aria-label="Panel preview">
+              <canvas id="panel" width="296" height="128" aria-hidden="true"></canvas>
+              <output id="result" class="result" role="status" aria-live="polite" aria-atomic="true"></output>
+            </div>
+            <span class="sim" aria-hidden="true">SIMULATED</span>
+          </div>
+          <figcaption id="panel-caption"></figcaption>
+        </figure>
+        <noscript><p class="story">This demo draws the panel with JavaScript. Every state is also an image in <a href="https://github.com/esanacore/lightkeeper/blob/main/docs/DISPLAY_STATES.md">docs/DISPLAY_STATES.md</a>.</p></noscript>
+        <p class="story" id="story-text"></p>
+        <p class="dev"><span class="stamp">For developers</span> Vector <code id="dev-vector"></code>; <code>python -m lightkeeper</code> exits <code id="dev-exit"></code> (<span id="dev-meaning"></span>). Exit codes: <code>0</code> fresh and in range · <code>1</code> someone should look · <code>2</code> configuration error (never shown here; the program refuses to start).</p>
+      </section>
+
+      <section aria-labelledby="everywhere-title">
+        <div class="sec-head"><h2 id="everywhere-title">Same state everywhere</h2><span class="stamp">03 · Surfaces</span></div>
+        <p class="lede">The same vector on four surfaces. Each puts the status first, keeps the age beside the value, and never shows an old value as current.</p>
+        <ul class="surfaces">
+          <li class="card">
+            <h3>Bedside panel <span class="stamp">2.9-inch · 1x</span></h3>
+            <div class="scroll" id="mini-view" role="group" aria-label="Bedside panel preview"><canvas id="mini" width="296" height="128" aria-hidden="true"></canvas></div>
+            <p class="note">The Raspberry Pi e-paper panel, 296 × 128 pixels, at its own size: each panel pixel is one whole screen pixel, or a whole square of them on a sharper screen.</p>
+          </li>
+          <li class="card">
+            <h3>Phone app <span class="stamp">Mock</span></h3>
+            <div class="phone" id="phone" role="img" aria-label="Phone app mock"></div>
+            <p class="note">The status comes first. A fresh number is the hero; a STALE value is struck through and never large.</p>
+          </li>
+          <li class="card">
+            <h3>Home Assistant <span class="stamp">Mock</span></h3>
+            <dl class="ha">
+              <dt>Glucose level</dt>
+              <dd id="ha-level"></dd>
+              <dt>Glucose</dt>
+              <dd id="ha-glucose"></dd>
+            </dl>
+            <p class="note">The number is published only for a fresh, measured reading. STALE, NO DATA and sensor limits publish no number, so the tile shows unknown.</p>
+          </li>
+          <li class="card">
+            <h3>Command line, piped <span class="stamp">Text</span></h3>
+            <pre class="cli" id="cli"></pre>
+            <p class="note">Piped, systemd and <code>--json</code> output is exactly the vector lines, byte for byte.</p>
+          </li>
+        </ul>
       </section>
 
       <footer>
+        <h2>Colophon</h2>
+        <p>The panel is drawn in Keeper 5x8, a pixel font drawn for this project, by an integer-only port of the panel layout, so it matches the Python reference pixel for pixel for every state at all six panel sizes. The words are set in your system's own fonts (IBM Plex or Bricolage Grotesque only if you already have them); no font files ship.</p>
+        <p>This page is one file of <span id="page-weight">under 512 KB</span>, with no cookies, no tracking, and no requests to anyone. It remembers your pixels or text choice in this browser only. Made for one household, and shared.</p>
         <p>
           Source and setup: <a href="https://github.com/esanacore/lightkeeper#readme">README</a>. Safety boundary: <a href="https://github.com/esanacore/lightkeeper/blob/main/docs/SAFETY.md">docs/SAFETY.md</a>. Every state as an image: <a href="https://github.com/esanacore/lightkeeper/blob/main/docs/DISPLAY_STATES.md">docs/DISPLAY_STATES.md</a>.
           Built to <a href="https://github.com/esanacore/engineering-constitution/blob/main/DOCUMENTATION.md">Eric's Engineering Constitution</a>.
@@ -325,7 +899,9 @@
     <script>
       // The states below are generated from spec/display_vectors.json, the same
       // cases the Python and firmware tests run. Edit the vectors, then run
-      // tools/gen_display_gallery.py; tests/test_gallery.py fails if this drifts.
+      // tools/gen_display_gallery.py and then tools/gen_demo_panel.py (the
+      // colophon's page size counts this block); tests/test_gallery.py and
+      // tests/test_demo_panel.py fail if either drifts.
       // BEGIN GENERATED STATES (tools/gen_display_gallery.py from spec/display_vectors.json)
       const states = {
         "in_range_flat": {
@@ -653,8 +1229,938 @@
       };
       // END GENERATED STATES
 
-      // Button labels and grouping. Any vector not listed here still gets a
-      // button, under "Other", so a new case is never silently hidden.
+      // The panel port and the data it draws with are copied in below by
+      // tools/gen_demo_panel.py; tests/test_demo_panel.py fails if this drifts.
+      // BEGIN GENERATED PANEL (tools/gen_demo_panel.py from web/panel/panel.js, spec/font5x8.json, spec/spoken_vectors.json, assets/brand/pixel-icons.json and the panel profiles)
+/*
+ * Lightkeeper panel pixels for the browser, and for Node in the tests.
+ *
+ * An integer-only port of the Python reference rasterizer
+ * (src/lightkeeper/infrastructure/panel_layout.py, which plans every line,
+ * band and frame, and epaper_bitmap.py, which draws the plan). The demo page
+ * draws a screen with it, so the page shows exactly the 1-bit pixels a panel
+ * would. spec/panel_vectors.json pins every vector at every panel profile by
+ * the CRC-32 of its packed rows and its ink count; web/panel/panel.test.mjs
+ * checks every case, and tests/test_demo_panel.py checks more sizes against
+ * the Python reference.
+ *
+ * A classic script with no import or export: tools/gen_demo_panel.py copies it
+ * byte for byte into demo.html, which stays one file. It defines
+ * globalThis.LightkeeperPanel and nothing else.
+ *
+ * Integers only, as in the Python plan: no floats, no rounding, and every
+ * division goes through idiv, which refuses a negative dividend, so no
+ * rounding rule can differ from Python's //. Nothing here moves or blinks:
+ * one call draws one still image.
+ *
+ * The page helpers at the end (the deep-link parser, the Home Assistant
+ * number rule and the glance model for the phone mock) live here too, so the
+ * Node tests can reach them.
+ */
+(function (root) {
+  "use strict";
+
+  // Keeper 5x8: the layout is defined for this cell size.
+  const GLYPH_WIDTH = 5;
+  const GLYPH_HEIGHT = 8;
+  const CAP_ROWS = GLYPH_HEIGHT - 1; // rows above the baseline; the last is for descenders
+
+  const PLAIN = "plain";
+  const RULE = "rule";
+  const INVERSE = "inverse";
+  const STALE = "stale";
+  const DASHED = "dashed";
+
+  // Keyed by the exact headline text; anything else gets UNKNOWN_TREATMENT.
+  const TREATMENTS = Object.freeze({
+    "IN RANGE": PLAIN,
+    LOW: RULE,
+    HIGH: RULE,
+    "URGENT LOW": INVERSE,
+    "URGENT HIGH": INVERSE,
+    "STALE - DO NOT TRUST": STALE,
+    "NO DATA": DASHED,
+  });
+  const UNKNOWN_TREATMENT = DASHED;
+  const FRESH = [PLAIN, RULE, INVERSE];
+
+  // Line roles, in glance order.
+  const HEADLINE = "headline";
+  const VALUE = "value";
+  const LAST = "last";
+  const AGE = "age";
+  const CONTEXT = "context";
+  const STAMP = "stamp";
+
+  const BAND_PAD = 2;
+  const RULE_THICKNESS = 2;
+  const HATCH_WIDTH = 4;
+  const HATCH_PITCH = 4;
+  const DASH_WIDTH = 2;
+  const DASH_ON = 4;
+  const DASH_OFF = 4;
+  const MIN_GAP = 2;
+  const READABLE_SCALE = 2;
+  const RESERVED_BODY_LINES = 3;
+  const STAMP_MIN_SCALE = 2;
+  const STAMP_SAMPLE = "00:00";
+  const REFERENCE_HEADLINE = "IN RANGE";
+  const WIDEST_LINE = "Confirm on primary device";
+  const MAX_SIDE = 4096;
+
+  // The same names spec/panel_vectors.json uses, so the tests can compare them.
+  const CONSTANTS = Object.freeze({
+    band_pad: BAND_PAD,
+    rule_thickness: RULE_THICKNESS,
+    hatch_width: HATCH_WIDTH,
+    hatch_pitch: HATCH_PITCH,
+    dash_width: DASH_WIDTH,
+    dash_on: DASH_ON,
+    dash_off: DASH_OFF,
+    min_gap: MIN_GAP,
+    readable_scale: READABLE_SCALE,
+    reserved_body_lines: RESERVED_BODY_LINES,
+    stamp_min_scale: STAMP_MIN_SCALE,
+    reference_headline: REFERENCE_HEADLINE,
+    widest_line: WIDEST_LINE,
+    max_side: MAX_SIDE,
+  });
+
+  const STAMP_TEXT = /^([01][0-9]|2[0-3]):[0-5][0-9]$/;
+
+  function own(object, key) {
+    return Object.prototype.hasOwnProperty.call(object, key);
+  }
+
+  // Python's // for the only case the layout uses: a dividend that is not
+  // negative and a positive divisor. The subtraction leaves an exact multiple,
+  // so the division is exact too.
+  function idiv(a, b) {
+    if (!(Number.isInteger(a) && Number.isInteger(b) && a >= 0 && b > 0)) {
+      throw new RangeError(`idiv(${a}, ${b}): the layout divides only whole numbers, never negative`);
+    }
+    return (a - (a % b)) / b;
+  }
+
+  function sum(values) {
+    return values.reduce((total, value) => total + value, 0);
+  }
+
+  // A string's characters as Python iterates them: by code point.
+  function chars(text) {
+    return Array.from(text);
+  }
+
+  function treatment(headline) {
+    return own(TREATMENTS, headline) ? TREATMENTS[headline] : UNKNOWN_TREATMENT;
+  }
+
+  function glyphGap(scale) {
+    return Math.max(1, idiv(scale, 2));
+  }
+
+  function textWidth(text, scale) {
+    const count = chars(text).length;
+    if (count === 0) {
+      return 0;
+    }
+    return count * GLYPH_WIDTH * scale + (count - 1) * glyphGap(scale);
+  }
+
+  // Largest whole-number scale, up to maxScale, at which every line fits.
+  function fitScale(lines, usableWidth, maxScale) {
+    for (let scale = maxScale; scale > 1; scale -= 1) {
+      if (lines.every((line) => textWidth(line, scale) <= usableWidth)) {
+        return scale;
+      }
+    }
+    return 1;
+  }
+
+  function margin(height) {
+    return Math.max(4, idiv(height * 6 + 50, 100));
+  }
+
+  function headlineCap(height) {
+    return Math.max(4, idiv(height, 32));
+  }
+
+  function bodyCap(bandScale) {
+    return Math.min(bandScale, Math.max(3, idiv(bandScale, 2)));
+  }
+
+  function stampScale(width, height) {
+    const contentWidth = width - 2 * margin(height);
+    return fitScale([STAMP_SAMPLE], contentWidth, Math.max(STAMP_MIN_SCALE, idiv(height, 240)));
+  }
+
+  function bodyReserve(strip) {
+    return RESERVED_BODY_LINES * GLYPH_HEIGHT + (RESERVED_BODY_LINES + 1) * MIN_GAP + strip;
+  }
+
+  function minContentWidth() {
+    // The first of the longest headlines, as Python's max(TREATMENTS, key=len).
+    const headline = Object.keys(TREATMENTS).reduce((best, word) =>
+      chars(word).length > chars(best).length ? word : best,
+    );
+    return Math.max(textWidth(WIDEST_LINE, 1), 2 * BAND_PAD + textWidth(headline, 1));
+  }
+
+  function minContentHeight(width, height) {
+    const strip = GLYPH_HEIGHT * stampScale(width, height) + MIN_GAP;
+    return 2 * BAND_PAD + GLYPH_HEIGHT + bodyReserve(strip);
+  }
+
+  // Refuse a panel the layout cannot draw every screen on, as panel_layout.check_size does.
+  function checkSize(width, height) {
+    const whole = Number.isInteger(width) && Number.isInteger(height);
+    if (!(whole && width >= 1 && width <= MAX_SIDE && height >= 1 && height <= MAX_SIDE)) {
+      throw new RangeError(`panel ${width}x${height} must be 1 to ${MAX_SIDE} pixels on a side`);
+    }
+    const edge = margin(height);
+    const needWidth = minContentWidth();
+    if (width - 2 * edge < needWidth) {
+      throw new RangeError(
+        `panel ${width}x${height} is too narrow: at ${height} px tall the margins take ` +
+          `${2 * edge} px, and '${WIDEST_LINE}' needs ${needWidth} px between them, ` +
+          `${2 * edge + needWidth} px in all`,
+      );
+    }
+    const needHeight = minContentHeight(width, height);
+    if (height - 2 * edge < needHeight) {
+      throw new RangeError(
+        `panel ${width}x${height} is too short: the margins take ${2 * edge} px, and the ` +
+          `headline band and a four-line screen with its stamp need ${needHeight} px between them`,
+      );
+    }
+  }
+
+  function checkStamp(stamp) {
+    if (typeof stamp !== "string" || !STAMP_TEXT.test(stamp)) {
+      throw new RangeError(`stamp must be a 24-hour HH:MM, got ${JSON.stringify(stamp)}`);
+    }
+  }
+
+  function rolesFor(kind, count) {
+    let first = [];
+    if (FRESH.includes(kind)) {
+      first = [VALUE, AGE];
+    } else if (kind === STALE) {
+      first = [LAST, AGE];
+    }
+    const roles = [];
+    for (let i = 0; i < count; i += 1) {
+      roles.push(i < first.length ? first[i] : CONTEXT);
+    }
+    return roles;
+  }
+
+  function box(x, y, w, h) {
+    return { x, y, w, h };
+  }
+
+  function place(text, role, x, y, scale) {
+    return { text, role, x, y, scale, tall: scale, width: textWidth(text, scale), height: GLYPH_HEIGHT * scale };
+  }
+
+  function placeRight(text, right, y, scale) {
+    return place(text, STAMP, right - textWidth(text, scale), y, scale);
+  }
+
+  // A rule through the middle of the line's capitals: 1 px at scale 2 or less, else 2.
+  function strikeBox(line) {
+    const thickness = line.scale <= 2 ? 1 : 2;
+    const middle = line.y + idiv(CAP_ROWS * line.scale, 2) - idiv(thickness, 2);
+    return box(line.x, middle, line.width, thickness);
+  }
+
+  // The texture ring for STALE or DASHED, centred in the margin.
+  function frameFor(kind, edge, width, height) {
+    if (kind !== STALE && kind !== DASHED) {
+      return null;
+    }
+    const thickness = kind === STALE ? HATCH_WIDTH : DASH_WIDTH;
+    const inset = idiv(edge - thickness, 2);
+    return { kind, box: box(inset, inset, width - 2 * inset, height - 2 * inset), thickness };
+  }
+
+  // Lay out lines on a width x height panel: the same plan as panel_layout.plan_panel.
+  function planPanel(lines, width, height, stamp) {
+    checkSize(width, height);
+    if (!Array.isArray(lines) || lines.length === 0) {
+      throw new RangeError("nothing to draw: lines is empty");
+    }
+    if (!lines.every((line) => typeof line === "string")) {
+      throw new TypeError("every line must be a string");
+    }
+    const stamped = stamp !== undefined && stamp !== null;
+    if (stamped) {
+      checkStamp(stamp);
+    }
+
+    const edge = margin(height);
+    const content = box(edge, edge, width - 2 * edge, height - 2 * edge);
+    const kind = treatment(lines[0]);
+    const stampSize = stampScale(width, height);
+    const strip = stamped ? GLYPH_HEIGHT * stampSize + MIN_GAP : 0;
+
+    // The band: one height per panel, sized from IN RANGE.
+    const inner = content.w - 2 * BAND_PAD;
+    const reserve = bodyReserve(strip);
+    const tallest = idiv(Math.max(0, content.h - 2 * BAND_PAD - reserve), GLYPH_HEIGHT);
+    const bandCap = Math.max(1, Math.min(headlineCap(height), tallest));
+    const bandScale = fitScale([REFERENCE_HEADLINE], inner, bandCap);
+    const band = box(content.x, content.y, content.w, 2 * BAND_PAD + GLYPH_HEIGHT * bandScale);
+    const headScale = fitScale([lines[0]], inner, bandScale);
+    const headline = {
+      text: lines[0],
+      role: HEADLINE,
+      x: band.x + BAND_PAD,
+      y: band.y + BAND_PAD,
+      scale: headScale,
+      tall: bandScale,
+      width: textWidth(lines[0], headScale),
+      height: GLYPH_HEIGHT * bandScale,
+    };
+
+    const body = lines.slice(1);
+    const roles = rolesFor(kind, body.length);
+    const withRole = (role) => body.filter((_, i) => roles[i] === role);
+    const valueLines = withRole(VALUE);
+    const ageLines = withRole(AGE);
+    const smallLines = withRole(LAST).concat(withRole(CONTEXT));
+
+    // Widest that fits: the hero up to the headline, the age up to the hero,
+    // the rest up to the age (and, on STALE, up to the headline as well).
+    const cap = bodyCap(bandScale);
+    const value = fitScale(valueLines, content.w, headScale);
+    const age = fitScale(ageLines, content.w, valueLines.length ? Math.min(cap, value) : cap);
+    let smallCap = ageLines.length ? Math.min(cap, age) : cap;
+    if (kind === STALE) {
+      smallCap = Math.min(smallCap, headScale);
+    }
+    const sizes = { value, age, small: fitScale(smallLines, content.w, smallCap) };
+    const sizeOf = (role) => (role === VALUE ? sizes.value : role === AGE ? sizes.age : sizes.small);
+
+    // The stamp sits at the right of the age row when it fits there beside
+    // the age and a one-character gap; otherwise it gets the bottom strip.
+    const stampChars = stamped ? stamp : "";
+    const onAgeRow =
+      stampChars !== "" &&
+      ageLines.length > 0 &&
+      textWidth(ageLines[0], age) + GLYPH_WIDTH * age + textWidth(stampChars, stampSize) <= content.w;
+    const top = band.y + band.h;
+    const bottom = content.y + content.h - (stampChars !== "" && !onAgeRow ? strip : 0);
+
+    // Each line's row height in glyph cells: the age row is as tall as its stamp.
+    const rowScales = () =>
+      roles.map((role) => (role === AGE && onAgeRow ? Math.max(sizeOf(role), stampSize) : sizeOf(role)));
+
+    // Shrink in glance order until the lines and their gaps fit the height:
+    // context to a readable 2, the hero down to the age, then context to 1,
+    // then the age.
+    const gaps = body.length + 1;
+    while (GLYPH_HEIGHT * sum(rowScales()) + gaps * MIN_GAP > bottom - top) {
+      if (smallLines.length && sizes.small > READABLE_SCALE) {
+        sizes.small -= 1;
+      } else if (valueLines.length && sizes.value > (ageLines.length ? sizes.age : 1)) {
+        sizes.value -= 1;
+      } else if (smallLines.length && sizes.small > 1) {
+        sizes.small -= 1;
+      } else if (ageLines.length && sizes.age > 1) {
+        sizes.age -= 1;
+      } else {
+        break; // still too tall: the lines past the content box are clipped
+      }
+    }
+
+    const rows = rowScales();
+    const gap = idiv(Math.max(0, bottom - top - GLYPH_HEIGHT * sum(rows)), gaps);
+    const placed = [];
+    let stampLine = null;
+    let y = top + gap;
+    body.forEach((text, i) => {
+      const role = roles[i];
+      const row = rows[i];
+      const scale = sizeOf(role);
+      // Text sharing a row shares its baseline.
+      placed.push(place(text, role, content.x, y + CAP_ROWS * (row - scale), scale));
+      if (role === AGE && onAgeRow) {
+        const stampY = y + CAP_ROWS * (row - stampSize);
+        stampLine = placeRight(stampChars, content.x + content.w, stampY, stampSize);
+      }
+      y += GLYPH_HEIGHT * row + gap;
+    });
+    if (stampChars !== "" && !onAgeRow) {
+      const stampY = content.y + content.h - GLYPH_HEIGHT * stampSize;
+      stampLine = placeRight(stampChars, content.x + content.w, stampY, stampSize);
+    }
+
+    return {
+      width,
+      height,
+      margin: edge,
+      treatment: kind,
+      content,
+      band,
+      bandScale,
+      headline,
+      lines: placed,
+      stamp: stampLine,
+      inkBand: kind === INVERSE || kind === STALE ? band : null,
+      rule:
+        kind === RULE
+          ? box(content.x, band.y + band.h - RULE_THICKNESS, content.w, RULE_THICKNESS)
+          : null,
+      // Under a STALE headline the first line is always the 'last:' line.
+      strike: kind === STALE && placed.length ? strikeBox(placed[0]) : null,
+      frame: frameFor(kind, edge, width, height),
+    };
+  }
+
+  // --- drawing ---------------------------------------------------------------
+
+  const checkedFonts = new WeakSet();
+
+  function checkFont(font) {
+    if (checkedFonts.has(font)) {
+      return;
+    }
+    if (!font || font.glyph_width !== GLYPH_WIDTH || font.glyph_height !== GLYPH_HEIGHT) {
+      throw new TypeError("the panel layout is defined for Keeper 5x8 (spec/font5x8.json)");
+    }
+    const glyphs = font.glyphs;
+    if (!glyphs || !own(glyphs, font.fallback)) {
+      throw new TypeError("the font has no fallback glyph");
+    }
+    for (const char of Object.keys(glyphs)) {
+      const rows = glyphs[char];
+      const wellFormed =
+        Array.isArray(rows) &&
+        rows.length === GLYPH_HEIGHT &&
+        rows.every((row) => typeof row === "string" && /^[#.]{5}$/.test(row));
+      if (!wellFormed) {
+        throw new TypeError(`glyph ${JSON.stringify(char)} is not eight rows of five cells`);
+      }
+    }
+    checkedFonts.add(font);
+  }
+
+  function glyph(font, char) {
+    return own(font.glyphs, char) ? font.glyphs[char] : font.glyphs[font.fallback];
+  }
+
+  // Ink a rectangle (or clear it to paper), clipped to the panel.
+  function fill(bitmap, x, y, w, h, ink) {
+    const left = Math.max(0, x);
+    const right = Math.min(bitmap.width, x + w);
+    if (left >= right) {
+      return;
+    }
+    const value = ink ? 1 : 0;
+    const last = Math.min(bitmap.height, y + h);
+    for (let row = Math.max(0, y); row < last; row += 1) {
+      const start = row * bitmap.width;
+      bitmap.ink.fill(value, start + left, start + right);
+    }
+  }
+
+  // Draw text with its top-left corner at (x, y). `tall` stretches the glyphs
+  // vertically, so a narrowed headline keeps the band's height.
+  function drawText(bitmap, font, text, x, y, scale, tall, ink) {
+    const sy = Math.max(scale, tall);
+    let left = x;
+    for (const char of text) {
+      const rows = glyph(font, char);
+      for (let row = 0; row < rows.length; row += 1) {
+        for (let col = 0; col < rows[row].length; col += 1) {
+          if (rows[row][col] === "#") {
+            fill(bitmap, left + col * scale, y + row * sy, scale, sy, ink);
+          }
+        }
+      }
+      left += GLYPH_WIDTH * scale + glyphGap(scale);
+    }
+  }
+
+  function drawLine(bitmap, font, line, ink) {
+    drawText(bitmap, font, line.text, line.x, line.y, line.scale, line.tall, ink);
+  }
+
+  // A ring `thickness` wide just inside the box: hatched for STALE, else dashed.
+  function drawFrame(bitmap, frame) {
+    const { kind, box: ring, thickness } = frame;
+    const period = DASH_ON + DASH_OFF;
+    for (let y = ring.y; y < ring.y + ring.h; y += 1) {
+      const across = y < ring.y + thickness || y >= ring.y + ring.h - thickness;
+      const columns = [];
+      if (across) {
+        for (let x = ring.x; x < ring.x + ring.w; x += 1) {
+          columns.push(x);
+        }
+      } else {
+        for (let x = ring.x; x < ring.x + thickness; x += 1) {
+          columns.push(x);
+        }
+        for (let x = ring.x + ring.w - thickness; x < ring.x + ring.w; x += 1) {
+          columns.push(x);
+        }
+      }
+      for (const x of columns) {
+        let on;
+        if (kind === DASHED) {
+          const along = across ? x - ring.x : y - ring.y;
+          on = along % period < DASH_ON;
+        } else {
+          on = (x + y) % HATCH_PITCH === 0;
+        }
+        if (on) {
+          bitmap.ink[y * bitmap.width + x] = 1;
+        }
+      }
+    }
+  }
+
+  // Band, headline, rule, strike, lines, stamp, then the frame. Only the
+  // headline on an ink band clears pixels; everything after it adds ink.
+  function drawPlan(plan, font) {
+    checkFont(font);
+    const bitmap = { width: plan.width, height: plan.height, ink: new Uint8Array(plan.width * plan.height) };
+    if (plan.inkBand !== null) {
+      const band = plan.inkBand;
+      fill(bitmap, band.x, band.y, band.w, band.h, true);
+    }
+    drawLine(bitmap, font, plan.headline, plan.inkBand === null);
+    for (const mark of [plan.rule, plan.strike]) {
+      if (mark !== null) {
+        fill(bitmap, mark.x, mark.y, mark.w, mark.h, true);
+      }
+    }
+    for (const line of plan.lines) {
+      drawLine(bitmap, font, line, true);
+    }
+    if (plan.stamp !== null) {
+      drawLine(bitmap, font, plan.stamp, true);
+    }
+    if (plan.frame !== null) {
+      drawFrame(bitmap, plan.frame);
+    }
+    return bitmap;
+  }
+
+  // Rows top to bottom, 1 = ink, eight pixels a byte, most significant bit
+  // first, each row padded with paper (0 bits) to a whole byte.
+  function packRows(bitmap) {
+    const stride = idiv(bitmap.width + 7, 8);
+    const packed = new Uint8Array(stride * bitmap.height);
+    for (let y = 0; y < bitmap.height; y += 1) {
+      for (let x = 0; x < bitmap.width; x += 1) {
+        if (bitmap.ink[y * bitmap.width + x]) {
+          packed[y * stride + (x >> 3)] |= 0x80 >> (x & 7);
+        }
+      }
+    }
+    return packed;
+  }
+
+  // The packed rows of `lines` drawn on a width x height panel with the
+  // Keeper 5x8 font (spec/font5x8.json). options.stamp is an optional HH:MM.
+  function renderPanel(lines, width, height, font, options) {
+    const stamp = options ? options.stamp : undefined;
+    return packRows(drawPlan(planPanel(lines, width, height, stamp), font));
+  }
+
+  function rowBytes(width) {
+    return idiv(width + 7, 8);
+  }
+
+  // True where pixel (x, y) of the packed rows is ink.
+  function isInk(packed, width, x, y) {
+    return (packed[y * rowBytes(width) + (x >> 3)] & (0x80 >> (x & 7))) !== 0;
+  }
+
+  function inkCount(packed) {
+    let count = 0;
+    for (const byte of packed) {
+      for (let bits = byte; bits; bits &= bits - 1) {
+        count += 1;
+      }
+    }
+    return count;
+  }
+
+  // CRC-32/ISO-HDLC, as zlib.crc32 computes it.
+  const CRC_TABLE = (() => {
+    const table = new Uint32Array(256);
+    for (let n = 0; n < 256; n += 1) {
+      let c = n;
+      for (let k = 0; k < 8; k += 1) {
+        c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+      }
+      table[n] = c >>> 0;
+    }
+    return table;
+  })();
+
+  function crc32(bytes) {
+    let crc = 0xffffffff;
+    for (const byte of bytes) {
+      crc = CRC_TABLE[(crc ^ byte) & 0xff] ^ (crc >>> 8);
+    }
+    return (crc ^ 0xffffffff) >>> 0;
+  }
+
+  // --- page helpers (demo.html) ---------------------------------------------
+
+  const STATE_NAME = /^[a-z0-9_]{1,64}$/;
+
+  // The vector name a location hash asks for, or null for anything else.
+  function parseHash(hash) {
+    if (typeof hash !== "string") {
+      return null;
+    }
+    let name = hash.charAt(0) === "#" ? hash.slice(1) : hash;
+    try {
+      name = decodeURIComponent(name);
+    } catch (error) {
+      return null; // a malformed escape names no state
+    }
+    return STATE_NAME.test(name) ? name : null;
+  }
+
+  // The state a deep link opens: an existing vector, or the fallback. A link
+  // can only select a state that exists; it never makes one up.
+  function chooseState(hash, states, fallback) {
+    const name = parseHash(hash);
+    return name !== null && own(states, name) ? name : fallback;
+  }
+
+  const FRESH_LEVELS = ["URGENT LOW", "LOW", "IN RANGE", "HIGH", "URGENT HIGH"];
+  const MEASURED = /^([0-9]{1,3}) mg\/dL(?: |$)/;
+
+  // The glucose number a Home Assistant tile shows, by the status_payload rule
+  // (HAZ-013): a number only for a fresh, measured reading. STALE, NO DATA, a
+  // sensor sentinel, or anything this cannot place gives null, which Home
+  // Assistant shows as "unknown".
+  function haGlucose(level, lines) {
+    if (!FRESH_LEVELS.includes(level) || !Array.isArray(lines)) {
+      return null;
+    }
+    if (!FRESH.includes(treatment(lines[0])) || typeof lines[1] !== "string") {
+      return null;
+    }
+    const match = MEASURED.exec(lines[1]);
+    if (match === null) {
+      return null; // sentinels are words: LOW (<40), HIGH (>400)
+    }
+    const mgdl = Number(match[1]);
+    return mgdl >= 40 && mgdl <= 400 ? mgdl : null;
+  }
+
+  const VALUE_PARTS = /^([0-9]+) (mg\/dL) (.+)$/;
+
+  // What a phone card shows, made only of the vector lines, in glance order:
+  // the status, then the hero (a number with its unit and arrow, or the
+  // sentinel words), the struck 'last:' line on STALE, the age, and the
+  // context. STALE and NO DATA (and any unknown headline) have no hero, so an
+  // old value is never the largest thing on the card.
+  function glance(lines) {
+    const kind = treatment(lines[0]);
+    const model = { treatment: kind, status: lines[0], hero: null, struck: null, age: null, context: [] };
+    if (FRESH.includes(kind)) {
+      if (lines.length > 1) {
+        const parts = VALUE_PARTS.exec(lines[1]);
+        model.hero = parts ? { digits: parts[1], unit: parts[2], arrow: parts[3] } : { word: lines[1] };
+      }
+      model.age = lines.length > 2 ? lines[2] : null;
+      model.context = lines.slice(3);
+    } else if (kind === STALE) {
+      model.struck = lines.length > 1 ? lines[1] : null;
+      model.age = lines.length > 2 ? lines[2] : null;
+      model.context = lines.slice(3);
+    } else {
+      model.context = lines.slice(1);
+    }
+    return model;
+  }
+
+  root.LightkeeperPanel = Object.freeze({
+    CONSTANTS,
+    TREATMENTS,
+    UNKNOWN_TREATMENT,
+    treatment,
+    checkSize,
+    planPanel,
+    renderPanel,
+    rowBytes,
+    isInk,
+    inkCount,
+    crc32,
+    parseHash,
+    chooseState,
+    haGlucose,
+    glance,
+  });
+})(globalThis);
+      const font = {
+        "name": "Keeper 5x8",
+        "description": "The project's own bitmap font (src/lightkeeper/infrastructure/font5x7.py), for printable ASCII. Each glyph is eight rows of five cells, top to bottom; '#' is ink and '.' is paper. Capitals and digits use the top seven rows (the baseline is under row 6); row 7 holds descenders. Any character not listed draws as the fallback. Generated by tools/gen_panel_spec.py; do not edit.",
+        "glyph_width": 5,
+        "glyph_height": 8,
+        "fallback": "?",
+        "glyphs": {
+          " ": [".....", ".....", ".....", ".....", ".....", ".....", ".....", "....."],
+          "!": ["..#..", "..#..", "..#..", "..#..", "..#..", ".....", "..#..", "....."],
+          "\"": [".#.#.", ".#.#.", ".....", ".....", ".....", ".....", ".....", "....."],
+          "#": [".#.#.", ".#.#.", "#####", ".#.#.", "#####", ".#.#.", ".#.#.", "....."],
+          "$": ["..#..", ".####", "#.#..", ".###.", "..#.#", "####.", "..#..", "....."],
+          "%": ["##...", "##..#", "...#.", "..#..", ".#...", "#..##", "...##", "....."],
+          "&": [".##..", "#..#.", "#.#..", ".#...", "#.#.#", "#..#.", ".##.#", "....."],
+          "'": ["..#..", "..#..", ".....", ".....", ".....", ".....", ".....", "....."],
+          "(": ["...#.", "..#..", ".#...", ".#...", ".#...", "..#..", "...#.", "....."],
+          ")": [".#...", "..#..", "...#.", "...#.", "...#.", "..#..", ".#...", "....."],
+          "*": [".....", "..#..", "#.#.#", ".###.", "#.#.#", "..#..", ".....", "....."],
+          "+": [".....", "..#..", "..#..", "#####", "..#..", "..#..", ".....", "....."],
+          ",": [".....", ".....", ".....", ".....", ".....", ".##..", "..#..", ".#..."],
+          "-": [".....", ".....", ".....", "#####", ".....", ".....", ".....", "....."],
+          ".": [".....", ".....", ".....", ".....", ".....", ".##..", ".##..", "....."],
+          "/": [".....", "....#", "...#.", "..#..", ".#...", "#....", ".....", "....."],
+          "0": [".###.", "#...#", "#..##", "#.#.#", "##..#", "#...#", ".###.", "....."],
+          "1": ["..#..", ".##..", "..#..", "..#..", "..#..", "..#..", ".###.", "....."],
+          "2": [".###.", "#...#", "....#", "...#.", "..#..", ".#...", "#####", "....."],
+          "3": ["#####", "...#.", "..#..", "...#.", "....#", "#...#", ".###.", "....."],
+          "4": ["...#.", "..##.", ".#.#.", "#..#.", "#####", "...#.", "...#.", "....."],
+          "5": ["#####", "#....", "####.", "....#", "....#", "#...#", ".###.", "....."],
+          "6": ["..##.", ".#...", "#....", "####.", "#...#", "#...#", ".###.", "....."],
+          "7": ["#####", "....#", "...#.", "..#..", ".#...", ".#...", ".#...", "....."],
+          "8": [".###.", "#...#", "#...#", ".###.", "#...#", "#...#", ".###.", "....."],
+          "9": [".###.", "#...#", "#...#", ".####", "....#", "...#.", ".##..", "....."],
+          ":": [".....", ".##..", ".##..", ".....", ".##..", ".##..", ".....", "....."],
+          ";": [".....", ".....", ".##..", ".##..", ".....", ".##..", "..#..", ".#..."],
+          "<": ["...#.", "..#..", ".#...", "#....", ".#...", "..#..", "...#.", "....."],
+          "=": [".....", ".....", "#####", ".....", "#####", ".....", ".....", "....."],
+          ">": [".#...", "..#..", "...#.", "....#", "...#.", "..#..", ".#...", "....."],
+          "?": [".###.", "#...#", "....#", "...#.", "..#..", ".....", "..#..", "....."],
+          "@": [".###.", "#...#", "....#", ".##.#", "#.#.#", "#.#.#", ".###.", "....."],
+          "A": [".###.", "#...#", "#...#", "#####", "#...#", "#...#", "#...#", "....."],
+          "B": ["####.", "#...#", "#...#", "####.", "#...#", "#...#", "####.", "....."],
+          "C": [".###.", "#...#", "#....", "#....", "#....", "#...#", ".###.", "....."],
+          "D": ["###..", "#..#.", "#...#", "#...#", "#...#", "#..#.", "###..", "....."],
+          "E": ["#####", "#....", "#....", "####.", "#....", "#....", "#####", "....."],
+          "F": ["#####", "#....", "#....", "####.", "#....", "#....", "#....", "....."],
+          "G": [".###.", "#...#", "#....", "#.###", "#...#", "#...#", ".####", "....."],
+          "H": ["#...#", "#...#", "#...#", "#####", "#...#", "#...#", "#...#", "....."],
+          "I": [".###.", "..#..", "..#..", "..#..", "..#..", "..#..", ".###.", "....."],
+          "J": ["..###", "...#.", "...#.", "...#.", "...#.", "#..#.", ".##..", "....."],
+          "K": ["#...#", "#..#.", "#.#..", "##...", "#.#..", "#..#.", "#...#", "....."],
+          "L": ["#....", "#....", "#....", "#....", "#....", "#....", "#####", "....."],
+          "M": ["#...#", "##.##", "#.#.#", "#.#.#", "#...#", "#...#", "#...#", "....."],
+          "N": ["#...#", "#...#", "##..#", "#.#.#", "#..##", "#...#", "#...#", "....."],
+          "O": [".###.", "#...#", "#...#", "#...#", "#...#", "#...#", ".###.", "....."],
+          "P": ["####.", "#...#", "#...#", "####.", "#....", "#....", "#....", "....."],
+          "Q": [".###.", "#...#", "#...#", "#...#", "#.#.#", "#..#.", ".##.#", "....."],
+          "R": ["####.", "#...#", "#...#", "####.", "#.#..", "#..#.", "#...#", "....."],
+          "S": [".####", "#....", "#....", ".###.", "....#", "....#", "####.", "....."],
+          "T": ["#####", "..#..", "..#..", "..#..", "..#..", "..#..", "..#..", "....."],
+          "U": ["#...#", "#...#", "#...#", "#...#", "#...#", "#...#", ".###.", "....."],
+          "V": ["#...#", "#...#", "#...#", "#...#", "#...#", ".#.#.", "..#..", "....."],
+          "W": ["#...#", "#...#", "#...#", "#.#.#", "#.#.#", "#.#.#", ".#.#.", "....."],
+          "X": ["#...#", "#...#", ".#.#.", "..#..", ".#.#.", "#...#", "#...#", "....."],
+          "Y": ["#...#", "#...#", ".#.#.", "..#..", "..#..", "..#..", "..#..", "....."],
+          "Z": ["#####", "....#", "...#.", "..#..", ".#...", "#....", "#####", "....."],
+          "[": [".###.", ".#...", ".#...", ".#...", ".#...", ".#...", ".###.", "....."],
+          "\\": [".....", "#....", ".#...", "..#..", "...#.", "....#", ".....", "....."],
+          "]": [".###.", "...#.", "...#.", "...#.", "...#.", "...#.", ".###.", "....."],
+          "^": ["..#..", ".#.#.", "#...#", ".....", ".....", ".....", ".....", "....."],
+          "_": [".....", ".....", ".....", ".....", ".....", ".....", "#####", "....."],
+          "`": [".#...", "..#..", ".....", ".....", ".....", ".....", ".....", "....."],
+          "a": [".....", ".....", ".###.", "....#", ".####", "#...#", ".####", "....."],
+          "b": ["#....", "#....", "#.##.", "##..#", "#...#", "#...#", "####.", "....."],
+          "c": [".....", ".....", ".###.", "#....", "#....", "#...#", ".###.", "....."],
+          "d": ["....#", "....#", ".##.#", "#..##", "#...#", "#...#", ".####", "....."],
+          "e": [".....", ".....", ".###.", "#...#", "#####", "#....", ".###.", "....."],
+          "f": ["..##.", ".#..#", ".#...", "###..", ".#...", ".#...", ".#...", "....."],
+          "g": [".....", ".....", ".####", "#...#", "#...#", ".####", "....#", ".###."],
+          "h": ["#....", "#....", "#.##.", "##..#", "#...#", "#...#", "#...#", "....."],
+          "i": ["..#..", ".....", ".##..", "..#..", "..#..", "..#..", ".###.", "....."],
+          "j": ["...#.", ".....", "..##.", "...#.", "...#.", "...#.", "#..#.", ".##.."],
+          "k": ["#....", "#....", "#..#.", "#.#..", "##...", "#.#..", "#..#.", "....."],
+          "l": [".##..", "..#..", "..#..", "..#..", "..#..", "..#..", ".###.", "....."],
+          "m": [".....", ".....", "##.#.", "#.#.#", "#.#.#", "#...#", "#...#", "....."],
+          "n": [".....", ".....", "#.##.", "##..#", "#...#", "#...#", "#...#", "....."],
+          "o": [".....", ".....", ".###.", "#...#", "#...#", "#...#", ".###.", "....."],
+          "p": [".....", ".....", "####.", "#...#", "#...#", "####.", "#....", "#...."],
+          "q": [".....", ".....", ".####", "#...#", "#...#", ".####", "....#", "....#"],
+          "r": [".....", ".....", "#.##.", "##..#", "#....", "#....", "#....", "....."],
+          "s": [".....", ".....", ".###.", "#....", ".###.", "....#", "####.", "....."],
+          "t": [".#...", ".#...", "###..", ".#...", ".#...", ".#..#", "..##.", "....."],
+          "u": [".....", ".....", "#...#", "#...#", "#...#", "#..##", ".##.#", "....."],
+          "v": [".....", ".....", "#...#", "#...#", "#...#", ".#.#.", "..#..", "....."],
+          "w": [".....", ".....", "#...#", "#...#", "#.#.#", "#.#.#", ".#.#.", "....."],
+          "x": [".....", ".....", "#...#", ".#.#.", "..#..", ".#.#.", "#...#", "....."],
+          "y": [".....", ".....", "#...#", "#...#", "#...#", ".####", "....#", ".###."],
+          "z": [".....", ".....", "#####", "...#.", "..#..", ".#...", "#####", "....."],
+          "{": ["...#.", "..#..", "..#..", ".#...", "..#..", "..#..", "...#.", "....."],
+          "|": ["..#..", "..#..", "..#..", "..#..", "..#..", "..#..", "..#..", "....."],
+          "}": [".#...", "..#..", "..#..", "...#.", "..#..", "..#..", ".#...", "....."],
+          "~": [".....", ".....", ".#...", "#.#.#", "...#.", ".....", ".....", "....."]
+        }
+      };
+      const spoken = {
+        "in_range_flat": "In range. 112 milligrams per deciliter, steady. 3 minutes ago.",
+        "in_range_just_now": "In range. 150 milligrams per deciliter, rising. Just now.",
+        "boundary_low_70_in_range": "In range. 70 milligrams per deciliter, falling slowly. 1 minute ago.",
+        "low_69": "Low. 69 milligrams per deciliter, falling. 2 minutes ago.",
+        "urgent_low_55": "Urgent low. 55 milligrams per deciliter, falling quickly. 1 minute ago.",
+        "sensor_low_sentinel": "Urgent low. Sensor reads below 40. Just now.",
+        "boundary_high_180_in_range": "In range. 180 milligrams per deciliter, steady. 4 minutes ago.",
+        "high_181": "High. 181 milligrams per deciliter, rising slowly. 4 minutes ago.",
+        "urgent_high_250": "Urgent high. 250 milligrams per deciliter, rising quickly. 2 minutes ago.",
+        "sensor_high_sentinel": "Urgent high. Sensor reads above 400. Just now.",
+        "stale_at_16_minutes": "Stale, do not trust. Last reading 120 milligrams per deciliter, 16 minutes ago. Confirm on the primary device.",
+        "fresh_at_15_minutes": "In range. 120 milligrams per deciliter, steady. 15 minutes ago.",
+        "stale_beats_urgent_low": "Stale, do not trust. Last reading 45 milligrams per deciliter, 40 minutes ago. Confirm on the primary device.",
+        "future_dated": "Stale, do not trust. Reading time is in the future. Confirm on the primary device.",
+        "small_clock_skew_ok": "In range. 120 milligrams per deciliter, steady. Just now.",
+        "unknown_direction": "In range. 130 milligrams per deciliter, trend unknown. 5 minutes ago.",
+        "no_data": "No data. Check sensor and phone. Confirm on the primary device.",
+        "no_data_unreachable": "No data. Check sensor and phone. Confirm on the primary device. Nightscout unreachable.",
+        "last_good_while_unreachable": "In range. 101 milligrams per deciliter, steady. 7 minutes ago. Nightscout unreachable.",
+        "stale_while_unreachable_stays_four_lines": "Stale, do not trust. Last reading 120 milligrams per deciliter, 32 minutes ago. Confirm on the primary device. Nightscout unreachable.",
+        "invalid_value_rejected": "No data. Check sensor and phone. Confirm on the primary device.",
+        "non_sgv_rejected": "No data. Check sensor and phone. Confirm on the primary device.",
+        "huge_value_rejected": "No data. Check sensor and phone. Confirm on the primary device.",
+        "stale_at_15_minutes_1_second": "Stale, do not trust. Last reading 120 milligrams per deciliter, 15 minutes ago. Confirm on the primary device.",
+        "fresh_at_14_minutes_59_seconds": "In range. 120 milligrams per deciliter, steady. 14 minutes ago.",
+        "future_skew_exactly_2_minutes_ok": "In range. 120 milligrams per deciliter, steady. Just now.",
+        "future_skew_2_minutes_1_second_stale": "Stale, do not trust. Reading time is in the future. Confirm on the primary device.",
+        "same_timestamp_lower_value_wins": "Low. 68 milligrams per deciliter, falling. Just now.",
+        "newest_entry_wins_in_any_order": "In range. 140 milligrams per deciliter, rising slowly. 1 minute ago.",
+        "poisoned_entries_skipped": "In range. 115 milligrams per deciliter, steady. 2 minutes ago.",
+        "rejected_newest_does_not_freshen_older": "Stale, do not trust. Last reading 110 milligrams per deciliter, 20 minutes ago. Confirm on the primary device.",
+        "all_entries_rejected_is_no_data": "No data. Check sensor and phone. Confirm on the primary device.",
+        "custom_urgent_low_60": "Urgent low. 60 milligrams per deciliter, falling. 1 minute ago.",
+        "custom_low_79": "Low. 79 milligrams per deciliter, falling slowly. 2 minutes ago.",
+        "custom_in_range_160": "In range. 160 milligrams per deciliter, steady. 3 minutes ago.",
+        "custom_high_161": "High. 161 milligrams per deciliter, rising slowly. 3 minutes ago.",
+        "custom_urgent_high_220": "Urgent high. 220 milligrams per deciliter, rising. 2 minutes ago.",
+        "custom_fresh_at_10_minutes": "In range. 120 milligrams per deciliter, steady. 10 minutes ago.",
+        "custom_stale_after_10_minutes": "Stale, do not trust. Last reading 120 milligrams per deciliter, 11 minutes ago. Confirm on the primary device."
+      };
+      const lampIcons = {
+        "lamp-lit": [
+          "................",
+          ".....######.....",
+          ".....##..##.....",
+          "...##########...",
+          "....########....",
+          "....##....##....",
+          "...##......##...",
+          "...##..##..##...",
+          "...##.####.##...",
+          "...##.####.##...",
+          "...##..##..##...",
+          "...##......##...",
+          "....##....##....",
+          "....########....",
+          "...##########...",
+          "...##########..."
+        ],
+        "lamp-hatched": [
+          "................",
+          ".....######.....",
+          ".....##..##.....",
+          "...##########...",
+          "....########....",
+          "....##....##....",
+          "...##...#..##...",
+          "...##..#...##...",
+          "...##.#....##...",
+          "...##....#.##...",
+          "...##...#..##...",
+          "...##..#...##...",
+          "....##....##....",
+          "....########....",
+          "...##########...",
+          "...##########..."
+        ],
+        "lamp-empty": [
+          "................",
+          ".....######.....",
+          ".....##..##.....",
+          "...##########...",
+          "....########....",
+          "....##....##....",
+          "...##......##...",
+          "...##......##...",
+          "...##......##...",
+          "...##......##...",
+          "...##......##...",
+          "...##......##...",
+          "....##....##....",
+          "....########....",
+          "...##########...",
+          "...##########..."
+        ]
+      };
+      const profiles = {
+        "waveshare_2in9": {
+          "width": 296,
+          "height": 128,
+          "description": "Waveshare 2.9\", the bedside Pi panel"
+        },
+        "waveshare_1in54": {
+          "width": 200,
+          "height": 200,
+          "description": "Waveshare 1.54\", square"
+        },
+        "waveshare_2in13": {
+          "width": 250,
+          "height": 122,
+          "description": "Waveshare 2.13\""
+        },
+        "waveshare_4in2": {
+          "width": 400,
+          "height": 300,
+          "description": "Waveshare 4.2\""
+        },
+        "waveshare_7in5": {
+          "width": 800,
+          "height": 480,
+          "description": "Waveshare 7.5\", the panel in a TRMNL"
+        },
+        "kindle": {
+          "width": 600,
+          "height": 800,
+          "description": "Kindle, portrait"
+        }
+      };
+      const defaultProfile = "waveshare_2in9";
+      const pageBytes = 99850;
+      // END GENERATED PANEL
+
+      // Page script. What a surface says comes only from the generated states,
+      // and the panel's pixels only from LightkeeperPanel.renderPanel, so the
+      // page never shows a screen a device would not. Nothing here runs on a
+      // timer: every change is one redraw, made by a click, a key or a link.
+      const P = globalThis.LightkeeperPanel;
+      const DEFAULT_STATE = "in_range_flat";
+      const VIEW_KEY = "lightkeeper-demo-view";
+
+      // The story states, first and in this order: [vector, button, what happened].
+      const story = [
+        ["in_range_flat", "In range, steady", "A fresh reading, 3 minutes old: in range and steady."],
+        ["low_69", "Low, falling", "69 mg/dL, one under the low line of 70, and falling."],
+        ["urgent_low_55", "Urgent low", "55 mg/dL, at the urgent low line, and falling quickly."],
+        ["stale_beats_urgent_low", "Old reading: STALE wins", "The last reading said 45 mg/dL, but it is 40 minutes old. Old data is never shown as current, so the screen says STALE and strikes the old value through."],
+        ["last_good_while_unreachable", "Nightscout down, still fresh", "Nightscout cannot be reached, but the last reading is only 7 minutes old, so it still shows, with the outage named."],
+        ["no_data_unreachable", "Nightscout down, no reading", "Nightscout cannot be reached and there is no reading to fall back on."],
+        ["sensor_low_sentinel", "Sensor below 40", "The sensor reports a value below what it can measure, so the screen shows words, never a number it does not have."],
+      ];
+
+      // Button labels and grouping for every vector, under "All vectors". Any
+      // vector not listed here still gets a button, under "Other", so a new
+      // case is never silently hidden.
       const groups = [
         ["In range", {
           in_range_flat: "In range, flat", in_range_just_now: "Just now, rising",
@@ -697,52 +2203,414 @@
         }],
       ];
 
-      const result = document.getElementById("result");
-      const exit = document.getElementById("exit");
-      const container = document.getElementById("groups");
-      const listed = new Set(groups.flatMap(([, m]) => Object.keys(m)));
-      const other = Object.fromEntries(Object.keys(states).filter((k) => !listed.has(k)).map((k) => [k, k]));
+      // Picker labels for the panel profiles, in the generated profiles' order.
+      const profileLabels = {"waveshare_2in9": "2.9-inch", "waveshare_1in54": "1.54-inch", "waveshare_2in13": "2.13-inch", "waveshare_4in2": "4.2-inch", "waveshare_7in5": "7.5-inch / TRMNL", "kindle": "Kindle"};
+
+      // Status color by headline, and lamp by shape, as assets/brand/tokens.json
+      // gives them. An unknown headline gets NO DATA's: the most cautious look.
+      const tones = {"IN RANGE": "in-range", "LOW": "low", "HIGH": "high", "URGENT LOW": "low", "URGENT HIGH": "high", "STALE - DO NOT TRUST": "stale", "NO DATA": "stale"};
+      const lamps = {"plain": "lamp-lit", "rule": "lamp-lit", "inverse": "lamp-lit", "stale": "lamp-hatched", "dashed": "lamp-empty"};
+      const UNKNOWN_TONE = "stale";
+
+      const own = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
+      const byId = (id) => document.getElementById(id);
+      const screen = byId("screen");
+      const bezelView = byId("bezel-view");
+      const panel = byId("panel");
+      const mini = byId("mini");
+      const miniView = byId("mini-view");
+      const output = byId("result");
+      const allStates = byId("all-states");
+
+      const storyNames = new Set(story.map(([name]) => name));
+      const labelOf = {};
+      const groupOf = {};
+      const listed = new Set();
+      groups.forEach(([title, map]) => Object.keys(map).forEach((name) => listed.add(name)));
+      const other = Object.fromEntries(Object.keys(states).filter((name) => !listed.has(name)).map((name) => [name, name]));
       if (Object.keys(other).length) groups.push(["Other", other]);
 
-      groups.forEach(([title, map]) => {
-        const section = document.createElement("div");
-        section.className = "group";
-        const h = document.createElement("h3");
-        h.textContent = title;
-        const row = document.createElement("div");
-        row.className = "states";
-        row.setAttribute("role", "group");
-        row.setAttribute("aria-label", title);
-        Object.entries(map).forEach(([name, label]) => {
-          if (!states[name]) return;
-          const b = document.createElement("button");
-          b.type = "button";
-          b.dataset.state = name;
-          b.textContent = label;
-          row.appendChild(b);
-        });
-        section.append(h, row);
-        container.appendChild(section);
-      });
+      let current = null;
+      let profile = own(profiles, defaultProfile) ? defaultProfile : Object.keys(profiles)[0];
+      let view = loadView();
 
-      const buttons = document.querySelectorAll("button[data-state]");
+      // --- controls: groups of toggle buttons with a roving tab stop ----------
 
-      function show(name) {
-        const state = states[name];
-        const code = state.level === "IN RANGE" ? 0 : 1;
-        result.innerHTML = "";
-        state.lines.forEach((line, index) => {
-          const div = document.createElement("div");
-          div.textContent = line;
-          if (index === 0) div.className = "first";
-          result.appendChild(div);
-        });
-        exit.textContent = `python -m lightkeeper exit code ${code} (${code === 0 ? "fresh and in range" : "someone should look"}) · vector: ${name}`;
-        buttons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.state === name)));
+      function toggle(text, data) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = text;
+        button.setAttribute("aria-pressed", "false");
+        Object.assign(button.dataset, data);
+        return button;
       }
 
-      buttons.forEach((b) => b.addEventListener("click", () => show(b.dataset.state)));
-      show("in_range_flat");
+      function setTabStop(group, target) {
+        group.querySelectorAll("button").forEach((button) => {
+          button.tabIndex = button === target ? 0 : -1;
+        });
+      }
+
+      // The pressed button is the group's tab stop; with none pressed, the
+      // current stop stays (the first button to begin with).
+      function syncTabStop(group) {
+        const pressed = group.querySelector('button[aria-pressed="true"]');
+        if (pressed) {
+          setTabStop(group, pressed);
+        } else if (!group.querySelector('button[tabindex="0"]')) {
+          setTabStop(group, group.querySelector("button"));
+        }
+      }
+
+      const STEPS = {ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1};
+
+      // Arrow keys, Home and End move focus inside a group; Enter or Space presses.
+      function rove(group) {
+        group.addEventListener("keydown", (event) => {
+          if (event.altKey || event.ctrlKey || event.metaKey) return;
+          const buttons = Array.from(group.querySelectorAll("button"));
+          const at = buttons.indexOf(document.activeElement);
+          if (at < 0) return;
+          let next;
+          if (event.key === "Home") next = 0;
+          else if (event.key === "End") next = buttons.length - 1;
+          else if (own(STEPS, event.key)) next = (at + STEPS[event.key] + buttons.length) % buttons.length;
+          else return;
+          event.preventDefault();
+          setTabStop(group, buttons[next]);
+          buttons[next].focus();
+        });
+        syncTabStop(group);
+      }
+
+      const stateGroups = [];
+      const storyGroup = byId("story-choices");
+      story.forEach(([name, label]) => {
+        if (!own(states, name)) return;
+        const button = toggle(label, {state: name});
+        storyGroup.append(button);
+      });
+      stateGroups.push(storyGroup);
+
+      const groupsBox = byId("groups");
+      groups.forEach(([title, map], index) => {
+        const section = document.createElement("section");
+        const heading = document.createElement("h3");
+        heading.className = "label";
+        heading.id = `group-${index}`;
+        heading.textContent = title;
+        const row = document.createElement("p");
+        row.className = "choices";
+        row.setAttribute("role", "group");
+        row.setAttribute("aria-labelledby", heading.id);
+        Object.entries(map).forEach(([name, label]) => {
+          if (!own(states, name)) return;
+          labelOf[name] = label;
+          groupOf[name] = title;
+          row.append(toggle(label, {state: name}));
+        });
+        section.append(heading, row);
+        groupsBox.append(section);
+        stateGroups.push(row);
+      });
+      byId("all-states-title").textContent = `All ${Object.keys(states).length} vectors`;
+
+      const profileGroup = byId("profile-choices");
+      Object.keys(profiles).forEach((name) => {
+        profileGroup.append(toggle(own(profileLabels, name) ? profileLabels[name] : name, {profile: name}));
+      });
+      const viewGroup = byId("view-choices");
+
+      [...stateGroups, profileGroup, viewGroup].forEach(rove);
+      document.querySelectorAll("button[data-state]").forEach((button) => {
+        button.addEventListener("click", () => select(button.dataset.state, false));
+      });
+      profileGroup.querySelectorAll("button").forEach((button) => {
+        button.addEventListener("click", () => setProfile(button.dataset.profile));
+      });
+      viewGroup.querySelectorAll("button").forEach((button) => {
+        button.addEventListener("click", () => setView(button.dataset.view, true));
+      });
+
+      function press(group, attribute, value) {
+        group.querySelectorAll("button").forEach((button) => {
+          button.setAttribute("aria-pressed", String(button.dataset[attribute] === value));
+        });
+        syncTabStop(group);
+      }
+
+      // --- pixels -----------------------------------------------------------
+
+      function cssColor(name) {
+        const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        const match = /^#([0-9a-f]{6})$/i.exec(value);
+        if (!match) return null;
+        const rgb = Number.parseInt(match[1], 16);
+        return [(rgb >> 16) & 255, (rgb >> 8) & 255, rgb & 255];
+      }
+
+      // Draw one panel, one canvas pixel per panel pixel. If the port refuses,
+      // the canvas is cleared rather than left showing another state.
+      function paint(canvas, lines, size) {
+        const context = canvas.getContext("2d");
+        let packed;
+        try {
+          packed = P.renderPanel(lines, size.width, size.height, font);
+        } catch (error) {
+          canvas.width = size.width;
+          canvas.height = size.height;
+          return false;
+        }
+        const paper = cssColor("--panel-paper") || [255, 255, 255];
+        const ink = cssColor("--panel-ink") || [0, 0, 0];
+        canvas.width = size.width;
+        canvas.height = size.height;
+        const image = context.createImageData(size.width, size.height);
+        for (let y = 0; y < size.height; y += 1) {
+          for (let x = 0; x < size.width; x += 1) {
+            const color = P.isInk(packed, size.width, x, y) ? ink : paper;
+            const at = (y * size.width + x) * 4;
+            image.data[at] = color[0];
+            image.data[at + 1] = color[1];
+            image.data[at + 2] = color[2];
+            image.data[at + 3] = 255;
+          }
+        }
+        context.putImageData(image, 0, 0);
+        return true;
+      }
+
+      // Screen pixels per panel pixel: a whole number, so nearest-neighbour
+      // sampling draws every stroke the same width. At 125% or 150% display
+      // scaling a CSS pixel is 1.25 or 1.5 screen pixels, so the count comes
+      // from the device pixel ratio, never above what the CSS scale asks for.
+      function screenPixels(scale) {
+        return Math.max(1, Math.floor((window.devicePixelRatio || 1) * scale + 1e-6));
+      }
+
+      // The canvas's CSS size is that many screen pixels. Browsers round a
+      // box's edges to whole screen pixels, so the size must come out whole:
+      // a hair over (1/256 of a screen pixel) survives a browser cutting the
+      // length down to its layout units, and is far too small to round up.
+      function sizeCanvas(canvas, size, pixels) {
+        const ratio = window.devicePixelRatio || 1;
+        canvas.style.width = `${(size.width * pixels + 1 / 256) / ratio}px`;
+        canvas.style.height = `${(size.height * pixels + 1 / 256) / ratio}px`;
+      }
+
+      // A box whose panel is wider than it scrolls sideways, and only then is
+      // it a tab stop, so a keyboard can scroll it in every browser (WebKit
+      // does not make a scroller focusable on its own).
+      function scrollStop(box) {
+        if (box.scrollWidth > box.clientWidth) box.tabIndex = 0;
+        else box.removeAttribute("tabindex");
+      }
+
+      // Whole-number scale only: 2x on a screen 640 px or wider when the panel
+      // fits at 2x, else 1x, in whole screen pixels. A panel wider than the
+      // room scrolls; it is never squeezed to fit or smoothed.
+      function fitPanel() {
+        const size = profiles[profile];
+        const room = bezelView.clientWidth;
+        const wide = window.matchMedia("(min-width: 640px)").matches;
+        const pixels = screenPixels(wide && size.width * 2 <= room ? 2 : 1);
+        sizeCanvas(panel, size, pixels);
+        sizeCanvas(mini, profiles[defaultProfile], screenPixels(1));
+        scrollStop(bezelView);
+        scrollStop(miniView);
+        const scroll = bezelView.tabIndex === 0 ? "; scroll sideways to see all of it" : "";
+        const each = pixels === 1 ? "one screen pixel each" : `each drawn as ${pixels} × ${pixels} screen pixels`;
+        const shown = view === "text" ? "; showing its lines as text" : `, ${each}${scroll}`;
+        byId("panel-caption").textContent = `${size.description}: ${size.width} × ${size.height} pixels${shown}.`;
+      }
+
+      // Moving to another screen or zooming changes the device pixel ratio;
+      // fit again for the new one. Each query matches one ratio, so it is
+      // made again after every change.
+      function watchRatio() {
+        const query = window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`);
+        query.addEventListener("change", () => {
+          watchRatio();
+          fitPanel();
+        }, {once: true});
+      }
+
+      // --- the surfaces -------------------------------------------------------
+
+      function toneOf(headline) {
+        return own(tones, headline) ? tones[headline] : UNKNOWN_TONE;
+      }
+
+      function lampIcon(name) {
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("viewBox", "0 0 16 16");
+        svg.setAttribute("aria-hidden", "true");
+        svg.setAttribute("focusable", "false");
+        svg.setAttribute("shape-rendering", "crispEdges");
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        let d = "";
+        lampIcons[name].forEach((row, y) => {
+          for (const run of row.matchAll(/#+/g)) d += `M${run.index} ${y}h${run[0].length}v1h-${run[0].length}z`;
+        });
+        path.setAttribute("d", d);
+        path.setAttribute("fill", "currentColor");
+        svg.append(path);
+        return svg;
+      }
+
+      // The status word on its shape: chip, Ink band, hatched band or dashed frame.
+      function drawChip(frame, headline) {
+        const shape = P.treatment(headline);
+        frame.dataset.shape = shape;
+        frame.dataset.tone = toneOf(headline);
+        const word = document.createElement("span");
+        word.className = "chip";
+        word.append(lampIcon(lamps[shape]), document.createTextNode(headline));
+        frame.replaceChildren(word);
+      }
+
+      function textBlock(tag, className, text) {
+        const element = document.createElement(tag);
+        element.className = className;
+        element.textContent = text;
+        return element;
+      }
+
+      function drawPhone(lines, sentence) {
+        const phone = byId("phone");
+        const card = P.glance(lines);
+        const frame = textBlock("span", "chip-frame", "");
+        drawChip(frame, card.status);
+        const parts = [frame];
+        if (card.hero !== null) {
+          const hero = textBlock("p", "hero", "");
+          if (card.hero.word !== undefined) {
+            hero.append(textBlock("span", "word", card.hero.word));
+          } else {
+            hero.append(textBlock("span", "num", card.hero.digits), " ", textBlock("span", "unit", card.hero.unit), " ", textBlock("span", "arrow", card.hero.arrow));
+          }
+          parts.push(hero);
+        }
+        if (card.struck !== null) parts.push(textBlock("p", "struck", card.struck));
+        if (card.age !== null) parts.push(textBlock("p", "age", card.age));
+        card.context.forEach((line) => parts.push(textBlock("p", "ctx", line)));
+        phone.replaceChildren(...parts);
+        phone.setAttribute("aria-label", `Phone app mock. ${sentence}`);
+      }
+
+      // The live region: the vector lines for the eye, the spoken sentence for
+      // a screen reader, read out politely once per change. Spans only. On
+      // STALE the 'last:' line is struck, in Muted at body size, as on the phone.
+      function speak(lines, sentence) {
+        const struck = P.glance(lines).struck;
+        const shown = lines.map((line, index) => {
+          const span = textBlock("span", index === 1 && struck !== null ? "line struck" : "line", line);
+          span.setAttribute("aria-hidden", "true");
+          return span;
+        });
+        output.replaceChildren(...shown, textBlock("span", "sr-only", sentence));
+      }
+
+      function drawPanels() {
+        if (current === null) return;
+        const state = states[current];
+        const drawn = paint(panel, state.lines, profiles[profile]);
+        if (!drawn) setView("text", false);
+        paint(mini, state.lines, profiles[defaultProfile]);
+        fitPanel();
+      }
+
+      function select(name, fromLink) {
+        if (!own(states, name)) name = DEFAULT_STATE;
+        const changed = name !== current;
+        current = name;
+        const state = states[name];
+        const sentence = own(spoken, name) ? spoken[name] : state.lines.join(". ");
+        stateGroups.forEach((group) => press(group, "state", name));
+        if (changed) speak(state.lines, sentence);
+        drawChip(byId("chip"), state.lines[0]);
+        drawPanels();
+        drawPhone(state.lines, sentence);
+        const number = P.haGlucose(state.level, state.lines);
+        byId("ha-level").textContent = state.level;
+        byId("ha-glucose").textContent = number === null ? "unknown" : `${number} mg/dL`;
+        byId("cli").textContent = state.lines.join("\n");
+        const told = story.find(([storyName]) => storyName === name);
+        byId("story-text").textContent = told ? told[2] : `${groupOf[name]}: ${labelOf[name]}.`;
+        const code = state.level === "IN RANGE" ? 0 : 1;
+        byId("dev-vector").textContent = name;
+        byId("dev-exit").textContent = String(code);
+        byId("dev-meaning").textContent = code === 0 ? "fresh and in range" : "someone should look";
+        if (fromLink) {
+          if (!storyNames.has(name)) allStates.open = true;
+        } else {
+          writeHash(name);
+        }
+      }
+
+      function setProfile(name) {
+        if (!own(profiles, name)) return;
+        profile = name;
+        press(profileGroup, "profile", name);
+        if (current !== null) drawPanels();
+      }
+
+      function loadView() {
+        try {
+          return localStorage.getItem(VIEW_KEY) === "text" ? "text" : "pixels";
+        } catch (error) {
+          return "pixels";
+        }
+      }
+
+      // Only a choice someone makes is remembered, never the default.
+      function setView(name, remember) {
+        view = name === "text" ? "text" : "pixels";
+        screen.dataset.view = view;
+        press(viewGroup, "view", view);
+        fitPanel();
+        if (!remember) return;
+        try {
+          localStorage.setItem(VIEW_KEY, view);
+        } catch (error) {
+          // Storage can be off (a private window, file://); the choice then lasts for this visit.
+        }
+      }
+
+      // --- deep links -------------------------------------------------------
+
+      function writeHash(name) {
+        try {
+          history.replaceState(null, "", `#${name}`);
+        } catch (error) {
+          // Some browsers refuse this on file://; the page works the same without it.
+        }
+      }
+
+      // Open what the link names, if it names a vector; otherwise the default,
+      // and the address bar stops naming a state that is not shown.
+      function follow() {
+        const name = P.chooseState(location.hash, states, DEFAULT_STATE);
+        if (location.hash && P.parseHash(location.hash) !== name) {
+          try {
+            history.replaceState(null, "", location.pathname + location.search);
+          } catch (error) {
+            // As above: nothing depends on it.
+          }
+        }
+        select(name, true);
+      }
+
+      window.addEventListener("hashchange", follow);
+      window.addEventListener("resize", fitPanel);
+      watchRatio();
+      window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawPanels);
+      new MutationObserver(drawPanels).observe(document.documentElement, {attributes: true, attributeFilter: ["data-theme"]});
+
+      byId("page-weight").textContent = `${Math.ceil(pageBytes / 1024)} KB`;
+      setView(view, false);
+      setProfile(profile);
+      follow();
     </script>
   </body>
 </html>

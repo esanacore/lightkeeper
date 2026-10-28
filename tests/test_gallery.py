@@ -54,20 +54,36 @@ def test_fr011_every_vector_is_in_the_gallery():
     assert len(listed) == len(set(listed))
 
 
+def demo_array(page: str, name: str) -> str:
+    """Return the array literal `const name = [ ... ];` from the demo's page script."""
+    start = page.index(f"const {name} = [")
+    return page[start : page.index("\n      ];\n", start)]
+
+
 def test_fr011_demo_buttons_point_at_real_vectors():
     import json
     import re
 
-    page = (ROOT / "demo.html").read_text(encoding="utf-8")
+    page = (ROOT / "demo.html").read_text(encoding="utf-8").replace("\r\n", "\n")
     vectors = {
         c["name"]
         for c in json.loads((ROOT / "spec" / "display_vectors.json").read_text())["cases"]
     }
-    # Buttons are built from the label map in the page script: `name: "Label"`.
-    script = page[page.index("const groups = [") : page.index("const result =")]
-    labelled = set(re.findall(r"\b([a-z0-9_]+): \"", script))
+    # The "All vectors" buttons are built from the label map in the page script:
+    # `name: "Label"`, one group per row.
+    labelled = set(re.findall(r"\b([a-z0-9_]+): \"", demo_array(page, "groups")))
     assert labelled, "demo has no state buttons"
     # Every labelled button is a real vector, and every vector has a hand-written
     # label (a new vector would otherwise fall into the "Other" group unnamed).
     assert labelled <= vectors
     assert vectors <= labelled, f"add demo labels for: {sorted(vectors - labelled)}"
+    # The story buttons that come first: `["vector", "Label", "What happened."]`.
+    story = re.findall(r"^\s*\[\"([a-z0-9_]+)\", \"[^\"]+\", \"", demo_array(page, "story"), re.M)
+    assert len(story) == 7 and len(set(story)) == 7
+    assert set(story) <= vectors
+    # Each label becomes a button with its vector's name, so every vector has a
+    # labelled control, inside the disclosure that holds them all.
+    script = page[page.index("const groupsBox") :]
+    assert "row.append(toggle(label, {state: name}));" in script
+    assert "button.textContent = text;" in page
+    assert page.index('<details id="all-states">') < page.index('id="groups"')
