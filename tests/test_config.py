@@ -265,9 +265,7 @@ def test_haz013_mqtt_ids_with_unsafe_characters_are_named(monkeypatch, name, val
     monkeypatch.setenv(name, value)
     with pytest.raises(ConfigError) as caught:
         config.home_assistant_from_env(60, Thresholds())
-    assert str(caught.value) == (
-        f"{name}={value!r} may contain only letters, digits, '_' and '-'"
-    )
+    assert str(caught.value) == (f"{name}={value!r} may contain only letters, digits, '_' and '-'")
 
 
 def test_nfr001_mqtt_password_without_a_user_is_refused_without_printing_it(monkeypatch):

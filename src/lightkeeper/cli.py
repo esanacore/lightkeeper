@@ -49,7 +49,13 @@ from lightkeeper.infrastructure.epaper_bitmap import Bitmap, render_bitmap, stam
 from lightkeeper.infrastructure.home_assistant import HomeAssistantPublisher
 from lightkeeper.infrastructure.mqtt import MqttError
 from lightkeeper.infrastructure.nightscout import NightscoutClient, NightscoutError
-from lightkeeper.infrastructure.panel_profiles import DEFAULT_PROFILE, PanelProfile, resolve
+from lightkeeper.infrastructure.panel_profiles import (
+    ALIASES,
+    DEFAULT_PROFILE,
+    PROFILES,
+    PanelProfile,
+    resolve,
+)
 from lightkeeper.infrastructure.svg_display import render_svg
 from lightkeeper.infrastructure.systemd_notify import SystemdNotifier
 
@@ -61,6 +67,7 @@ __all__ = [
     "describe_write_error",
     "home_assistant_from_env",
     "main",
+    "panel_image",
     "source_from_env",
     "thresholds_from_env",
     "write_bmp",
@@ -158,7 +165,11 @@ def _replace(target: Path, write: Callable[[Path], object]) -> None:
 
 
 def panel_image(lines: list[str], profile: PanelProfile, written_at: datetime) -> Bitmap:
-    """Draw the panel pixels, stamped with the local `HH:MM` of `written_at` (HAZ-014)."""
+    """Draw the panel pixels, stamped with the local `HH:MM` of `written_at` (HAZ-014).
+
+    Exported images always carry the stamp, so a dashboard, a TRMNL or a
+    Kindle showing an image that stopped updating says when it was drawn.
+    """
     return render_bitmap(lines, profile.width, profile.height, stamp=stamp_text(written_at))
 
 
@@ -166,20 +177,24 @@ def describe_write_error(exc: OSError, target: str) -> str:
     """Say in plain words why `target` could not be written.
 
     Never the temporary file's name or a raw error number: the person only
-    knows the path they asked for.
+    knows the path they asked for. The folder is looked at first, because
+    Windows reports a missing folder or a folder in the way as other errors.
     """
-    folder = Path(target).parent
-    if isinstance(exc, FileNotFoundError) and not folder.is_dir():
+    folder = os.path.dirname(target) or "."
+    if not os.path.exists(folder):
         return f"the folder {folder} does not exist"
+    if not os.path.isdir(folder):
+        return f"{folder} is a file, not a folder"
+    if os.path.isdir(target):
+        return f"{target} is a folder"
     if isinstance(exc, PermissionError):
         return "permission denied"
-    if isinstance(exc, IsADirectoryError):
-        return f"{target} is a folder"
-    if isinstance(exc, NotADirectoryError):
-        return f"part of the folder {folder} is a file, not a folder"
     if exc.errno == errno.ENOSPC:
         return "the disk is full"
-    return (exc.strerror or type(exc).__name__).lower()
+    if exc.errno == errno.EROFS:
+        return "the disk is read-only"
+    reason = (exc.strerror or "the write failed").rstrip(".")
+    return reason[:1].lower() + reason[1:]
 
 
 def _trend(text: str) -> str:
@@ -254,15 +269,15 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="PATH",
         help="also write the panel pixels as a 1-bit BMP to PATH, stamped with the time",
     )
+    names = [*PROFILES, *(f"{alias} (= {name})" for alias, name in ALIASES.items())]
     parser.add_argument(
         "--panel",
         type=_panel,
         default=resolve(DEFAULT_PROFILE),
         metavar="PROFILE",
         help=(
-            "panel for --png and --bmp: a profile name (waveshare_2in9, waveshare_1in54, "
-            "waveshare_2in13, waveshare_4in2, waveshare_7in5 or trmnl, kindle) or a size "
-            f"like 800x480 (default {DEFAULT_PROFILE})"
+            f"panel for --png and --bmp: {', '.join(names)}, or a size like 800x480 "
+            f"(default {DEFAULT_PROFILE})"
         ),
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -270,25 +285,26 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 class _RecordingSource:
-    """Passes fetches through and keeps the last exception, for the diagnostics.
+    """Passes fetches through and notes what the last failed one was, for the diagnostics.
 
     current_status turns any failure into a STALE or NO DATA screen and a
-    message; this wrapper lets the CLI also see what failed, so monitor.py
-    stays as it is.
+    message; this wrapper lets the CLI also see which link failed, so
+    monitor.py stays as it is. Only the kind and the hint are kept, never the
+    exception: its traceback would keep every frame of the failed fetch alive
+    until the next one.
     """
 
     def __init__(self, source: EntrySource) -> None:
         self._source = source
-        self.last_error: Exception | None = None
+        self.failure: tuple[str, str] | None = None  # (kind, hint) of a NightscoutError
 
     def fetch_entries(self, count: int = 12) -> list[Any]:
+        self.failure = None
         try:
-            entries = self._source.fetch_entries(count)
-        except Exception as exc:
-            self.last_error = exc
+            return self._source.fetch_entries(count)
+        except NightscoutError as exc:
+            self.failure = (exc.kind, exc.hint)
             raise
-        self.last_error = None
-        return entries
 
 
 class _Diagnostics:
@@ -302,6 +318,7 @@ class _Diagnostics:
     def __init__(self, secrets: list[str]) -> None:
         self._secrets = [s for s in secrets if s]
         self._kind: str | None = None
+        self.advice: str | None = None  # what to check, while something is failing
 
     def _redact(self, text: str) -> str:
         for secret in self._secrets:
@@ -309,21 +326,26 @@ class _Diagnostics:
                 text = text.replace(form, "***")
         return text
 
-    def update(self, error: str | None, exc: Exception | None) -> str | None:
-        """Return the line to print for this cycle, or None when nothing changed."""
+    def update(self, error: str | None, failure: tuple[str, str] | None) -> str | None:
+        """Return the stderr line for this cycle, or None when nothing changed.
+
+        `failure` is the (kind, hint) of a Nightscout failure; any other error
+        is reported with its own message.
+        """
         if error is None:
             if self._kind is None:
                 return None
-            self._kind = None
+            self._kind = self.advice = None
             return "lightkeeper: Nightscout reachable again"
-        if isinstance(exc, NightscoutError):
-            kind, advice = exc.kind, exc.hint
+        if failure is not None:
+            kind, advice = failure
         else:
             kind, advice = "other", f"could not read the readings: {error}"
+        self.advice = self._redact(advice)
         if kind == self._kind:
             return None
         self._kind = kind
-        return self._redact(f"lightkeeper: {advice}")
+        return f"lightkeeper: {self.advice}"
 
 
 class _Screen:
@@ -333,19 +355,38 @@ class _Screen:
     not `dumb`. Everything else gets exactly the vector lines.
     """
 
-    def __init__(self, args: argparse.Namespace, stream: TextIO, environ: Mapping[str, str]):
-        self.framed = bool(args.watch) and stream.isatty()
-        self.framed = self.framed and environ.get("TERM", "").strip().lower() != "dumb"
+    def __init__(
+        self,
+        args: argparse.Namespace,
+        stream: TextIO,
+        errors: TextIO,
+        environ: Mapping[str, str],
+    ) -> None:
+        self._stream = stream
+        self._errors = errors
+        self.framed = terminal_view.wants_frame(args.watch, stream.isatty(), environ)
         self._escapes = self.framed and terminal_view.enable_vt()
-        self._color = not args.no_color and not environ.get("NO_COLOR")
-        self._first = True
+        self._color = terminal_view.wants_color(args.no_color, environ)
+        self._drawn = False
 
-    def show(self, lines: list[str], now: datetime, interval: int) -> None:
+    def show(
+        self,
+        lines: list[str],
+        now: datetime,
+        interval: int,
+        advice: str | None,
+        note: str | None,
+    ) -> None:
+        """Show one cycle's screen, and `advice` on stderr when there is a new line."""
         # flush=True: under systemd stdout is block-buffered, and a buffered
         # screen that only appears hours later is useless in `journalctl -f`.
         if not self.framed:
-            print("\n".join(lines), flush=True)
+            print("\n".join(lines), file=self._stream, flush=True)
+            self._advise(advice)
             return
+        # Before the redraw: on the same terminal the redraw then erases the
+        # stderr copy, and the note under the footer keeps it in view.
+        self._advise(advice)
         frame = terminal_view.render_frame(
             lines,
             now,
@@ -353,15 +394,27 @@ class _Screen:
             escapes=self._escapes,
             color=self._color,
             columns=shutil.get_terminal_size().columns,
-            first=self._first,
+            note=note,
+            first=not self._drawn,
         )
-        self._first = False
-        sys.stdout.write(frame)
-        sys.stdout.flush()
+        self._drawn = True
+        self._stream.write(frame)
+        self._stream.flush()
+
+    def _advise(self, advice: str | None) -> None:
+        if advice is not None:
+            print(advice, file=self._errors, flush=True)
 
     def end_cycle(self) -> None:
+        """Mark the end of a --watch cycle on plain output."""
         if not self.framed:
-            print(SEPARATOR, flush=True)
+            print(SEPARATOR, file=self._stream, flush=True)
+
+    def close(self) -> None:
+        """Leave the terminal's text attributes as they were, whatever was interrupted."""
+        if self._escapes and self._drawn:
+            self._stream.write(terminal_view.RESET)
+            self._stream.flush()
 
 
 def _check_demo_flags(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
@@ -384,8 +437,21 @@ def main(argv: list[str] | None = None) -> int:
     (never 0, which would read as fresh and in range to cron or Home
     Assistant). A --watch loop stopped with Ctrl+C exits 0.
     """
-    parser = build_parser()
-    args = parser.parse_args(argv)
+    watch = False
+    try:
+        parser = build_parser()
+        args = parser.parse_args(argv)
+        watch = args.watch
+        return _start(parser, args)
+    except KeyboardInterrupt:
+        if watch:
+            return 0
+        print("lightkeeper: stopped", file=sys.stderr, flush=True)
+        return EXIT_INTERRUPTED
+
+
+def _start(parser: argparse.ArgumentParser, args: argparse.Namespace) -> int:
+    """Check every setting, then run; exit 2 before anything is shown if one is unusable."""
     _check_demo_flags(parser, args)
     interval = max(args.interval, MIN_INTERVAL_SECONDS)
     try:
@@ -393,20 +459,17 @@ def main(argv: list[str] | None = None) -> int:
         # NightscoutClient is looked up here, at call time, so tests can stand in for it.
         source = source_from_env(args, client_factory=NightscoutClient)
         home_assistant = home_assistant_from_env(interval, thresholds)
-    except ConfigError as exc:
+    except ValueError as exc:  # ConfigError, naming the setting, or a library's own check
         print(f"Configuration error: {exc}", file=sys.stderr)
         return 2
 
     notifier = SystemdNotifier()
     notifier.ready("starting")
+    screen = _Screen(args, sys.stdout, sys.stderr, os.environ)
     try:
-        return _run(args, source, thresholds, interval, home_assistant, notifier)
-    except KeyboardInterrupt:
-        if args.watch:
-            return 0
-        print("lightkeeper: stopped", file=sys.stderr, flush=True)
-        return EXIT_INTERRUPTED
+        return _run(args, source, thresholds, interval, home_assistant, notifier, screen)
     finally:
+        screen.close()
         notifier.stopping()
         if home_assistant is not None:
             # A --watch loop that stops marks the entities unavailable; a
@@ -421,11 +484,11 @@ def _run(
     interval: int,
     home_assistant: HomeAssistantPublisher | None,
     notifier: SystemdNotifier,
+    screen: _Screen,
 ) -> int:
     """Run the refresh loop: fetch, show, advise, write, publish, sleep."""
     recorder = _RecordingSource(source)
     diagnostics = _Diagnostics([os.environ.get("NIGHTSCOUT_TOKEN", "").strip()])
-    screen = _Screen(args, sys.stdout, os.environ)
     last_good = None
     while True:
         now = datetime.now(UTC)
@@ -433,10 +496,8 @@ def _run(
         if error is None:
             last_good = status
         lines = render_lines(status, error)
-        screen.show(lines, now, interval)
-        advice = diagnostics.update(error, recorder.last_error)
-        if advice is not None:
-            print(advice, file=sys.stderr, flush=True)
+        advice = diagnostics.update(error, recorder.failure)
+        screen.show(lines, now, interval, advice, diagnostics.advice)
         payload = status_payload(status, error, now)
         outputs: list[tuple[str, Callable[[], None]]] = []
         if args.svg:

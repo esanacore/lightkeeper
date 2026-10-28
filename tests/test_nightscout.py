@@ -179,7 +179,7 @@ def http_error(code):
 
 
 def failure(error, token=TOKEN, **kwargs):
-    """The NightscoutError a fetch raises when the fetcher raises `error`."""
+    """Return the NightscoutError a fetch raises when the fetcher raises `error`."""
     client = NightscoutClient(
         "https://ns.example.com", token=token, fetcher=RecordingFetcher(error=error), **kwargs
     )

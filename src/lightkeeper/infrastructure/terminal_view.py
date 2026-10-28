@@ -1,10 +1,10 @@
 """The interactive `--watch` screen: the vector lines in an ASCII logbook frame.
 
 Only an interactive terminal running `--watch` gets this (docs/BRAND.md,
-Terminal); the CLI decides that. Piped, systemd and `--json` output stays
+Terminal); `wants_frame` says when. Piped, systemd and `--json` output stays
 exactly the vector lines. This module builds the text of one redraw from the
-lines alone, the way `panel_layout` plans a panel from them: the status
-shape comes from the headline (`lines[0]`), so nothing is classified again.
+lines alone, the way `panel_layout` plans a panel from them: the status shape
+comes from the headline (`lines[0]`), so nothing is classified again.
 
     o))) lightkeeper   checked 02:14:07
     +-----------------------------+
@@ -22,9 +22,12 @@ struck through. NO_COLOR and --no-color drop only the color codes (30 to
 37). Never dim, blink or bright black, never the bell, and ASCII only: any
 other character in a line is drawn as `?`, so no line can carry an escape.
 
-Nothing moves between checks. A redraw homes the cursor, overwrites the
-frame row by row, and erases what is left below it. Erase-display (`ESC [2J`)
-is sent only before the first frame: some terminals, Windows Terminal among
+A note, when the CLI has advice about a failing setting, goes under the
+footer, outside the frame: it is never screen text.
+
+Nothing moves between checks. A redraw homes the cursor, rewrites the frame
+row by row, and erases what is left below it. Erase-display (`ESC [2J`) is
+sent only before the first frame: some terminals, Windows Terminal among
 them, move the screen into the scrollback on it, so sending it on every
 redraw would grow the scrollback once a minute.
 
@@ -34,7 +37,8 @@ Pure standard library (ADR-0005); imports no application code.
 from __future__ import annotations
 
 import sys
-from collections.abc import Sequence
+import textwrap
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any
 
@@ -61,13 +65,26 @@ COLOR_CODES = range(30, 38)
 ESC = "\x1b"
 HOME = ESC + "[H"
 CLEAR_SCREEN = ESC + "[2J"
-ERASE_LINE = ESC + "[K"  # from the cursor to the end of the line
+ERASE_ROW = ESC + "[2K"  # the whole row the cursor is on
 ERASE_BELOW = ESC + "[J"  # from the cursor to the end of the screen
 RESET = ESC + "[0m"
+
+# Below this a footer or a note is not broken further; the frame is 31 wide.
+MIN_COLUMNS = 40
 
 # Windows console API (wincon.h).
 STD_OUTPUT_HANDLE = -11
 ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
+
+
+def wants_frame(watch: bool, isatty: bool, environ: Mapping[str, str]) -> bool:
+    """Return True only for `--watch` on an interactive terminal whose TERM is not `dumb`."""
+    return watch and isatty and environ.get("TERM", "").strip().lower() != "dumb"
+
+
+def wants_color(no_color: bool, environ: Mapping[str, str]) -> bool:
+    """Return False for --no-color, or NO_COLOR set to anything but empty (no-color.org)."""
+    return not no_color and not environ.get("NO_COLOR")
 
 
 def headline_codes(headline: str, color: bool = True) -> str:
@@ -96,6 +113,7 @@ def footer_rows(interval_seconds: int, columns: int) -> list[str]:
         "Ctrl+C to stop",
         "secondary display, confirm on the primary app",
     ]
+    columns = max(columns, MIN_COLUMNS)
     rows = [parts[0]]
     for part in parts[1:]:
         joined = f"{rows[-1]} - {part}"
@@ -114,12 +132,14 @@ def frame_rows(
     escapes: bool = True,
     color: bool = True,
     columns: int = 80,
+    note: str | None = None,
 ) -> list[str]:
-    """Return the rows of one frame: header, the boxed lines, then the footer.
+    """Return the rows of one frame: header, the boxed lines, the footer, then any note.
 
     `checked_at` is shown in local time, as `HH:MM:SS` (a naive time is taken
     as local already). With `escapes` off nothing but ASCII text is
-    returned, for a terminal that cannot act on escape codes.
+    returned, for a terminal that cannot act on escape codes. `note` is
+    wrapped to `columns` under the footer, unstyled.
     """
     if not lines:
         raise ValueError("nothing to draw: lines is empty")
@@ -143,6 +163,8 @@ def frame_rows(
         rows.append(f"|{pad}{body}{pad}|")
     rows.append(rule)
     rows.extend(footer_rows(interval_seconds, columns))
+    if note:
+        rows.extend(textwrap.wrap(_ascii(note), max(columns, MIN_COLUMNS)))
     return rows
 
 
@@ -154,29 +176,54 @@ def render_frame(
     escapes: bool = True,
     color: bool = True,
     columns: int = 80,
+    note: str | None = None,
     first: bool = False,
 ) -> str:
     """Return the text of one redraw, ready to write to the terminal.
 
     With `escapes`, the frame replaces the last one in place: home, each row
-    erased to its end, then everything below erased. `first` clears the
+    erased and rewritten, then everything below erased. `first` clears the
     screen once before that. Without `escapes`, the plain frame and a blank
     line, so successive frames stay apart.
     """
     rows = frame_rows(
-        lines, checked_at, interval_seconds, escapes=escapes, color=color, columns=columns
+        lines,
+        checked_at,
+        interval_seconds,
+        escapes=escapes,
+        color=color,
+        columns=columns,
+        note=note,
     )
     if not escapes:
         return "\n".join(rows) + "\n\n"
+    # Each row is erased before it is written, not after: erasing after a row
+    # exactly as wide as the terminal would erase its last character.
     start = CLEAR_SCREEN + HOME if first else HOME
-    return start + "".join(row + ERASE_LINE + "\n" for row in rows) + ERASE_BELOW
+    return start + "".join(ERASE_ROW + row + "\n" for row in rows) + ERASE_BELOW
 
 
 def _kernel32() -> Any:
-    """Return the Windows kernel32 library, or None anywhere else."""
+    """Return kernel32 with the console functions typed, or None off Windows.
+
+    A private instance, so the argument and result types set here never
+    change `ctypes.windll.kernel32` for anything else in the process. HANDLE
+    is pointer-sized, so it must not be left as the default C int.
+    """
     import ctypes
 
-    return getattr(getattr(ctypes, "windll", None), "kernel32", None)
+    loader = getattr(ctypes, "WinDLL", None)
+    if loader is None:
+        return None
+    kernel32 = loader("kernel32", use_last_error=True)
+    handle, dword = ctypes.c_void_p, ctypes.c_uint32
+    kernel32.GetStdHandle.argtypes = [dword]
+    kernel32.GetStdHandle.restype = handle
+    kernel32.GetConsoleMode.argtypes = [handle, ctypes.POINTER(dword)]
+    kernel32.GetConsoleMode.restype = ctypes.c_int
+    kernel32.SetConsoleMode.argtypes = [handle, dword]
+    kernel32.SetConsoleMode.restype = ctypes.c_int
+    return kernel32
 
 
 def enable_vt(platform: str = sys.platform, kernel32: Any = None) -> bool:
@@ -192,14 +239,17 @@ def enable_vt(platform: str = sys.platform, kernel32: Any = None) -> bool:
         return True
     import ctypes
 
-    api = kernel32 if kernel32 is not None else _kernel32()
-    if api is None:
-        return False
-    mode = ctypes.c_uint32()
     try:
-        handle = api.GetStdHandle(STD_OUTPUT_HANDLE)
-        if not api.GetConsoleMode(handle, ctypes.pointer(mode)):
+        api = kernel32 if kernel32 is not None else _kernel32()
+        if api is None:
             return False
+        mode = ctypes.c_uint32()
+        # The argument is a DWORD, so -11 is passed as its unsigned 32-bit form.
+        handle = api.GetStdHandle(STD_OUTPUT_HANDLE & 0xFFFFFFFF)
+        if not api.GetConsoleMode(handle, ctypes.byref(mode)):
+            return False
+        if mode.value & ENABLE_VIRTUAL_TERMINAL_PROCESSING:
+            return True
         return bool(api.SetConsoleMode(handle, mode.value | ENABLE_VIRTUAL_TERMINAL_PROCESSING))
-    except (AttributeError, OSError):
+    except (AttributeError, OSError, TypeError, ValueError, ctypes.ArgumentError):
         return False
