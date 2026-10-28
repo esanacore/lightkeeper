@@ -1,7 +1,9 @@
 """Turn spec/panel_vectors.json into a C++ include for the panel host tests.
 
 Run by the Makefile, so the firmware rasterizer is always checked against the
-same pixel vectors as the Python suite. The include defines:
+same pixel vectors as the Python suite. The include defines the row types
+(ROW_TYPES, so each row's fields are declared next to the code that fills
+them), then:
 
 - kPanelCases: every case in the spec (each display vector at each panel
   profile, plus the stamped cases) with its CRC-32 and ink count;
@@ -31,6 +33,70 @@ from lightkeeper.infrastructure.epaper_bitmap import render_bitmap  # noqa: E402
 LINE_SLOTS = 8  # lk::kMaxPanelLines: every case's lines array is padded to this
 MAX_LINE_CHARS = 64  # lk::kMaxPanelLineChars
 
+ROW_TYPES = f"""\
+static_assert(lk::kMaxPanelLines == {LINE_SLOTS} && lk::kMaxPanelLineChars == {MAX_LINE_CHARS},
+              "tools/gen_panel_vectors.py writes cases within the rasterizer's limits");
+
+// One image to draw and the CRC-32 and ink count Python gives it.
+struct PanelCase {{
+  const char* vector;
+  const char* profile;  // "custom" for a size no profile has
+  int width;
+  int height;
+  int line_count;
+  const char* lines[lk::kMaxPanelLines];
+  const char* stamp;  // nullptr: no stamp
+  uint32_t crc32;
+  uint32_t ink;
+}};
+
+struct SpecProfile {{
+  const char* name;
+  int width;
+  int height;
+}};
+
+struct SpecTreatment {{
+  const char* headline;
+  const char* kind;
+}};
+
+struct SpecIntConstant {{
+  const char* name;
+  int value;
+}};
+
+struct SpecTextConstant {{
+  const char* name;
+  const char* value;
+}};
+
+// An image and the CRC-32 and length of Python's Bitmap.to_epd_buffer() for it.
+struct EpdCase {{
+  const char* name;
+  int width;
+  int height;
+  int line_count;
+  const char* lines[lk::kMaxPanelLines];
+  const char* stamp;
+  uint32_t crc32;
+  uint32_t length;
+}};
+
+// Whether panel_layout.check_size accepts a size.
+struct SizeCheck {{
+  int width;
+  int height;
+  bool ok;
+}};
+
+// Whether panel_layout.check_stamp accepts a stamp.
+struct StampCheck {{
+  const char* stamp;
+  bool ok;
+}};
+"""
+
 # Vectors drawn with a stamp at every profile: an age-row stamp where it fits,
 # and the bottom strip where there is no age line or no room beside it.
 STAMP = "12:34"
@@ -51,11 +117,25 @@ FRESH = ["IN RANGE", "112 mg/dL ->", "3 min ago"]
 
 # (name, lines, width, height, stamp): inputs no display vector reaches.
 EXTRA = [
-    ("unknown_headline_is_dashed", ["CHECK NIGHTSCOUT", "112 mg/dL ->", "3 min ago"], 296, 128, None),
+    (
+        "unknown_headline_is_dashed",
+        ["CHECK NIGHTSCOUT", "112 mg/dL ->", "3 min ago"],
+        296,
+        128,
+        None,
+    ),
     ("lowercase_headline_is_dashed", ["in range", "112 mg/dL ->", "3 min ago"], 296, 128, None),
-    ("headline_with_a_space_is_dashed", ["IN RANGE ", "112 mg/dL ->", "3 min ago"], 400, 300, None),
+    (
+        "headline_with_a_space_is_dashed",
+        ["IN RANGE ", "112 mg/dL ->", "3 min ago"],
+        400,
+        300,
+        None,
+    ),
     ("headline_only", ["URGENT LOW"], 296, 128, None),
     ("value_without_age_shrinks_to_fit", ["IN RANGE", "112 mg/dL ->"], 300, 78, None),
+    # Wide and short with no context line: the hero shrinks to the age, then the age shrinks.
+    ("fresh_without_context_shrinks_the_age", FRESH, 4096, 100, None),
     ("stale_headline_only_has_no_strike", ["STALE - DO NOT TRUST"], 200, 200, None),
     ("empty_lines", ["", "", ""], 200, 200, None),
     ("eight_lines_shrink_to_fit", [*FRESH, "one", "two", "three", "four", "five"], 250, 122, None),
@@ -63,7 +143,13 @@ EXTRA = [
     ("eight_dashed_lines", ["NO DATA", *"abcdefg"], 296, 128, "23:59"),
     ("long_line_clipped_at_the_edge", ["NO DATA", "x" * MAX_LINE_CHARS], 200, 200, None),
     ("long_headline_clipped_at_the_edge", ["W" * MAX_LINE_CHARS, "1 min ago"], 200, 200, None),
-    ("bytes_outside_the_font_draw_as_fallback", ["IN RANGE", "\t120\x7f mg/dL", "\x01"], 296, 128, None),
+    (
+        "bytes_outside_the_font_draw_as_fallback",
+        ["IN RANGE", "\t120\x7f mg/dL", "\x01"],
+        296,
+        128,
+        None,
+    ),
     ("smallest_panel", [*NO_DATA, "Nightscout unreachable"], 157, 70, "23:59"),
     ("smallest_panel_rule", ["LOW", "69 mg/dL v", "2 min ago"], 157, 70, "07:30"),
     ("smallest_panel_stale", STALE, 157, 70, "07:30"),
@@ -202,6 +288,7 @@ def main(src, dst):
     out = [
         "// Generated from spec/panel_vectors.json by tools/gen_panel_vectors.py. Do not edit.",
         f"// panel_spec_version {version}",
+        ROW_TYPES,
         f"const int kPanelSpecVersion = {version};",
         "const PanelCase kPanelCases[] = {",
     ]

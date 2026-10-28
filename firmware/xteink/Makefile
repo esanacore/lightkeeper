@@ -8,7 +8,8 @@
 #
 # On Windows, run in WSL (`wsl -- make -C firmware/xteink test`): MinGW
 # toolchains cannot link the sanitizers. src/ is the device sketch (Arduino,
-# PlatformIO only: `pio run`, see README.md); nothing here compiles it.
+# PlatformIO only: `pio run`, see README.md); nothing here compiles it. The
+# panel test reads only src/device_config.h, which is plain constants.
 
 CXX ?= g++
 PYTHON ?= python3
@@ -27,7 +28,7 @@ CXXFLAGS := -std=c++17 -Wall -Wextra -Werror -Wconversion -Wshadow -g \
 RULES := lib/glucose_rules/glucose_rules.cpp
 JSON := lib/nightscout_json/nightscout_json.cpp
 PANEL := lib/panel_bitmap/panel_bitmap.cpp
-PANEL_HEADERS := lib/panel_bitmap/panel_bitmap.h lib/panel_bitmap/font5x8_data.h
+PANEL_HEADERS := lib/panel_bitmap/panel_bitmap.h lib/panel_bitmap/font5x8_data.h src/device_config.h
 
 .PHONY: test format-check coverage clean font-header panel-lint
 

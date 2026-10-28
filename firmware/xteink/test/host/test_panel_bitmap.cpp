@@ -13,7 +13,8 @@
 //      bytes outside the font, the size and stamp checks, the portrait buffer.
 //   3. Firmware-only guarantees: a refusal leaves the buffer untouched,
 //      nothing is written past the image, no heap allocation, the CRC check
-//      value, and the device skeleton's NO DATA screen.
+//      value, and the device skeleton (src/device_config.h): its NO DATA
+//      screen at each board's size, and pins left unset until verified.
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,6 +22,7 @@
 
 #include <new>
 
+#include "../../src/device_config.h"
 #include "glucose_rules.h"
 #include "nightscout_json.h"
 #include "panel_bitmap.h"
@@ -62,61 +64,9 @@ const char* g_dump_dir = "build";
     }                                                                 \
   } while (0)
 
-struct PanelCase {
-  const char* vector;
-  const char* profile;
-  int width;
-  int height;
-  int line_count;
-  const char* lines[lk::kMaxPanelLines];
-  const char* stamp;  // nullptr: no stamp
-  uint32_t crc32;
-  uint32_t ink;
-};
-
-struct SpecProfile {
-  const char* name;
-  int width;
-  int height;
-};
-
-struct SpecTreatment {
-  const char* headline;
-  const char* kind;
-};
-
-struct SpecIntConstant {
-  const char* name;
-  int value;
-};
-
-struct SpecTextConstant {
-  const char* name;
-  const char* value;
-};
-
-struct EpdCase {
-  const char* name;
-  int width;
-  int height;
-  int line_count;
-  const char* lines[lk::kMaxPanelLines];
-  const char* stamp;
-  uint32_t crc32;  // of Bitmap.to_epd_buffer()
-  uint32_t length;
-};
-
-struct SizeCheck {
-  int width;
-  int height;
-  bool ok;
-};
-
-struct StampCheck {
-  const char* stamp;
-  bool ok;
-};
-
+// The tables and their row types (PanelCase, EpdCase, SizeCheck, ...), written
+// by tools/gen_panel_vectors.py so each row's fields are declared where they
+// are filled in.
 #include "panel_vectors.inc"
 
 // Bump when an existing case's pixels change (the Python suite asserts the same).
@@ -542,33 +492,69 @@ void test_fr016_treatment_names() {
         "an out-of-range treatment names as the cautious dashed");
 }
 
+// The boards src/device_config.h defines, which platformio.ini builds.
+const lk::BoardConfig kBoards[] = {lk::kBenchS3, lk::kX4};
+
 // The steps src/main.cpp runs on the device, which has no Wi-Fi and no clock
 // yet: there is no response body, so there is no reading, and the panel shows
-// NO DATA with Nightscout unreachable, never a number. Its pixels are the
-// pinned vector at both device sizes.
-void test_fr010_no_body_and_no_clock_draws_no_data() {
+// NO DATA with Nightscout unreachable, never a number. For each board in
+// src/device_config.h, the size is a pinned profile and the pixels are that
+// profile's pinned no_data_unreachable case. (The device sketch itself is
+// Arduino code and only PlatformIO builds it; its config is plain constants.)
+void test_fr010_device_skeleton_draws_the_pinned_no_data_screen() {
   const lk::JsonResult fetched = lk::newest_reading_from_json(nullptr, 0);
   const bool fetch_error = fetched.status != lk::JsonStatus::Ok;
-  const lk::Reading* reading = fetched.found ? &fetched.reading : nullptr;
+  const lk::Reading* reading = !fetch_error && fetched.found ? &fetched.reading : nullptr;
   const lk::Status status = lk::classify(reading, 0, lk::Thresholds());
   lk::Lines lines;
   lk::render(status, fetch_error, &lines);
   CHECK(fetch_error && reading == nullptr && status.level == lk::Level::NoData,
         "no body, no reading, NO DATA");
-  const char* rows[lk::kMaxLines];
-  for (int i = 0; i < lines.count; i++) rows[i] = lines.text[i];
+  CHECK(lines.count == 4 && strcmp(lines.text[0], "NO DATA") == 0 &&
+            strcmp(lines.text[3], "Nightscout unreachable") == 0,
+        "the device names the failing link, without a number");
+  const char* text[lk::kMaxLines] = {};
+  for (int i = 0; i < lines.count; i++) text[i] = lines.text[i];
 
-  int matched = 0;
-  for (const PanelCase& c : kPanelCases) {
-    if (strcmp(c.vector, "no_data_unreachable") != 0 || c.stamp != nullptr) continue;
-    if (!(c.width == 200 && c.height == 200) && !(c.width == 800 && c.height == 480)) continue;
-    const size_t size = lk::packed_size(c.width, c.height);
-    const bool drawn =
-        lk::render_panel(rows, lines.count, c.width, c.height, nullptr, g_image, size);
-    CHECK(drawn && lk::crc32(g_image, size) == c.crc32, "the device screen is the pinned vector");
-    matched++;
+  for (const lk::BoardConfig& board : kBoards) {
+    char msg[128];
+    snprintf(msg, sizeof(msg), "%s: %dx%d is a pinned profile that fits the device buffer",
+             board.name, board.panel_width, board.panel_height);
+    const size_t size = lk::packed_size(board.panel_width, board.panel_height);
+    CHECK(lk::is_profile_size(board.panel_width, board.panel_height) && size <= lk::kMaxPanelBytes,
+          msg);
+    int matched = 0;
+    for (const PanelCase& c : kPanelCases) {
+      if (strcmp(c.vector, "no_data_unreachable") != 0 || c.stamp != nullptr) continue;
+      if (c.width != board.panel_width || c.height != board.panel_height) continue;
+      const bool drawn = lk::render_panel(text, lines.count, c.width, c.height, nullptr, g_image,
+                                          lk::kMaxPanelBytes);
+      snprintf(msg, sizeof(msg), "%s: the device screen is the pinned %s case", board.name,
+               c.profile);
+      CHECK(drawn && lk::crc32(g_image, size) == c.crc32 && lk::ink_count(g_image, size) == c.ink,
+            msg);
+      matched++;
+    }
+    snprintf(msg, sizeof(msg), "%s: exactly one pinned no_data_unreachable case", board.name);
+    CHECK(matched == 1, msg);
   }
-  CHECK(matched == 2, "both device sizes are pinned no_data_unreachable cases");
+}
+
+// No pin is used until someone checks it on the bench: while kPinsVerified is
+// false, every pin stays unset, so the coming e-paper driver cannot drive a
+// guessed GPIO.
+void test_fr010_device_pins_stay_unset_until_verified() {
+  for (const lk::BoardConfig& board : kBoards) {
+    const int pins[] = {board.pin_epd_sck, board.pin_epd_mosi, board.pin_epd_cs,   board.pin_epd_dc,
+                        board.pin_epd_rst, board.pin_epd_busy, board.pin_epd_power};
+    bool unset = true;
+    for (int pin : pins) unset = unset && pin == lk::kPinUnset;
+    char msg[96];
+    snprintf(msg, sizeof(msg), "%s: pins are unset until verified", board.name);
+    CHECK(lk::kPinsVerified || unset, msg);
+  }
+  CHECK(strcmp(lk::kBenchS3.name, "bench_s3") == 0 && strcmp(lk::kX4.name, "x4") == 0,
+        "board names are the PlatformIO environments");
 }
 
 }  // namespace
@@ -588,7 +574,8 @@ int main(int argc, char** argv) {
   test_fr016_no_heap_allocation();
   test_fr016_pbm_dump_round_trips();
   test_fr016_treatment_names();
-  test_fr010_no_body_and_no_clock_draws_no_data();
+  test_fr010_device_skeleton_draws_the_pinned_no_data_screen();
+  test_fr010_device_pins_stay_unset_until_verified();
   printf("%d checks, %d failures (%d panel vectors, %d extra cases, %d sizes, %d stamps)\n",
          g_checks, g_failures, count_of(kPanelCases, sizeof(kPanelCases)),
          count_of(kExtraCases, sizeof(kExtraCases)),
