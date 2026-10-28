@@ -74,7 +74,10 @@ that loads nothing.
 ## Rules
 
 - Pixel-honest: the page shows only what `renderPanel` draws, scaled by whole
-  numbers with `image-rendering: pixelated`, never imitated in CSS.
+  numbers with `image-rendering: pixelated`, never imitated in CSS. The whole
+  number counts screen (device) pixels, from `devicePixelRatio`, so at 125% or
+  150% display scaling every panel pixel is still a square of whole screen
+  pixels and no stroke is drawn wider than another.
 - Panel text comes only from the generated states block
   (`spec/display_vectors.json`).
 - Nothing moves: no timers, no animation, no simulated e-ink flash. A change is

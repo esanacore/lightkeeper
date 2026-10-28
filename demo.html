@@ -840,7 +840,7 @@
         <figure class="screen" id="screen" data-view="pixels">
           <p class="chip-row" aria-hidden="true"><span class="chip-frame" id="chip"></span></p>
           <div class="bezel">
-            <div class="bezel-view" id="bezel-view">
+            <div class="bezel-view" id="bezel-view" role="group" aria-label="Panel preview">
               <canvas id="panel" width="296" height="128" aria-hidden="true"></canvas>
               <output id="result" class="result" role="status" aria-live="polite" aria-atomic="true"></output>
             </div>
@@ -859,8 +859,8 @@
         <ul class="surfaces">
           <li class="card">
             <h3>Bedside panel <span class="stamp">2.9-inch · 1x</span></h3>
-            <div class="scroll"><canvas id="mini" width="296" height="128" aria-hidden="true"></canvas></div>
-            <p class="note">The Raspberry Pi e-paper panel, 296 × 128 pixels, one screen pixel per panel pixel.</p>
+            <div class="scroll" id="mini-view" role="group" aria-label="Bedside panel preview"><canvas id="mini" width="296" height="128" aria-hidden="true"></canvas></div>
+            <p class="note">The Raspberry Pi e-paper panel, 296 × 128 pixels, at its own size: each panel pixel is one whole screen pixel, or a whole square of them on a sharper screen.</p>
           </li>
           <li class="card">
             <h3>Phone app <span class="stamp">Mock</span></h3>
@@ -2136,7 +2136,7 @@
         }
       };
       const defaultProfile = "waveshare_2in9";
-      const pageBytes = 97380;
+      const pageBytes = 99850;
       // END GENERATED PANEL
 
       // Page script. What a surface says comes only from the generated states,
@@ -2218,6 +2218,7 @@
       const bezelView = byId("bezel-view");
       const panel = byId("panel");
       const mini = byId("mini");
+      const miniView = byId("mini-view");
       const output = byId("result");
       const allStates = byId("all-states");
 
@@ -2379,19 +2380,59 @@
         return true;
       }
 
+      // Screen pixels per panel pixel: a whole number, so nearest-neighbour
+      // sampling draws every stroke the same width. At 125% or 150% display
+      // scaling a CSS pixel is 1.25 or 1.5 screen pixels, so the count comes
+      // from the device pixel ratio, never above what the CSS scale asks for.
+      function screenPixels(scale) {
+        return Math.max(1, Math.floor((window.devicePixelRatio || 1) * scale + 1e-6));
+      }
+
+      // The canvas's CSS size is that many screen pixels. Browsers round a
+      // box's edges to whole screen pixels, so the size must come out whole:
+      // a hair over (1/256 of a screen pixel) survives a browser cutting the
+      // length down to its layout units, and is far too small to round up.
+      function sizeCanvas(canvas, size, pixels) {
+        const ratio = window.devicePixelRatio || 1;
+        canvas.style.width = `${(size.width * pixels + 1 / 256) / ratio}px`;
+        canvas.style.height = `${(size.height * pixels + 1 / 256) / ratio}px`;
+      }
+
+      // A box whose panel is wider than it scrolls sideways, and only then is
+      // it a tab stop, so a keyboard can scroll it in every browser (WebKit
+      // does not make a scroller focusable on its own).
+      function scrollStop(box) {
+        if (box.scrollWidth > box.clientWidth) box.tabIndex = 0;
+        else box.removeAttribute("tabindex");
+      }
+
       // Whole-number scale only: 2x on a screen 640 px or wider when the panel
-      // fits at 2x, else 1x. A panel wider than the room scrolls; it is never
-      // shrunk or smoothed.
+      // fits at 2x, else 1x, in whole screen pixels. A panel wider than the
+      // room scrolls; it is never squeezed to fit or smoothed.
       function fitPanel() {
         const size = profiles[profile];
         const room = bezelView.clientWidth;
         const wide = window.matchMedia("(min-width: 640px)").matches;
-        const scale = wide && size.width * 2 <= room ? 2 : 1;
-        panel.style.width = `${size.width * scale}px`;
-        panel.style.height = `${size.height * scale}px`;
-        const scroll = size.width * scale > room ? "; scroll sideways to see all of it" : "";
-        const shown = view === "text" ? "; showing its lines as text" : `, shown at ${scale}x${scroll}`;
+        const pixels = screenPixels(wide && size.width * 2 <= room ? 2 : 1);
+        sizeCanvas(panel, size, pixels);
+        sizeCanvas(mini, profiles[defaultProfile], screenPixels(1));
+        scrollStop(bezelView);
+        scrollStop(miniView);
+        const scroll = bezelView.tabIndex === 0 ? "; scroll sideways to see all of it" : "";
+        const each = pixels === 1 ? "one screen pixel each" : `each drawn as ${pixels} × ${pixels} screen pixels`;
+        const shown = view === "text" ? "; showing its lines as text" : `, ${each}${scroll}`;
         byId("panel-caption").textContent = `${size.description}: ${size.width} × ${size.height} pixels${shown}.`;
+      }
+
+      // Moving to another screen or zooming changes the device pixel ratio;
+      // fit again for the new one. Each query matches one ratio, so it is
+      // made again after every change.
+      function watchRatio() {
+        const query = window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`);
+        query.addEventListener("change", () => {
+          watchRatio();
+          fitPanel();
+        }, {once: true});
       }
 
       // --- the surfaces -------------------------------------------------------
@@ -2458,10 +2499,12 @@
       }
 
       // The live region: the vector lines for the eye, the spoken sentence for
-      // a screen reader, read out politely once per change. Spans only.
+      // a screen reader, read out politely once per change. Spans only. On
+      // STALE the 'last:' line is struck, in Muted at body size, as on the phone.
       function speak(lines, sentence) {
-        const shown = lines.map((line) => {
-          const span = textBlock("span", "line", line);
+        const struck = P.glance(lines).struck;
+        const shown = lines.map((line, index) => {
+          const span = textBlock("span", index === 1 && struck !== null ? "line struck" : "line", line);
           span.setAttribute("aria-hidden", "true");
           return span;
         });
@@ -2560,6 +2603,7 @@
 
       window.addEventListener("hashchange", follow);
       window.addEventListener("resize", fitPanel);
+      watchRatio();
       window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawPanels);
       new MutationObserver(drawPanels).observe(document.documentElement, {attributes: true, attributeFilter: ["data-theme"]});
 

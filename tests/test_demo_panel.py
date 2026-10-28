@@ -231,9 +231,70 @@ def test_fr011_live_region_is_polite_and_holds_spans_only():
     assert "assertive" not in PAGE
     # Every element the page script makes is named here: no div in the live region.
     assert 'createElement("div")' not in SCRIPT
-    assert 'textBlock("span", "line", line)' in PAGE_SCRIPT
+    assert '"line struck" : "line", line)' in PAGE_SCRIPT
     assert 'textBlock("span", "sr-only", sentence)' in PAGE_SCRIPT
     assert rule(".result .line")["display"] == "block"
+
+
+def test_fr011_text_view_strikes_the_stale_last_line():
+    # The text view is a screen surface too: STALE's 'last:' line is struck, in
+    # Muted at body size, never shown like the age line under it.
+    speak = PAGE_SCRIPT[PAGE_SCRIPT.index("function speak(") :]
+    speak = speak[: speak.index("\n      }\n")]
+    assert "const struck = P.glance(lines).struck;" in speak
+    assert 'index === 1 && struck !== null ? "line struck" : "line"' in speak
+    struck = rule(".struck")
+    assert struck["text-decoration"] == "line-through" and struck["color"] == "var(--muted)"
+    assert "font-size" not in struck and "font-size" not in rule(".result .line")
+    # Muted is readable on the panel paper the text view sits on, in both themes.
+    for theme, paper in (("light", "paper"), ("dark", "night-paper")):
+        assert contrast(COLOR["muted"][theme], COLOR[paper][theme]) >= 4.5, theme
+    # The rule the page follows is the phone card's: only STALE has a struck line.
+    stale = [c for c in VECTORS if c["level"] == "STALE"]
+    assert stale and all(pl.treatment(c["lines"][0]) == "stale" for c in stale)
+    assert all(c["lines"][1].startswith("last: ") for c in stale)
+
+
+def test_fr011_wide_panels_scroll_in_a_named_box_a_keyboard_can_reach():
+    for box, name in (("bezel-view", "Panel preview"), ("mini-view", "Bedside panel preview")):
+        tag = re.search(rf'<div class="[a-z-]+" id="{box}"[^>]*>', PAGE).group(0)
+        assert f'role="group" aria-label="{name}"' in tag, tag
+        assert "tabindex" not in tag  # a tab stop only while it scrolls
+    assert "scrollStop(bezelView);" in PAGE_SCRIPT and "scrollStop(miniView);" in PAGE_SCRIPT
+    stop = PAGE_SCRIPT[PAGE_SCRIPT.index("function scrollStop(") :]
+    stop = stop[: stop.index("\n      }\n")]
+    assert "box.scrollWidth > box.clientWidth) box.tabIndex = 0;" in stop
+    assert 'else box.removeAttribute("tabindex");' in stop
+    focus = rule(".bezel-view:focus-visible, .scroll:focus-visible")
+    assert (focus["outline"], focus["outline-offset"]) == ("2px solid var(--beam)", "2px")
+    assert rule(".bezel-view, .scroll")["overflow-x"] == "auto"
+
+
+def test_fr016_panels_are_drawn_in_whole_screen_pixels():
+    # At 125% or 150% display scaling a CSS pixel is not a whole screen pixel,
+    # so each panel pixel covers a whole number of device pixels instead.
+    pixels = PAGE_SCRIPT[PAGE_SCRIPT.index("function screenPixels(") :]
+    pixels = pixels[: pixels.index("\n      }\n")]
+    assert "Math.max(1, Math.floor((window.devicePixelRatio || 1) * scale + 1e-6))" in pixels
+    # The CSS size is that many screen pixels, plus 1/256 of one so a browser
+    # that truncates lengths to its 1/64 layout unit still lands on the whole.
+    size = PAGE_SCRIPT[PAGE_SCRIPT.index("function sizeCanvas(") :]
+    size = size[: size.index("\n      }\n")]
+    for side in ("width", "height"):
+        assert f"canvas.style.{side} = `${{(size.{side} * pixels + 1 / 256) / ratio}}px`;" in size
+    assert "sizeCanvas(panel, size, pixels);" in PAGE_SCRIPT
+    assert "sizeCanvas(mini, profiles[defaultProfile], screenPixels(1));" in PAGE_SCRIPT
+    # Every other write of a canvas's CSS size would bypass the count.
+    assert len(re.findall(r"\.style\.(width|height) =", PAGE_SCRIPT)) == 2
+    # A new screen or zoom level fits the panels again.
+    assert "(resolution: ${window.devicePixelRatio || 1}dppx)" in PAGE_SCRIPT
+    assert "watchRatio();\n          fitPanel();" in PAGE_SCRIPT
+    assert 'window.addEventListener("resize", fitPanel);\n      watchRatio();' in PAGE_SCRIPT
+    # The canvases' own pixels stay one per panel pixel; only their CSS size changes.
+    assert (
+        "canvas.width = size.width;" in PAGE_SCRIPT
+        and "canvas.height = size.height;" in PAGE_SCRIPT
+    )
 
 
 def test_fr011_canvases_are_hidden_from_assistive_tech_and_pixelated():
