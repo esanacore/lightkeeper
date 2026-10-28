@@ -286,7 +286,7 @@ def test_every_kind_of_missing_citation_is_reported():
     text = (
         "| HAZ-999 | ... | `test_fr999_never_written`, `test_zz9_`, `test_ZZ9_capitals`, Swift "
         "`testNothingLikeThis` and `NoSuchTests`, Kotlin `NoSuchTest`, `GoneTests.swift`, "
-        "`panel.test.mjs`, `RulesTest.kt`, `apps/ios/Nowhere/Tests/`, `NowhereTests/`, "
+        "`gone.test.mjs`, `GoneRulesTest.kt`, `apps/ios/Nowhere/Tests/`, `NowhereTests/`, "
         "`tests/test_spoken.py/`, `test_fr003_staleness_beats_urgent_lo`, "
         "shared vector `no_such_case` |\n"
         '| HAZ-998 | `tests/test_gone.py` (`-k zz999`) | `pytest -k "zz1 or not zz2"` '
@@ -303,8 +303,8 @@ def test_every_kind_of_missing_citation_is_reported():
         "NoSuchTests:",
         "tests/test_gone.py:",
         "GoneTests.swift:",
-        "panel.test.mjs:",
-        "RulesTest.kt:",
+        "gone.test.mjs:",
+        "GoneRulesTest.kt:",
         "apps/ios/Nowhere/Tests/:",
         "NowhereTests/:",
         "tests/test_spoken.py/:",
