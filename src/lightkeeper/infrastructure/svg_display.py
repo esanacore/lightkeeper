@@ -225,8 +225,9 @@ def render_svg(
     # The band: one height per panel size, sized from IN RANGE. A longer
     # headline is set at the size that fits the width, then stretched up to
     # the band's height from its top edge, as the panel stretches its glyph
-    # cells, so it is never shorter than IN RANGE. The sizes under it are
-    # capped by the size it is set at, as on the panel.
+    # cells, so it is never shorter than IN RANGE. A number under it (the
+    # hero, or STALE's `last:` line) is capped by the size it is set at, as
+    # on the panel.
     inner = usable_width - 2 * BAND_PAD
     band_size = _fit(round(height * HEADLINE_RATIO), [REFERENCE_HEADLINE], inner)
     band_height = band_size + 2 * BAND_PAD
