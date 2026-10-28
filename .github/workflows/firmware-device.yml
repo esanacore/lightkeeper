@@ -1,0 +1,54 @@
+name: Firmware device build
+
+# Builds the ESP32 device skeleton (firmware/xteink/src) with PlatformIO for
+# both boards: bench_s3 (the Waveshare ESP32-S3 bench board) and x4 (the
+# Xteink X4, ESP32-C3). Build only: nothing is flashed, and the build fails on
+# any compiler warning. The host tests (sanitizers, every shared vector) run
+# in the Constitution Test Runner's full suite, not here. Runs only when the
+# firmware or the shared vectors change.
+
+on:
+  push:
+    branches: [main]
+    paths: ["firmware/xteink/**", "spec/*.json", ".github/workflows/firmware-device.yml"]
+  pull_request:
+    paths: ["firmware/xteink/**", "spec/*.json", ".github/workflows/firmware-device.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: PlatformIO build (bench_s3, x4)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11"
+
+      # The platform, framework and toolchains PlatformIO installs on the first
+      # run. platformio.ini pins their versions, so its hash is the key.
+      - name: Cache PlatformIO packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.platformio
+          key: platformio-6.2.0-${{ runner.os }}-${{ hashFiles('firmware/xteink/platformio.ini') }}
+
+      - name: Install PlatformIO
+        run: python -m pip install platformio==6.2.0
+
+      - name: Build both boards
+        working-directory: firmware/xteink
+        shell: bash
+        run: |
+          set -o pipefail
+          pio run -e bench_s3 -e x4 2>&1 | tee build.log
+          # Zero warnings, framework included; surface any as annotations.
+          if grep -E "warning:" build.log; then
+            grep -E "warning:" build.log | head -40 | sed 's/^/::error::/'
+            exit 1
+          fi
+          grep -E "^(Processing|RAM:|Flash:)" build.log || true
