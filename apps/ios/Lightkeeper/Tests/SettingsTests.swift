@@ -69,4 +69,89 @@ final class SettingsTests: XCTestCase {
         XCTAssertNil(defaults.object(forKey: "low"))
         XCTAssertNotNil(bad.validationMessage)
     }
+
+    // MARK: The Nightscout address
+
+    func testTheURLIsRejectedInlineForHTTPAPathAQueryOrATypo() {
+        let rejected = [
+            "http://ns.example.com",                  // http://
+            "https://ns.example.com/nightscout",      // a path
+            "https://ns.example.com/api/v1/entries",  // a pasted endpoint
+            "https://ns.example.com/?token=abc123",   // a query, here with a token in it
+            "htps://ns.example.com",                  // typos
+            "https//ns.example.com",
+            "https://ns,example.com",
+            "ns.example.com",
+        ]
+        for url in rejected {
+            var s = Settings()
+            s.nightscoutURL = url
+            XCTAssertNotNil(s.urlProblem, url)
+            XCTAssertFalse(s.urlProblem?.isEmpty ?? true, "\(url): the reason is shown")
+            XCTAssertFalse(s.isConfigured, url)
+            XCTAssertFalse(s.canSave, "\(url): Save is disabled")
+            XCTAssertFalse(s.save(to: defaults), url)
+            XCTAssertNil(defaults.object(forKey: "nightscoutURL"), "\(url): nothing is written")
+        }
+    }
+
+    func testAUsableURLSaves() {
+        for url in ["https://ns.example.com", "https://ns.example.com/", "https://ns.example.com:8443"] {
+            var s = Settings()
+            s.nightscoutURL = url
+            XCTAssertNil(s.urlProblem, url)
+            XCTAssertTrue(s.isConfigured, url)
+            XCTAssertTrue(s.save(to: defaults), url)
+            XCTAssertEqual(defaults.string(forKey: "nightscoutURL"), url)
+        }
+    }
+
+    func testAnEmptyURLIsNotConfiguredAndNotAnError() {
+        let s = Settings()
+        XCTAssertNil(s.urlProblem, "nothing typed yet is not a mistake")
+        XCTAssertFalse(s.isConfigured)
+        XCTAssertTrue(s.canSave, "thresholds can be saved before the site")
+    }
+
+    func testAnUnusableStoredURLIsKeptForSettingsToExplain() {
+        // An address an older build accepted, with thresholds that need a reset.
+        defaults.set("https://ns.example.com/nightscout", forKey: "nightscoutURL")
+        defaults.set(300, forKey: "low")
+        let s = Settings.load(from: defaults)
+        XCTAssertFalse(s.isConfigured)
+        XCTAssertNotNil(s.urlProblem)
+        XCTAssertEqual(s.nightscoutURL, "https://ns.example.com/nightscout")
+        XCTAssertEqual(defaults.integer(forKey: "low"), 70, "the threshold reset is still written back")
+    }
+
+    // MARK: Thresholds
+
+    func testResetRestoresTheDefaults() {
+        var s = Settings()
+        s.nightscoutURL = "https://ns.example.com"
+        s.urgentLow = 60; s.low = 85; s.high = 160; s.urgentHigh = 220; s.staleMinutes = 40
+        let reset = s.resettingThresholds()
+        XCTAssertEqual([reset.urgentLow, reset.low, reset.high, reset.urgentHigh, reset.staleMinutes],
+                       [55, 70, 180, 250, 15])
+        XCTAssertEqual(reset.thresholds, .defaults)
+        XCTAssertEqual(reset.nightscoutURL, "https://ns.example.com", "the site is not a threshold")
+    }
+
+    func testTheCautionShowsAboveFifteenMinutes() {
+        var s = Settings()
+        for minutes in [6, 10, 15] {
+            s.staleMinutes = minutes
+            XCTAssertNil(s.staleCaution, "\(minutes) min")
+        }
+        for minutes in [16, 30, 60] {
+            s.staleMinutes = minutes
+            XCTAssertNotNil(s.staleCaution, "\(minutes) min")
+        }
+    }
+
+    func testTheStepsAndTheCapAreUnchangedRules() {
+        XCTAssertEqual(Settings.thresholdStep, 5)
+        XCTAssertEqual(Settings.staleRange, 6...60, "the 60-minute cap stays until D16 decides")
+        XCTAssertEqual(Settings.staleCautionAbove, 15)
+    }
 }
