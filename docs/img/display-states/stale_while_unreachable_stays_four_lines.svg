@@ -11,7 +11,7 @@ Nightscout unreachable</desc>
 <rect x="4" y="8" width="4" height="112" fill="url(#lk-hatch)"/>
 <rect x="288" y="8" width="4" height="112" fill="url(#lk-hatch)"/>
 <rect x="12" y="12" width="272" height="28" fill="#15171C"/>
-<text x="14" y="33" fill="#E6E5DF" font-family="IBM Plex Mono, DejaVu Sans Mono, Consolas, monospace" font-size="22" textLength="264" font-weight="700">STALE - DO NOT TRUST</text>
+<text x="14" y="32" fill="#E6E5DF" font-family="IBM Plex Mono, DejaVu Sans Mono, Consolas, monospace" font-size="22" textLength="264" font-weight="700" transform="matrix(1 0 0 1.0909 0 -1.2726)">STALE - DO NOT TRUST</text>
 <text x="12" y="59" fill="#15171C" font-family="IBM Plex Mono, DejaVu Sans Mono, Consolas, monospace" font-size="15" textLength="162">last: 120 mg/dL -&gt;</text>
 <rect x="12" y="54" width="162" height="1" fill="#15171C"/>
 <text x="12" y="81" fill="#15171C" font-family="IBM Plex Mono, DejaVu Sans Mono, Consolas, monospace" font-size="15" textLength="90">32 min ago</text>

@@ -6,7 +6,7 @@ Rules worth noticing: anything older than 15 minutes, or more than 2 minutes in 
 
 ![How a reading becomes a word: NO DATA, then STALE before any range check, then the thresholds](../assets/diagrams/classification.svg)
 
-The **Screen** column is the SVG preview (also written by `--svg`). The **Panel pixels** column is the exact 1-bit bitmap the Raspberry Pi e-paper panel will show, drawn by `lightkeeper.infrastructure.epaper_bitmap` with the project's own font and shown at 2x.
+The **Screen** column is the SVG preview (also written by `--svg`), in the brand's Paper and Ink. The **Panel pixels** column is the exact 1-bit bitmap the Raspberry Pi e-paper panel will show, drawn by `lightkeeper.infrastructure.epaper_bitmap` with the project's own font and shown at 2x.
 
 Both columns give every status its word plus a shape, from the same table: IN RANGE is plain; LOW and HIGH get a rule under the headline; URGENT LOW and URGENT HIGH an inverse band; STALE the inverse band, a hatched frame in the margin and the `last:` line struck through; NO DATA, and any headline the table does not know, a dashed frame. Each image's alt text is the screen's own lines, joined by slashes, as the SVG's title reads them.
 

@@ -20,11 +20,21 @@ whatever fonts the viewer has:
 
 Texture (hatch, dashes) stays in the margin, never under text. Sizes follow
 the panel's rules: the headline band is one height for every level at a
-given panel size; on fresh screens the value line (the number and its arrow)
-is larger than the lines under it but never larger than the headline, so the
-status word is never smaller than the number; the age is never smaller than
-the context lines; and on STALE the `last:` line is never larger than the
-age, so an old value is never the hero.
+given panel size, and a headline longer than IN RANGE is drawn narrower and
+stretched to the band's full height, as the panel draws it, so STALE - DO
+NOT TRUST is never shorter than IN RANGE; on fresh screens the value line
+(the number and its arrow) is the hero, larger than the lines under it but
+never larger than the headline, so the status word is never smaller than
+the number; the age is never smaller than the context lines; and on STALE
+the `last:` line is never larger than the age, so an old value is never the
+hero. When the lines do not fit the height, context shrinks first, then the
+hero (not below the age).
+
+Every line of text stays inside the content box at every accepted panel
+size: each `<text>` carries a `textLength`, so it covers the width the layout
+planned in whichever font of FONT the viewer has, and a line too long for
+the panel even at the smallest size is drawn narrower rather than past the
+margin.
 
 Pure standard library. The output is static SVG with no scripts or links,
 and every line of text is XML-escaped, so it is safe to embed anywhere.
@@ -68,19 +78,24 @@ STAMP = "#5B6068"  # Muted, 5.01:1 on Paper: the stamp and the panel's edge
 FONT = "IBM Plex Mono, DejaVu Sans Mono, Consolas, monospace"
 HATCH_ID = "lk-hatch"
 
-# Monospace glyphs are about 0.6 of the font size wide, in every font in FONT.
+# Monospace glyphs are about 0.6 of the font size wide (IBM Plex Mono and
+# DejaVu Sans Mono; Consolas is a little narrower). `textLength` makes the
+# planned width exact in every one of them.
 CHAR_WIDTH_RATIO = 0.6
 # A line's box is one font size tall: the baseline sits 0.8 of the way down,
 # leaving the rest for descenders, and capitals are about 0.72 tall.
 BASELINE_RATIO = 0.8
 CAP_RATIO = 0.72
 
-# Target font sizes and the margin, as a share of the panel height.
+# Target font sizes, as a share of the panel height, and the margin, as a
+# share of the shorter side (so a tall, narrow panel keeps room for text).
 HEADLINE_RATIO = 0.19
 VALUE_RATIO = 0.16
 BODY_RATIO = 0.12
 STAMP_RATIO = 0.07
 MARGIN_RATIO = 0.09
+MIN_SIZE = 8  # no line of the screen is drawn smaller
+STAMP_MIN_SIZE = 7  # the stamp is chrome, and may be a little smaller
 STAMP_GAP = 2  # least space between the lines and the stamp under them
 THICK_STRIKE_SIZE = 24  # the strike is 2 px through text this large, 1 px below
 
@@ -89,28 +104,38 @@ THICK_STRIKE_SIZE = 24  # the strike is 2 px through text this large, 1 px below
 HATCH_CELLS = tuple(((-y) % HATCH_PITCH, y) for y in range(HATCH_PITCH))
 
 
-def _fit(size: int, lines: list[str], usable_width: int) -> int:
-    """Largest font size (up to `size`) that fits the longest line."""
+def _fit(size: int, lines: list[str], usable_width: int, floor: int = MIN_SIZE) -> int:
+    """Largest font size (up to `size`, at least `floor`) that fits the longest line."""
     longest = max((len(line) for line in lines), default=0)
     if longest == 0:
         return size
-    return max(8, min(size, int(usable_width / (longest * CHAR_WIDTH_RATIO))))
+    return max(floor, min(size, int(usable_width / (longest * CHAR_WIDTH_RATIO))))
 
 
 def text_width(text: str, size: int) -> int:
-    """Estimated width in pixels of `text` at font `size`."""
+    """Return the estimated width in pixels of `text` at font `size`."""
     return round(len(text) * size * CHAR_WIDTH_RATIO)
 
 
-def _text(text: str, x: int, top: int, size: int, fill: str, extra: str = "") -> str:
-    """One line of text whose box (one font size tall) starts at `top`.
+def _span(text: str, size: int, room: int) -> int:
+    """Return the width a line is drawn at: its own, or `room` when that is less."""
+    return min(text_width(text, size), room)
+
+
+def _text(text: str, x: int, top: int, size: int, room: int, fill: str, extra: str = "") -> str:
+    """Return one line of text whose box (one font size tall) starts at `top`.
 
     `textLength` holds the line to the width the layout planned, so it covers
     the same span (and the strike the same letters) in whichever font of FONT
-    the viewer has.
+    the viewer has. A line wider than `room` is drawn narrower to fit it, the
+    glyphs squeezed along with the spacing, as the panel narrows a headline.
     """
     baseline = top + round(size * BASELINE_RATIO)
-    span = f' textLength="{text_width(text, size)}"' if text else ""
+    span = ""
+    if text:
+        span = f' textLength="{_span(text, size, room)}"'
+        if text_width(text, size) > room:
+            span += ' lengthAdjust="spacingAndGlyphs"'
     return (
         f'<text x="{x}" y="{baseline}" fill="{fill}" font-family="{FONT}" '
         f'font-size="{size}"{span}{extra}>{escape(text)}</text>'
@@ -118,17 +143,22 @@ def _text(text: str, x: int, top: int, size: int, fill: str, extra: str = "") ->
 
 
 def _rect(x: int, y: int, w: int, h: int, fill: str = INK) -> str:
-    """A filled rectangle, in Ink unless told otherwise."""
+    """Return a filled rectangle, in Ink unless told otherwise."""
     return f'<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="{fill}"/>'
 
 
-def _num(value: float) -> str:
-    """A coordinate as SVG wants it: `4`, not `4.0`; `5.5` stays."""
-    return str(int(value)) if value == int(value) else str(value)
+def _decimal(value: float) -> str:
+    """Return `value` to four places, trailing zeros dropped, never in exponent form."""
+    return f"{value:.4f}".rstrip("0").rstrip(".")
+
+
+def default_title(lines: list[str]) -> str:
+    """Name the image for a screen reader: the screen's own lines, joined by " / "."""
+    return " / ".join(lines)
 
 
 def _hatch_frame(inset: int, width: int, height: int) -> list[str]:
-    """A ring HATCH_WIDTH wide, `inset` from the edge, filled with the hatch."""
+    """Return a ring HATCH_WIDTH wide, `inset` from the edge, filled with the hatch."""
     fill = f"url(#{HATCH_ID})"
     side = height - 2 * inset - 2 * HATCH_WIDTH
     ring_w = width - 2 * inset
@@ -141,22 +171,22 @@ def _hatch_frame(inset: int, width: int, height: int) -> list[str]:
 
 
 def _dashed_frame(inset: int, width: int, height: int) -> list[str]:
-    """A ring DASH_WIDTH wide, `inset` from the edge: DASH_ON on, DASH_OFF off.
+    """Return a ring DASH_WIDTH wide, `inset` from the edge: DASH_ON on, DASH_OFF off.
 
     As on the panel, the dashes are counted from the ring's top-left corner
-    along each side, and the top and bottom rows span the corners.
+    along each side, and the top and bottom rows span the corners. Each dash
+    is a stroke centred on its line, so the line runs half a width in from
+    the ring's edge (DASH_WIDTH is even: the coordinates stay whole pixels).
     """
-    half = DASH_WIDTH / 2
+    half = DASH_WIDTH // 2
     left, right = inset, width - inset
     top, bottom = inset, height - inset
-    dash = (
-        f'stroke="{INK}" stroke-width="{DASH_WIDTH}" stroke-dasharray="{DASH_ON} {DASH_OFF}"'
-    )
+    dash = f'stroke="{INK}" stroke-width="{DASH_WIDTH}" stroke-dasharray="{DASH_ON} {DASH_OFF}"'
 
-    def line(x1: float, y1: float, x2: float, y2: float, offset: int = 0) -> str:
+    def line(x1: int, y1: int, x2: int, y2: int, offset: int = 0) -> str:
+        """One side of the ring; `offset` starts its dashes `offset` pixels in."""
         shift = f' stroke-dashoffset="{offset}"' if offset else ""
-        ends = f'x1="{_num(x1)}" y1="{_num(y1)}" x2="{_num(x2)}" y2="{_num(y2)}"'
-        return f"<line {ends} {dash}{shift}/>"
+        return f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" {dash}{shift}/>'
 
     return [
         line(left, top + half, right, top + half),
@@ -182,10 +212,6 @@ def render_svg(
     HH:MM UTC" stamp is drawn at the bottom right, in a strip of its own, so
     a dashboard viewer can tell a live writer from one that died and left
     its last image behind.
-
-    Text is never drawn below 8 px, so on a panel much narrower than it is
-    tall the longest lines can run into the margin; at the default size every
-    line fits inside it.
     """
     if width < 100 or height < 60:
         raise ValueError("panel must be at least 100x60 pixels")
@@ -193,20 +219,30 @@ def render_svg(
         raise ValueError("nothing to draw: lines is empty")
 
     kind = treatment(lines[0])
-    margin = round(height * MARGIN_RATIO)
+    margin = round(min(width, height) * MARGIN_RATIO)
     usable_width = width - 2 * margin
 
     # The band: one height per panel size, sized from IN RANGE. A longer
-    # headline is drawn smaller inside the same band, centred in it.
+    # headline is set at the size that fits the width, then stretched up to
+    # the band's height from its top edge, as the panel stretches its glyph
+    # cells, so it is never shorter than IN RANGE. The sizes under it are
+    # capped by the size it is set at, as on the panel.
     inner = usable_width - 2 * BAND_PAD
     band_size = _fit(round(height * HEADLINE_RATIO), [REFERENCE_HEADLINE], inner)
     band_height = band_size + 2 * BAND_PAD
     headline_size = _fit(band_size, lines[:1], inner)
-    headline_top = margin + BAND_PAD + (band_size - headline_size) // 2
+    headline_top = margin + BAND_PAD
+    stretch = ""
+    if headline_size < band_size:
+        tall = round(band_size / headline_size, 4)
+        shift = headline_top * (1 - tall)  # keeps the top edge where it is
+        stretch = f' transform="matrix(1 0 0 {_decimal(tall)} 0 {_decimal(shift)})"'
 
-    # Under the band, in glance order: the value line is the hero (never
-    # above the headline), the age is never above the hero, and the `last:`
-    # and context lines are never above the age (or the headline).
+    # Under the band, in glance order, with the panel's caps: the value line
+    # is the hero, never above the size the headline is set at; the age is
+    # never above the hero (nor the band); the `last:` and context lines are
+    # never above the age, and on STALE never above the headline's set size
+    # either, so the old value is never the hero.
     body = lines[1:]
     roles = roles_for(kind, len(body))
     value_lines = [text for text, role in zip(body, roles, strict=True) if role == VALUE]
@@ -216,23 +252,48 @@ def render_svg(
     ]
     body_target = round(height * BODY_RATIO)
     value_size = min(headline_size, _fit(round(height * VALUE_RATIO), value_lines, usable_width))
-    age_cap = value_size if value_lines else headline_size
+    age_cap = value_size if value_lines else band_size
     age_size = min(age_cap, _fit(body_target, age_lines, usable_width))
-    small_cap = age_size if age_lines else headline_size
+    small_cap = age_size if age_lines else band_size
+    if kind == STALE:
+        small_cap = min(small_cap, headline_size)
     small_size = min(small_cap, _fit(body_target, small_lines, usable_width))
-    sizes = [
-        value_size if role == VALUE else age_size if role == AGE else small_size
-        for role in roles
-    ]
 
-    # The stamp is chrome: never larger than any line of the screen.
-    stamp_size = min(max(7, round(height * STAMP_RATIO)), min(sizes, default=headline_size))
-    strip = stamp_size + STAMP_GAP if written_at is not None else 0
+    # The stamp gets a strip of its own under the lines, as wide as the
+    # content box at most.
+    stamp = ""
+    if written_at is not None:
+        stamp = "written " + written_at.astimezone(UTC).strftime("%H:%M UTC")
+    stamp_target = max(STAMP_MIN_SIZE, round(height * STAMP_RATIO))
+    stamp_size = _fit(stamp_target, [stamp], usable_width, STAMP_MIN_SIZE)
+    strip = stamp_size + STAMP_GAP if stamp else 0
     top = margin + band_height
     bottom = height - margin - strip
-    gap = max(0, bottom - top - sum(sizes)) // (len(body) + 1)
 
-    label = title if title is not None else " / ".join(lines)
+    def sizes() -> list[int]:
+        """Each line's font size, in order."""
+        return [
+            value_size if role == VALUE else age_size if role == AGE else small_size
+            for role in roles
+        ]
+
+    # Shrink in glance order until the lines fit the height: context (and
+    # the `last:` line) first, then the hero down to the age. The age and
+    # the headline keep their size; every screen the display shows fits by
+    # then (tests/test_svg_display.py), so only more lines than a screen has
+    # can still run past.
+    while sum(sizes()) > bottom - top:
+        if small_lines and small_size > MIN_SIZE:
+            small_size -= 1
+        elif value_lines and value_size > max(age_size, MIN_SIZE):
+            value_size -= 1
+        else:
+            break
+    gap = max(0, bottom - top - sum(sizes())) // (len(body) + 1)
+    # The stamp is chrome: never larger than any line of the screen.
+    stamp_size = min([stamp_size, headline_size, *sizes()])
+
+    label = title if title is not None else default_title(lines)
     label_attribute = escape(label, {'"': "&quot;"})
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
@@ -266,8 +327,9 @@ def render_svg(
             margin + BAND_PAD,
             headline_top,
             headline_size,
+            inner,
             PAPER if banded else INK,
-            ' font-weight="700"',
+            ' font-weight="700"' + stretch,
         )
     )
     if kind == RULE:
@@ -276,23 +338,24 @@ def render_svg(
         )
 
     y = top + gap
-    for text, role, size in zip(body, roles, sizes, strict=True):
-        parts.append(_text(text, margin, y, size, INK))
+    for text, role, size in zip(body, roles, sizes(), strict=True):
+        parts.append(_text(text, margin, y, size, usable_width, INK))
         if role == LAST:  # only STALE has one: the old value, struck through
             # Through the middle of the capitals, across the whole line.
             thickness = 2 if size >= THICK_STRIKE_SIZE else 1
             middle = y + round(size * BASELINE_RATIO) - round(size * CAP_RATIO / 2)
-            parts.append(_rect(margin, middle - thickness // 2, text_width(text, size), thickness))
+            span = _span(text, size, usable_width)
+            parts.append(_rect(margin, middle - thickness // 2, span, thickness))
         y += size + gap
 
-    if written_at is not None:
-        stamp = "written " + written_at.astimezone(UTC).strftime("%H:%M UTC")
+    if stamp:
         parts.append(
             _text(
                 stamp,
                 width - margin,
                 height - margin - stamp_size,
                 stamp_size,
+                usable_width,
                 STAMP,
                 ' text-anchor="end"',
             )
