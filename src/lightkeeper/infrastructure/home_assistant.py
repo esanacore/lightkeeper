@@ -8,9 +8,11 @@ displays are told apart; the identifiers and unique ids are keyed by the node
 id alone, so renaming the device leaves existing entity ids working.
 
 The level is an enum sensor whose options are exactly the seven levels, so
-an automation is offered only states the displays can show. The age template
-publishes unknown rather than a negative number, whatever the payload says.
-Nothing here speaks: no sentence or audio path is published (FR-017).
+an automation is offered only states the displays can show. The age
+template publishes unknown rather than a negative number, whatever the
+payload says. Nothing here speaks: the
+spoken sentences (FR-017) are for screen readers, and no sentence or audio
+path is published to Home Assistant.
 
 How a dead or stuck publisher is kept from looking alive (HAZ-013):
 - A Last Will marks the availability topic `offline` when the connection
@@ -101,7 +103,7 @@ class HomeAssistantPublisher:
             "expire_after": self.expire_after,
             "device": device,
         }
-        sensors = {
+        sensors: dict[str, dict[str, Any]] = {
             "level": {
                 "name": "Glucose level",
                 "value_template": "{{ value_json.level }}",

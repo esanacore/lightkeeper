@@ -23,6 +23,19 @@ from tests.test_vectors import VECTORS, raw_entries, thresholds
 SENSORS = ["level", "glucose", "age", "last_reading"]
 # CONNECT, one retained config per sensor, then the retained availability flag.
 SETUP_PACKETS = 1 + len(SENSORS) + 1
+PAYLOAD_KEYS = {
+    "version",
+    "level",
+    "mgdl",
+    "last_mgdl",
+    "trend",
+    "age_minutes",
+    "reading_at",
+    "needs_attention",
+    "error",
+    "lines",
+    "generated_at",
+}
 
 
 @pytest.fixture
@@ -39,7 +52,7 @@ def publisher(broker, **kwargs):
 
 
 def offline_publisher(**kwargs):
-    """A publisher that is never connected: for reading its discovery configs."""
+    """Return a publisher that is never connected, for reading its discovery configs."""
     mqtt = MqttPublisher("127.0.0.1", 1, "x", tls=False)
     return HomeAssistantPublisher(mqtt, interval_seconds=60, stale_seconds=900, **kwargs)
 
@@ -55,7 +68,7 @@ def payload_for(mgdl=112, minutes_ago=3, error=None):
 
 
 def vector_payload(case):
-    """The payload for a display vector, classified exactly as tests/test_vectors.py does."""
+    """Return (status, payload) for a vector, classified as tests/test_vectors.py does."""
     readings = parse_entries(raw_entries(case))
     status = classify(readings[0] if readings else None, NOW, thresholds(case))
     return status, status_payload(status, case["error"], NOW)
@@ -114,6 +127,8 @@ def test_haz013_future_dated_age_is_none_never_negative(case):
         when = datetime.fromisoformat(payload["reading_at"])
         assert when.utcoffset() == timedelta(0)
         assert when == status.reading.timestamp.replace(microsecond=0)
+    # Exactly these fields: no spoken sentence, so no audio path is invited.
+    assert set(payload) == PAYLOAD_KEYS
     json.dumps(payload)
 
 
@@ -304,6 +319,14 @@ def test_haz013_age_template_publishes_unknown_never_a_negative_age():
         " and value_json.age_minutes >= 0 else none }}"
     )
     assert age["unit_of_measurement"] == "min"
+
+
+def test_fr008_no_sensor_carries_spoken_text():
+    """The spoken sentences are for screen readers; Home Assistant gets none."""
+    configs = configs_by_key(offline_publisher())
+    assert sorted(configs) == sorted(SENSORS)
+    assert "spoken" not in json.dumps(configs)
+    assert "spoken" not in json.dumps(payload_for())
 
 
 @pytest.mark.parametrize(
