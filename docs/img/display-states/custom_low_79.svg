@@ -1,7 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="296" height="128" viewBox="0 0 296 128" role="img" aria-label="LOW: custom_low_79">
-<title>LOW: custom_low_79</title>
-<rect x="0.5" y="0.5" width="295" height="127" rx="4" fill="#e8e8e3" stroke="#b9b9b3"/>
-<text x="12" y="36" fill="#111111" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="24" font-weight="700">LOW</text>
-<text x="12" y="64" fill="#111111" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="15">79 mg/dL \</text>
-<text x="12" y="104" fill="#111111" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="15">2 min ago</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="296" height="128" viewBox="0 0 296 128" role="img" aria-label="LOW / 79 mg/dL \ / 2 min ago">
+<title>LOW / 79 mg/dL \ / 2 min ago</title>
+<desc>LOW
+79 mg/dL \
+2 min ago</desc>
+<rect x="0.5" y="0.5" width="295" height="127" fill="#E6E5DF" stroke="#7D7B74"/>
+<text x="14" y="33" fill="#15171C" font-family="IBM Plex Mono, DejaVu Sans Mono, Consolas, monospace" font-size="24" textLength="43" font-weight="700">LOW</text>
+<rect x="12" y="38" width="272" height="2" fill="#15171C"/>
+<text x="12" y="69" fill="#15171C" font-family="IBM Plex Mono, DejaVu Sans Mono, Consolas, monospace" font-size="20" textLength="120">79 mg/dL \</text>
+<text x="12" y="98" fill="#15171C" font-family="IBM Plex Mono, DejaVu Sans Mono, Consolas, monospace" font-size="15" textLength="81">2 min ago</text>
 </svg>

@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from lightkeeper.infrastructure.epaper_bitmap import Bitmap, render_bitmap  # noqa: E402
-from lightkeeper.infrastructure.svg_display import render_svg  # noqa: E402
+from lightkeeper.infrastructure.svg_display import default_title, render_svg  # noqa: E402
 
 VECTORS = ROOT / "spec" / "display_vectors.json"
 IMG_DIR = Path("docs") / "img" / "display-states"
@@ -129,6 +129,16 @@ def describe(case: dict) -> str:
     return situation
 
 
+# Characters Markdown could read as markup inside alt text (or, `|`, as a table
+# cell's end); each is backslash-escaped. `>` only matters at a line's start.
+MARKDOWN_SPECIAL = "\\`*_[]<|&~"
+
+
+def markdown_alt(text: str) -> str:
+    """Escape `text` for Markdown image alt text, so a reader hears it verbatim."""
+    return "".join("\\" + char if char in MARKDOWN_SPECIAL else char for char in text)
+
+
 def panel_png(lines: list[str]) -> bytes:
     """Return the exact 1-bit bitmap the Pi panel will show, enlarged without smoothing."""
     native = render_bitmap(lines)
@@ -170,9 +180,17 @@ def build(out_root: Path) -> list[Path]:
         "![How a reading becomes a word: NO DATA, then STALE before any range check, then the "
         "thresholds](../assets/diagrams/classification.svg)",
         "",
-        "The **Screen** column is the SVG preview (also written by `--svg`). The **Panel pixels** "
-        "column is the exact 1-bit bitmap the Raspberry Pi e-paper panel will show, drawn by "
-        "`lightkeeper.infrastructure.epaper_bitmap` with the project's own font and shown at 2x.",
+        "The **Screen** column is the SVG preview (also written by `--svg`), in the brand's "
+        "Paper and Ink. The **Panel pixels** column is the exact 1-bit bitmap the Raspberry Pi "
+        "e-paper panel will show, drawn by `lightkeeper.infrastructure.epaper_bitmap` with the "
+        "project's own font and shown at 2x.",
+        "",
+        "Both columns give every status its word plus a shape, from the same table: IN RANGE "
+        "is plain; LOW and HIGH get a rule under the headline; URGENT LOW and URGENT HIGH an "
+        "inverse band; STALE the inverse band, a hatched frame in the margin and the `last:` "
+        "line struck through; NO DATA, and any headline the table does not know, a dashed "
+        "frame. Each image's alt text is the screen's own lines, joined by slashes, as the "
+        "SVG's title reads them.",
         "",
     ]
     for heading, names in GROUPS:
@@ -185,16 +203,18 @@ def build(out_root: Path) -> list[Path]:
         for name in names:
             case = cases[name]
             svg_path = img_dir / f"{name}.svg"
-            svg_path.write_text(
-                render_svg(case["lines"], title=f"{case['level']}: {name}"), encoding="utf-8"
-            )
+            # The default title is the lines themselves, so different screens never read
+            # the same (two vectors that end on the same screen do, honestly).
+            svg_path.write_text(render_svg(case["lines"]), encoding="utf-8")
             written.append(svg_path)
             png_path = panel_dir / f"{name}.png"
             png_path.write_bytes(panel_png(case["lines"]))
             written.append(png_path)
+            # The same words as the SVG's title, so a reader hears the real lines.
+            alt = markdown_alt(default_title(case["lines"]))
             doc.append(
-                f"| {describe(case)} | ![{case['level']}](img/display-states/{name}.svg) "
-                f"| ![{case['level']}, panel pixels](img/epaper/{name}.png) |"
+                f"| {describe(case)} | ![{alt}](img/display-states/{name}.svg) "
+                f"| ![{alt}, panel pixels](img/epaper/{name}.png) |"
             )
         doc.append("")
     doc_path = out_root / DOC

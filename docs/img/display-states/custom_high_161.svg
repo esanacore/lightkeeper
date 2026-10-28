@@ -1,7 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="296" height="128" viewBox="0 0 296 128" role="img" aria-label="HIGH: custom_high_161">
-<title>HIGH: custom_high_161</title>
-<rect x="0.5" y="0.5" width="295" height="127" rx="4" fill="#e8e8e3" stroke="#b9b9b3"/>
-<text x="12" y="36" fill="#111111" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="24" font-weight="700">HIGH</text>
-<text x="12" y="64" fill="#111111" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="15">161 mg/dL /</text>
-<text x="12" y="104" fill="#111111" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="15">3 min ago</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="296" height="128" viewBox="0 0 296 128" role="img" aria-label="HIGH / 161 mg/dL / / 3 min ago">
+<title>HIGH / 161 mg/dL / / 3 min ago</title>
+<desc>HIGH
+161 mg/dL /
+3 min ago</desc>
+<rect x="0.5" y="0.5" width="295" height="127" fill="#E6E5DF" stroke="#7D7B74"/>
+<text x="14" y="33" fill="#15171C" font-family="IBM Plex Mono, DejaVu Sans Mono, Consolas, monospace" font-size="24" textLength="58" font-weight="700">HIGH</text>
+<rect x="12" y="38" width="272" height="2" fill="#15171C"/>
+<text x="12" y="69" fill="#15171C" font-family="IBM Plex Mono, DejaVu Sans Mono, Consolas, monospace" font-size="20" textLength="132">161 mg/dL /</text>
+<text x="12" y="98" fill="#15171C" font-family="IBM Plex Mono, DejaVu Sans Mono, Consolas, monospace" font-size="15" textLength="81">3 min ago</text>
 </svg>
