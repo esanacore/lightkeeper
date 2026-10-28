@@ -18,8 +18,11 @@
 // - STALE has no hero: no large number, no separate arrow, no unit. Its
 //   `last:` line is shown verbatim, struck through, at body size.
 // - NO DATA and an unknown headline never show a number.
-// - On STALE and NO DATA the banner is set larger than anything else on
-//   the screen; the status word is never smaller than .title3.
+// - The URGENT, STALE and NO DATA banners are the largest element on the
+//   screen. STALE and NO DATA have no hero, so their banner text is set
+//   larger than anything else; the URGENT band keeps the fresh number as
+//   its hero, so the full-width band is never shorter than that number.
+// - The status word is never smaller than .title3.
 // - The accessibility label is spokenText(status:error:), from the same
 //   Status, so VoiceOver hears exactly what the screen shows.
 
@@ -181,15 +184,25 @@ public struct ScreenPresentation: Equatable, Sendable {
     }
 
     /// The status word's text style: .title3 in a chip, so it is never a
-    /// caption; .title2 on the URGENT band; .title on the STALE and NO DATA
-    /// banners, which have no hero, so the banner is the largest thing on
-    /// the screen.
+    /// caption; .title on the URGENT, STALE and NO DATA banners. STALE and
+    /// NO DATA have no hero, so their banner is the largest text on the
+    /// screen; URGENT's band is also held to `bannerMinimumHeight`.
     public var statusStyle: TextStyle {
         switch banner {
         case .none: return .title3
-        case .urgent: return .title2
-        case .stale, .noData: return .title
+        case .urgent, .stale, .noData: return .title
         }
+    }
+
+    /// The banner's minimum height, in points at the default text size; the
+    /// view scales it with Dynamic Type exactly as it scales the number.
+    /// URGENT keeps the fresh number as its hero, so its full-width band is
+    /// made at least the number's size tall: never shorter than the number
+    /// beneath it, and wider, so the band is the largest element on the
+    /// screen. Nil for the other shapes: a chip sits above the number as a
+    /// smaller label, and STALE and NO DATA have no hero to outgrow.
+    public var bannerMinimumHeight: Double? {
+        banner == .urgent ? Self.heroPointSize : nil
     }
 
     /// The shape and colour family for a headline. Mirrors the status table

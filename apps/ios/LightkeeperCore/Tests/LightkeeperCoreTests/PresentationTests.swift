@@ -285,6 +285,30 @@ final class PresentationTests: XCTestCase {
         }
     }
 
+    /// URGENT keeps the fresh number as its hero, so its band is held to the
+    /// number by height as well as text: at least the number's size tall,
+    /// scaled the same way, and full width, so it is the largest element.
+    func testOnUrgentTheBandIsTheLargestElement() throws {
+        for c in try cases(.urgentLow, .urgentHigh) {
+            let p = c.presentation
+            XCTAssertEqual(p.banner, .urgent, c.name)
+            XCTAssertNotEqual(p.hero, .none, "\(c.name): the fresh number stays the hero")
+            let height = try XCTUnwrap(p.bannerMinimumHeight, c.name)
+            XCTAssertGreaterThanOrEqual(height, ScreenPresentation.heroPointSize, c.name)
+            XCTAssertGreaterThanOrEqual(height, ScreenPresentation.wordPointSize, c.name)
+            XCTAssertFalse(otherStyles(p).isEmpty, c.name)
+            for style in otherStyles(p) {
+                XCTAssertGreaterThan(p.statusStyle, style, "\(c.name): \(style) is not below the band")
+            }
+        }
+    }
+
+    func testOnlyTheUrgentBandHasAMinimumHeight() throws {
+        for c in try cases() where c.presentation.banner != .urgent {
+            XCTAssertNil(c.presentation.bannerMinimumHeight, c.name)
+        }
+    }
+
     func testTheStatusWordIsNeverACaption() throws {
         var shapes = try cases().map(\.presentation)
         shapes.append(ScreenPresentation(lines: ["SOMETHING NEW"], accessibilityLabel: ""))
@@ -292,7 +316,7 @@ final class PresentationTests: XCTestCase {
             XCTAssertGreaterThanOrEqual(p.statusStyle, .title3, p.chip.word)
         }
         let byBanner = Dictionary(shapes.map { ($0.banner, $0.statusStyle) }, uniquingKeysWith: { a, _ in a })
-        XCTAssertEqual(byBanner, [.none: .title3, .urgent: .title2, .stale: .title, .noData: .title])
+        XCTAssertEqual(byBanner, [.none: .title3, .urgent: .title, .stale: .title, .noData: .title])
     }
 
     func testTheStaleLastLineIsNeverAboveTheAgeAndTheAgeIsNeverSmallPrint() {

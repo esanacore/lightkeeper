@@ -39,6 +39,11 @@ final class GlucoseModel: ObservableObject {
     private var lastGood: Status?
     private var timer: Task<Void, Never>?
     private var checksRunning = 0
+    /// Fetches are numbered as they start. A timer fetch and a pull to
+    /// refresh can overlap, and an answer is applied only when no fetch that
+    /// started later has been applied already.
+    private var fetchesStarted = 0
+    private var newestApplied = 0
     private let now: () -> Int64
     private let fetch: (Settings) async throws -> [Any]
 
@@ -97,12 +102,20 @@ final class GlucoseModel: ObservableObject {
             return
         }
         let asked = settings
+        fetchesStarted += 1
+        let number = fetchesStarted
         let result: Result<[Any], Error>
         do { result = .success(try await fetch(asked)) } catch { result = .failure(error) }
         // The site changed while this fetch ran: its answer belongs to the
         // old site, so it is dropped, and the refresh the save started shows
         // the new one.
         guard settings.nightscoutURL == asked.nightscoutURL else { return }
+        // A fetch that started later has already answered: this one is older
+        // news. Applying it would, for example, let a timer fetch that timed
+        // out mark Nightscout unreachable just after a pull to refresh got
+        // through.
+        guard number > newestApplied else { return }
+        newestApplied = number
         let nowMs = now()
         let outcome = currentStatus(entries: result, nowMs: nowMs, thresholds: settings.thresholds,
                                     lastGood: lastGood)

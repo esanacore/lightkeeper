@@ -93,7 +93,7 @@ struct GlanceView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             StatusMark(chip: presentation.chip, banner: presentation.banner,
-                       style: presentation.statusStyle.textStyle)
+                       style: presentation.statusStyle.textStyle, minHeight: bannerMinHeight)
             hero
             if let line = presentation.secondary {
                 // STALE's last: line: an old value, struck, never above body size.
@@ -116,6 +116,14 @@ struct GlanceView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(presentation.accessibilityLabel)
+    }
+
+    /// The URGENT band's minimum height, scaled by the same Dynamic Type
+    /// factor as the number, so the band never ends up shorter than it.
+    private var bannerMinHeight: CGFloat? {
+        presentation.bannerMinimumHeight.map {
+            CGFloat($0) * heroSize / CGFloat(ScreenPresentation.heroPointSize)
+        }
     }
 
     @ViewBuilder private var hero: some View {
@@ -176,6 +184,9 @@ struct StatusMark: View {
     let banner: ScreenPresentation.Banner
     /// From ScreenPresentation.statusStyle: never smaller than .title3.
     let style: Font.TextStyle
+    /// From ScreenPresentation.bannerMinimumHeight, scaled: set on URGENT
+    /// only, so its band is never shorter than the number beneath it.
+    let minHeight: CGFloat?
     private static let hatchWidth: CGFloat = 8
 
     var body: some View {
@@ -219,7 +230,8 @@ struct StatusMark: View {
         }
     }
 
-    /// A full-width Ink band with the word in Band text.
+    /// A full-width Ink band with the word in Band text, at least
+    /// `minHeight` tall when one is set.
     private var band: some View {
         Text(chip.word)
             .font(.system(style, weight: .bold))
@@ -227,7 +239,7 @@ struct StatusMark: View {
             .padding(.leading, 16)
             .padding(.trailing, 12)
             .padding(.vertical, 12)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: minHeight, alignment: .leading)
             .background(Palette.ink)
     }
 }

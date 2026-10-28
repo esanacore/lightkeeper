@@ -170,21 +170,89 @@ final class NightscoutClientTests: XCTestCase {
         XCTAssertEqual(NightscoutClient.kind(of: NightscoutError.httpStatus(403)), .tokenRejected)
     }
 
-    /// A real lookup of a name that can never resolve (RFC 6761 reserves
-    /// `.invalid`): the whole path, from the GET to the report, with the token
-    /// kept out of the error.
-    func testUnresolvableNameIsUnreachable() async throws {
-        let client = try NightscoutClient(baseURL: "https://lightkeeper-check.invalid", token: token,
-                                          timeout: 5)
-        do {
-            _ = try await client.fetchEntries()
-            XCTFail("a .invalid name resolved")
-        } catch let error as NightscoutError {
-            XCTAssertEqual(error.kind, .unreachable)
-            XCTAssertFalse("\(error)".contains(token), "the token never appears in an error")
+    /// A name that does not resolve, and the other transport failures, as
+    /// URLSession reports them: unreachable, with the token kept out of the
+    /// message. No network: the error goes through the same mapping
+    /// fetchEntries uses, so the result never depends on a runner's resolver.
+    func testADNSFailureIsUnreachable() throws {
+        let client = try client(token: token)
+        let codes: [URLError.Code] = [.cannotFindHost, .dnsLookupFailed, .cannotConnectToHost,
+                                      .timedOut, .notConnectedToInternet, .secureConnectionFailed]
+        for code in codes {
+            XCTAssertEqual(client.unreachable(URLError(code)).kind, .unreachable, "\(code)")
+            XCTAssertEqual(NightscoutClient.kind(of: URLError(code)), .unreachable, "\(code)")
         }
-        let check = await client.checkConnection()
-        XCTAssertEqual(check, .failed(.unreachable))
+        struct Leaky: LocalizedError { let errorDescription: String? }
+        let leaked = client.unreachable(Leaky(errorDescription: "no host for \(token)"))
+        XCTAssertEqual(leaked, .unreachable("no host for ***"))
+        XCTAssertFalse("\(leaked)".contains(token), "the token never appears in an error")
+    }
+
+    /// fetchEntries makes one of these per fetch and invalidates it when the
+    /// fetch ends, so no session outlives its fetch holding the client.
+    func testEverySessionIsNewAndUncached() throws {
+        let client = try client(token: token)
+        let first = client.makeSession()
+        let second = client.makeSession()
+        defer {
+            first.invalidateAndCancel()
+            second.invalidateAndCancel()
+        }
+        XCTAssertFalse(first === second, "a session per fetch, never one shared for the client's life")
+        XCTAssertNil(first.configuration.urlCache)
+        XCTAssertEqual(first.configuration.timeoutIntervalForRequest, NightscoutClient.defaultTimeout)
+        XCTAssertEqual(first.configuration.timeoutIntervalForResource, 2 * NightscoutClient.defaultTimeout)
+    }
+
+    // MARK: The connection check, without the network
+
+    func entry(minutesAgo: Int64) -> [String: Any] {
+        ["type": "sgv", "sgv": 112, "date": Double(nowMs - minutesAgo * 60_000), "direction": "Flat"]
+    }
+
+    func testTheCheckReportsTheNewestReading() async {
+        let newest = await NightscoutClient.check(sentToken: true) {
+            [self.entry(minutesAgo: 8), self.entry(minutesAgo: 3)]
+        }
+        XCTAssertEqual(newest, .connected(newest: reading(minutesAgo: 3)))
+        let empty = await NightscoutClient.check(sentToken: false) { [] }
+        XCTAssertEqual(empty, .connected(newest: nil))
+    }
+
+    func testTheCheckReportsWhatWentWrong() async {
+        let failures: [(Error, ConnectionCheck)] = [
+            (URLError(.cannotFindHost), .failed(.unreachable)),
+            (NightscoutError.unreachable("x"), .failed(.unreachable)),
+            (NightscoutError.httpStatus(503), .failed(.unreachable)),
+            (NightscoutError.httpStatus(401), .failed(.tokenRejected)),
+            (NightscoutError.httpStatus(403), .failed(.tokenRejected)),
+            (NightscoutError.httpStatus(404), .failed(.notNightscout)),
+            (NightscoutError.notJSON, .failed(.notNightscout)),
+        ]
+        for (error, expected) in failures {
+            let check = await NightscoutClient.check(sentToken: true) { throw error }
+            XCTAssertEqual(check, expected, "\(error)")
+        }
+    }
+
+    /// A site that needs a token, checked with the token field empty: the
+    /// report asks for a token instead of saying one was refused.
+    func testARefusalWithNoTokenAsksForOne() async throws {
+        for status in [401, 403] {
+            let check = await NightscoutClient.check(sentToken: false) {
+                throw NightscoutError.httpStatus(status)
+            }
+            XCTAssertEqual(check, .needsToken, "\(status)")
+        }
+        let down = await NightscoutClient.check(sentToken: false) { throw NightscoutError.httpStatus(500) }
+        XCTAssertEqual(down, .failed(.unreachable), "only a refusal asks for a token")
+        XCTAssertTrue(report(.needsToken).hasPrefix("This Nightscout needs a token to be read."))
+        XCTAssertFalse(report(.needsToken).contains("refused"))
+
+        XCTAssertTrue(try client(token: token).sendsToken)
+        XCTAssertFalse(try client(token: nil).sendsToken)
+        XCTAssertFalse(try client(token: "").sendsToken, "an empty field sends no header")
+        XCTAssertNil(try client(token: "").entriesRequest(count: 1).value(forHTTPHeaderField: "api-secret"))
     }
 
     // MARK: The connection report, in plain words
@@ -224,6 +292,7 @@ final class NightscoutClientTests: XCTestCase {
     }
 
     func testFailuresAreReportedInPlainWords() {
+        XCTAssertTrue(report(.needsToken).hasPrefix("This Nightscout needs a token"))
         XCTAssertTrue(report(.failed(.tokenRejected)).hasPrefix("Nightscout refused the token."))
         XCTAssertTrue(report(.failed(.unreachable)).hasPrefix("Could not reach the site."))
         XCTAssertTrue(report(.failed(.notNightscout)).hasPrefix("The site answered, but not"))

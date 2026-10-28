@@ -247,6 +247,49 @@ final class GlucoseModelTests: XCTestCase {
         XCTAssertEqual(seen.value, [true, false], "a timer refresh never shows 'checking Nightscout...'")
     }
 
+    /// A timer fetch hangs, a pull to refresh gets through, then the timer
+    /// fetch times out: its late failure is older news and is dropped, so
+    /// the screen does not say "unreachable since" just after a good fetch.
+    func testALateAnswerFromAnOlderFetchIsDropped() async {
+        let clock = Clock(t0)
+        struct Down: Error {}
+        let calls = Box(0)
+        let gate = Box<CheckedContinuation<Void, Never>?>(nil)
+        let (waiting, signal) = AsyncStream<Void>.makeStream()
+        let reading = entry(mgdl: 120, at: t0)
+        let model = GlucoseModel(settings: configured(), now: { clock.nowMs }, fetch: { _ in
+            calls.value += 1
+            guard calls.value == 1 else { return [reading] }
+            await withCheckedContinuation { (hang: CheckedContinuation<Void, Never>) in
+                gate.value = hang
+                signal.yield()
+            }
+            throw Down()
+        })
+        let timerFetch = Task { await model.refresh() }
+        for await _ in waiting { break }
+
+        clock.nowMs = t0 + 5_000
+        await model.refreshNow()
+        XCTAssertEqual(model.status.level, .inRange)
+        XCTAssertNil(model.offlineSince)
+
+        clock.nowMs = t0 + 10_000
+        gate.value?.resume()
+        await timerFetch.value
+        XCTAssertEqual(calls.value, 2)
+        XCTAssertFalse(model.fetchError, "the older fetch's failure is not shown")
+        XCTAssertNil(model.offlineSince, "no outage starts just after a good fetch")
+        XCTAssertEqual(model.lines, ["IN RANGE", "120 mg/dL ->", "just now"])
+        XCTAssertEqual(model.lastRefresh, date(t0 + 5_000))
+
+        // The next fetch is applied as usual.
+        clock.nowMs = t0 + 60_000
+        await model.refresh()
+        XCTAssertEqual(model.lastRefresh, date(t0 + 60_000))
+        XCTAssertEqual(calls.value, 3)
+    }
+
     func testThePresentationIsTheOneSourceOfTheScreen() async {
         let clock = Clock(t0)
         struct Down: Error {}

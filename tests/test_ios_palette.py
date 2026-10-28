@@ -7,6 +7,8 @@ panel preview on Night paper in dark mode, and the hard shadow). These tests
 read the Swift source, so they run on Windows and in the CI Full suite with no
 Mac. They also hold the app's asset catalog to the brand: the accent color is
 Beam text, and the app icon is assets/brand/png/app-icon.png pixel for pixel.
+And they hold the phone's status shapes (Presentation.swift) to the status
+table in tokens.json, so a change to that table fails here, in the Full suite.
 
 If a palette test fails, change the color in tokens.json first, then mirror it
 in Palette.swift; never the other way round.
@@ -271,6 +273,73 @@ def test_nfr005_png_reader_undoes_every_row_filter(tmp_path):
         + chunk(b"IEND", b"")
     )
     assert png_rgb(png) == (2, 5, pixels)
+
+
+# --- the phone's status shapes follow the brand status table ----------------------
+
+CORE = ROOT / "apps" / "ios" / "LightkeeperCore" / "Sources" / "LightkeeperCore"
+PRESENTATION = CORE / "Presentation.swift"
+STATUS_SWIFT = CORE / "Status.swift"
+# tokens.json treatment -> ScreenPresentation.Banner: a chip, the URGENT band,
+# the STALE band, or the NO DATA frame.
+BANNER = {
+    "plain": "none",
+    "rule": "none",
+    "inverse": "urgent",
+    "stale": "stale",
+    "dashed": "noData",
+}
+SHAPE_CASE = re.compile(
+    r"case (Level\.(\w+)\.rawValue|Self\.staleHeadline): return \(\.(\w+), \.(\w+)\)"
+)
+SHAPE_DEFAULT = re.compile(r"default: return \(\.(\w+), \.(\w+)\)")
+
+
+def swift_enum(source, header):
+    """Return {case: raw value} for the String enum that opens with `header`."""
+    body = source.split(header, 1)[1].split("}", 1)[0]
+    return {
+        name: raw or name
+        for name, raw in re.findall(r'^\s*case (\w+)(?: = "([^"]*)")?\s*$', body, re.M)
+    }
+
+
+def presentation_shapes():
+    """Return ({headline: (banner, tone)}, (banner, tone) for anything else).
+
+    Read from ScreenPresentation.shape(for:), with each Level case and the
+    STALE headline turned into the words renderLines writes.
+    """
+    source = PRESENTATION.read_text(encoding="utf-8")
+    levels = swift_enum(STATUS_SWIFT.read_text(encoding="utf-8"), "public enum Level: String")
+    (stale,) = re.findall(r'static let staleHeadline = "([^"]+)"', source)
+    shapes = {}
+    for _, level, banner, tone in SHAPE_CASE.findall(source):
+        shapes[levels[level] if level else stale] = (banner, tone)
+    (fallback,) = SHAPE_DEFAULT.findall(source)
+    return shapes, fallback
+
+
+def test_nfr005_presentation_shapes_follow_the_brand_status_table():
+    # PresentationTests checks the same thing in Swift, but ios.yml runs only
+    # when iOS code changes; this runs in the Full suite on every change, so
+    # a tokens.json status table edit cannot merge green and break iOS later.
+    source = PRESENTATION.read_text(encoding="utf-8")
+    tones = swift_enum(source, "public enum Tone: String, CaseIterable, Sendable {")
+    assert tones == {"inRange": "in-range", "low": "low", "high": "high", "stale": "stale"}
+    assert 'public var chipToken: String { "chip-\\(rawValue)" }' in source
+    shapes, fallback = presentation_shapes()
+    assert len(shapes) == 6, "one shape per headline that is not NO DATA"
+    for headline, token in TOKENS["status"].items():
+        banner, tone = shapes.get(token["word"], fallback)
+        assert banner == BANNER[token["treatment"]], headline
+        assert tones[tone] == token["color"], headline
+        assert f"chip-{tones[tone]}" == token["chip"], headline
+    unknown = TOKENS["unknown_headline"]
+    assert fallback[0] == BANNER[unknown["treatment"]]
+    assert tones[fallback[1]] == unknown["color"]
+    assert f"chip-{tones[fallback[1]]}" == unknown["chip"]
+    assert set(tones.values()) == {token["color"] for token in TOKENS["status"].values()}
 
 
 def test_fr012_project_names_the_icon_and_the_accent_color():

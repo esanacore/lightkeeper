@@ -64,13 +64,6 @@ public final class NightscoutClient: NSObject, URLSessionTaskDelegate {
     private let baseURL: URL
     private let token: String?
     private let timeout: TimeInterval
-    private lazy var session: URLSession = {
-        let config = URLSessionConfiguration.ephemeral
-        config.timeoutIntervalForRequest = timeout
-        config.timeoutIntervalForResource = timeout * 2
-        config.urlCache = nil
-        return URLSession(configuration: config, delegate: self, delegateQueue: nil)
-    }()
 
     /// `token` must have the readable role only. `allowHTTP` exists for localhost tests.
     ///
@@ -135,34 +128,60 @@ public final class NightscoutClient: NSObject, URLSessionTaskDelegate {
         return components.url!
     }
 
+    /// True when requests carry the token header: a token was given and it
+    /// is not empty.
+    var sendsToken: Bool { !(token ?? "").isEmpty }
+
     /// The GET request for the newest `count` entries, token in the header.
     func entriesRequest(count: Int) -> URLRequest {
         var request = URLRequest(url: entriesURL(count: count))
         request.httpMethod = "GET"
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        if let token, !token.isEmpty { request.setValue(token, forHTTPHeaderField: Self.tokenHeader) }
+        if let token, sendsToken { request.setValue(token, forHTTPHeaderField: Self.tokenHeader) }
         return request
     }
 
     /// Never let the token escape in an error message.
     func redact(_ text: String) -> String {
-        guard let token, !token.isEmpty else { return text }
+        guard let token, sendsToken else { return text }
         return text.replacingOccurrences(of: token, with: "***")
+    }
+
+    /// A session for one fetch: ephemeral, uncached, with this client as its
+    /// delegate for the redirect guard. A URLSession holds its delegate
+    /// strongly until it is invalidated, so every session made here is
+    /// invalidated when its fetch ends; otherwise each fetch would keep its
+    /// client and session alive for as long as the app runs.
+    func makeSession() -> URLSession {
+        let config = URLSessionConfiguration.ephemeral
+        config.timeoutIntervalForRequest = timeout
+        config.timeoutIntervalForResource = timeout * 2
+        config.urlCache = nil
+        return URLSession(configuration: config, delegate: self, delegateQueue: nil)
     }
 
     /// Return the newest `count` raw entries as parsed JSON (an array of dictionaries).
     public func fetchEntries(count: Int = 12) async throws -> [Any] {
         precondition((1...288).contains(count), "count must be between 1 and 288")
         let request = entriesRequest(count: count)
+        let session = makeSession()
+        defer { session.finishTasksAndInvalidate() }
 
         let data: Data
         let response: URLResponse
         do {
             (data, response) = try await session.data(for: request)
         } catch {
-            throw NightscoutError.unreachable(redact(error.localizedDescription))
+            throw unreachable(error)
         }
         return try Self.entries(from: data, response: response)
+    }
+
+    /// What a transport failure becomes: a name that does not resolve, a
+    /// refused or timed-out connection, a TLS failure. Its message is the
+    /// platform's, with the token redacted.
+    func unreachable(_ error: Error) -> NightscoutError {
+        .unreachable(redact(error.localizedDescription))
     }
 
     /// The entries in a response, or the error that says what is wrong with it.
@@ -179,10 +198,18 @@ public final class NightscoutClient: NSObject, URLSessionTaskDelegate {
     /// One read-only GET, the same request the display makes, reported for
     /// the settings screen: the newest reading, or what went wrong.
     public func checkConnection() async -> ConnectionCheck {
+        await Self.check(sentToken: sendsToken) { try await self.fetchEntries() }
+    }
+
+    /// The outcome of one fetch, for the connection check. A refusal when no
+    /// token was sent asks for one rather than saying a token was refused.
+    static func check(sentToken: Bool, _ fetch: () async throws -> [Any]) async -> ConnectionCheck {
         do {
-            return .connected(newest: parseEntries(try await fetchEntries()).first)
+            return .connected(newest: parseEntries(try await fetch()).first)
         } catch {
-            return .failed(Self.kind(of: error))
+            let found = Self.kind(of: error)
+            if found == .tokenRejected && !sentToken { return .needsToken }
+            return .failed(found)
         }
     }
 
@@ -221,6 +248,8 @@ public enum ConnectionCheck: Equatable, Sendable {
     /// Nightscout answered with an entries list. `newest` is its newest
     /// reading that passes parseEntries, or nil when there is none.
     case connected(newest: GlucoseReading?)
+    /// The site refused to be read (HTTP 401 or 403) and no token was sent.
+    case needsToken
     case failed(NightscoutError.Kind)
 }
 
@@ -243,6 +272,9 @@ public func connectionReport(_ check: ConnectionCheck, nowMs: Int64, thresholds:
                 + "so the display shows STALE until a new one arrives."
         }
         return "Connected. The newest reading came in \(spokenAge(status.ageMinutes ?? 0))."
+    case .needsToken:
+        return "This Nightscout needs a token to be read. Add a token with the readable role, "
+            + "made in this site's Admin Tools."
     case .failed(.tokenRejected):
         return "Nightscout refused the token. Use a token with the readable role, "
             + "made in this site's Admin Tools."
