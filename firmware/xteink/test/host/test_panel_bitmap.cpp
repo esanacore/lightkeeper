@@ -13,8 +13,9 @@
 //      bytes outside the font, the size and stamp checks, the portrait buffer.
 //   3. Firmware-only guarantees: a refusal leaves the buffer untouched,
 //      nothing is written past the image, no heap allocation, the CRC check
-//      value, and the device skeleton (src/device_config.h): its NO DATA
-//      screen at each board's size, and pins left unset until verified.
+//      value, and the device skeleton (src/device_config.h, src/serial_panel):
+//      its NO DATA screen at each board's size, the serial dump read back to
+//      the pinned pixels, and pins left unset until verified.
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,8 +24,8 @@
 #include <new>
 
 #include "../../src/device_config.h"
+#include "../../src/serial_panel.h"
 #include "glucose_rules.h"
-#include "nightscout_json.h"
 #include "panel_bitmap.h"
 
 // Every allocation through operator new is counted, so a test can prove the
@@ -495,48 +496,162 @@ void test_fr016_treatment_names() {
 // The boards src/device_config.h defines, which platformio.ini builds.
 const lk::BoardConfig kBoards[] = {lk::kBenchS3, lk::kX4};
 
-// The steps src/main.cpp runs on the device, which has no Wi-Fi and no clock
-// yet: there is no response body, so there is no reading, and the panel shows
-// NO DATA with Nightscout unreachable, never a number. For each board in
-// src/device_config.h, the size is a pinned profile and the pixels are that
-// profile's pinned no_data_unreachable case. (The device sketch itself is
-// Arduino code and only PlatformIO builds it; its config is plain constants.)
-void test_fr010_device_skeleton_draws_the_pinned_no_data_screen() {
-  const lk::JsonResult fetched = lk::newest_reading_from_json(nullptr, 0);
-  const bool fetch_error = fetched.status != lk::JsonStatus::Ok;
-  const lk::Reading* reading = !fetch_error && fetched.found ? &fetched.reading : nullptr;
-  const lk::Status status = lk::classify(reading, 0, lk::Thresholds());
-  lk::Lines lines;
-  lk::render(status, fetch_error, &lines);
-  CHECK(fetch_error && reading == nullptr && status.level == lk::Level::NoData,
-        "no body, no reading, NO DATA");
-  CHECK(lines.count == 4 && strcmp(lines.text[0], "NO DATA") == 0 &&
-            strcmp(lines.text[3], "Nightscout unreachable") == 0,
-        "the device names the failing link, without a number");
-  const char* text[lk::kMaxLines] = {};
-  for (int i = 0; i < lines.count; i++) text[i] = lines.text[i];
+// A bench serial monitor in miniature for print_panel: it keeps each line
+// that is not an image row, and packs each row of '#' and '.' back into bits,
+// as a person comparing a dump with the pinned case would.
+struct Dump {
+  int count;         // lines that are not image rows
+  char text[8][64];  // the first eight of them
+  int rows;          // image rows read back
+  int width;         // their width, or -1 once a row differs or overflows
+};
+Dump g_dump;
+uint8_t g_read_back[kImageBytes];
 
+void start_dump() {
+  memset(&g_dump, 0, sizeof(g_dump));
+  memset(g_read_back, 0, sizeof(g_read_back));
+}
+
+void record_line(const char* line) {
+  const size_t length = strlen(line);
+  if (length == 0 || strspn(line, "#.") != length) {
+    if (g_dump.count < 8) snprintf(g_dump.text[g_dump.count], sizeof(g_dump.text[0]), "%s", line);
+    g_dump.count++;
+    return;
+  }
+  const size_t stride = (length + 7) / 8;
+  const size_t at = static_cast<size_t>(g_dump.rows) * stride;
+  if (g_dump.rows == 0) g_dump.width = static_cast<int>(length);
+  if (static_cast<int>(length) != g_dump.width || at + stride > sizeof(g_read_back)) {
+    g_dump.width = -1;
+    return;
+  }
+  for (size_t x = 0; x < length; x++) {
+    if (line[x] == '#') g_read_back[at + x / 8] |= static_cast<uint8_t>(0x80u >> (x % 8));
+  }
+  g_dump.rows++;
+}
+
+// The steps src/main.cpp runs on the device, which has no Wi-Fi and no clock
+// yet, through the same serial_panel calls: there is no response body, so
+// there is no reading, and the panel shows NO DATA with Nightscout
+// unreachable, never a number. For each board in src/device_config.h, the
+// size is a pinned profile, the pixels are that profile's pinned
+// no_data_unreachable case, and the serial dump reads back to exactly those
+// pixels. Only main.cpp's Serial and deep sleep calls are left to the bench.
+void test_fr010_device_skeleton_draws_the_pinned_no_data_screen() {
   for (const lk::BoardConfig& board : kBoards) {
+    const int width = board.panel_width;
+    const int height = board.panel_height;
+    const size_t size = lk::packed_size(width, height);
     char msg[128];
     snprintf(msg, sizeof(msg), "%s: %dx%d is a pinned profile that fits the device buffer",
-             board.name, board.panel_width, board.panel_height);
-    const size_t size = lk::packed_size(board.panel_width, board.panel_height);
-    CHECK(lk::is_profile_size(board.panel_width, board.panel_height) && size <= lk::kMaxPanelBytes,
+             board.name, width, height);
+    CHECK(lk::is_profile_size(width, height) && size <= lk::kMaxPanelBytes, msg);
+
+    lk::Lines lines;
+    g_allocations = 0;
+    const bool drawn = lk::draw_offline_screen(width, height, &lines, g_image, lk::kMaxPanelBytes);
+    start_dump();
+    lk::print_panel(record_line, lines, g_image, lk::kMaxPanelBytes, width, height);
+    snprintf(msg, sizeof(msg), "%s: NO DATA, Nightscout unreachable, no number, no heap",
+             board.name);
+    CHECK(drawn && g_allocations == 0 && lines.count == 4 &&
+              strcmp(lines.text[0], "NO DATA") == 0 &&
+              strcmp(lines.text[3], "Nightscout unreachable") == 0,
           msg);
+
+    const PanelCase* pinned = nullptr;
     int matched = 0;
     for (const PanelCase& c : kPanelCases) {
       if (strcmp(c.vector, "no_data_unreachable") != 0 || c.stamp != nullptr) continue;
-      if (c.width != board.panel_width || c.height != board.panel_height) continue;
-      const bool drawn = lk::render_panel(text, lines.count, c.width, c.height, nullptr, g_image,
-                                          lk::kMaxPanelBytes);
-      snprintf(msg, sizeof(msg), "%s: the device screen is the pinned %s case", board.name,
-               c.profile);
-      CHECK(drawn && lk::crc32(g_image, size) == c.crc32 && lk::ink_count(g_image, size) == c.ink,
-            msg);
+      if (c.width != width || c.height != height) continue;
+      pinned = &c;
       matched++;
     }
     snprintf(msg, sizeof(msg), "%s: exactly one pinned no_data_unreachable case", board.name);
     CHECK(matched == 1, msg);
+    if (pinned == nullptr) continue;
+    snprintf(msg, sizeof(msg), "%s: the device screen is the pinned %s case", board.name,
+             pinned->profile);
+    CHECK(lk::crc32(g_image, size) == pinned->crc32 && lk::ink_count(g_image, size) == pinned->ink,
+          msg);
+
+    char summary[64];
+    snprintf(summary, sizeof(summary), "panel %dx%d crc32 %lu (0x%08lx) ink %lu", width, height,
+             static_cast<unsigned long>(pinned->crc32), static_cast<unsigned long>(pinned->crc32),
+             static_cast<unsigned long>(pinned->ink));
+    bool printed = g_dump.count == 7 && strcmp(g_dump.text[0], "screen:") == 0;
+    for (int i = 0; printed && i < lines.count; i++) {
+      printed = strcmp(g_dump.text[1 + i], lines.text[i]) == 0;
+    }
+    snprintf(msg, sizeof(msg), "%s: the dump prints the lines, then '%s'", board.name, summary);
+    CHECK(printed && strcmp(g_dump.text[5], summary) == 0 &&
+              strcmp(g_dump.text[6], "end of panel") == 0,
+          msg);
+    snprintf(msg, sizeof(msg), "%s: its %d rows of '#'/'.' read back to the pinned pixels",
+             board.name, height);
+    CHECK(g_dump.rows == height && g_dump.width == width &&
+              lk::crc32(g_read_back, size) == pinned->crc32 &&
+              memcmp(g_read_back, g_image, size) == 0,
+          msg);
+  }
+}
+
+// The dump prints no rows for an image that was not drawn: none, a short or
+// empty one, or one wider than any profile each print the lines and "panel
+// WxH not drawn", and stop. A size render_panel refuses draws nothing and
+// leaves the buffer as it was; main.cpp then passes no rows.
+void test_fr010_bench_dump_prints_no_rows_for_an_image_not_drawn() {
+  lk::Lines lines;
+  memset(g_image, 0x5A, kImageBytes);
+  CHECK(!lk::draw_offline_screen(156, 70, &lines, g_image, kImageBytes) &&
+            all_bytes_are(g_image, kImageBytes, 0x5A) && strcmp(lines.text[0], "NO DATA") == 0,
+        "a refused size draws nothing; the lines are still NO DATA");
+  struct Refusal {
+    const char* what;
+    const uint8_t* rows;
+    size_t rows_size;
+    int width;
+    int height;
+  };
+  const Refusal refusals[] = {
+      {"nothing drawn", nullptr, kImageBytes, 200, 200},
+      {"rows one byte short", g_image, lk::packed_size(200, 200) - 1, 200, 200},
+      {"no width", g_image, kImageBytes, 0, 200},
+      {"wider than any profile", g_image, kImageBytes, 801, 8},
+  };
+  for (const Refusal& r : refusals) {
+    start_dump();
+    lk::print_panel(record_line, lines, r.rows, r.rows_size, r.width, r.height);
+    char want[64];
+    snprintf(want, sizeof(want), "panel %dx%d not drawn", r.width, r.height);
+    char msg[96];
+    snprintf(msg, sizeof(msg), "bench dump, %s: '%s' and no rows", r.what, want);
+    CHECK(g_dump.count == 6 && strcmp(g_dump.text[5], want) == 0 && g_dump.rows == 0, msg);
+  }
+  lines.count = lk::kMaxLines + 5;
+  start_dump();
+  lk::print_panel(record_line, lines, nullptr, 0, 200, 200);
+  CHECK(g_dump.count == lk::kMaxLines + 2, "a bad line count never reads past the lines");
+}
+
+// Row for row the dump is the image at every pinned profile, not only the two
+// boards' sizes (both multiples of 8): the 250-wide panel pads its rows to
+// whole bytes, and an image of exactly packed_size() bytes is printed.
+void test_fr010_bench_dump_reads_back_at_every_profile() {
+  for (const lk::PanelProfile& p : lk::kPanelProfiles) {
+    const size_t size = lk::packed_size(p.width, p.height);
+    lk::Lines lines;
+    const bool drawn = lk::draw_offline_screen(p.width, p.height, &lines, g_image, size);
+    start_dump();
+    lk::print_panel(record_line, lines, g_image, size, p.width, p.height);
+    char msg[96];
+    snprintf(msg, sizeof(msg), "%s: the dump reads back to the image drawn", p.name);
+    CHECK(drawn && g_dump.rows == p.height && g_dump.width == p.width &&
+              memcmp(g_read_back, g_image, size) == 0,
+          msg);
   }
 }
 
@@ -575,6 +690,8 @@ int main(int argc, char** argv) {
   test_fr016_pbm_dump_round_trips();
   test_fr016_treatment_names();
   test_fr010_device_skeleton_draws_the_pinned_no_data_screen();
+  test_fr010_bench_dump_prints_no_rows_for_an_image_not_drawn();
+  test_fr010_bench_dump_reads_back_at_every_profile();
   test_fr010_device_pins_stay_unset_until_verified();
   printf("%d checks, %d failures (%d panel vectors, %d extra cases, %d sizes, %d stamps)\n",
          g_checks, g_failures, count_of(kPanelCases, sizeof(kPanelCases)),

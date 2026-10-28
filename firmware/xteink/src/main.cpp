@@ -7,9 +7,11 @@
 // (serial_panel). Nothing is drawn on a panel yet. Then it deep sleeps for a
 // minute, and every wake starts again from setup().
 //
-// The libraries are the ones the host tests check (lib/), not copies, and
-// test_fr010_device_skeleton_draws_the_pinned_no_data_screen runs the same
-// steps on a PC for both boards.
+// The libraries are the ones the host tests check (lib/), not copies. The
+// screen and the dump come from serial_panel, which is plain C++:
+// test_fr010_device_skeleton_draws_the_pinned_no_data_screen calls the same
+// functions on a PC for both boards and reads the dump back. Only the Serial
+// and deep sleep calls here are device-only.
 //
 // When networking lands (L-08): never setInsecure(), keep the token in NVS
 // and send it only in the api-secret header (ADR-0009), and draw the stamp
@@ -20,8 +22,6 @@
 #include <esp_sleep.h>
 
 #include "device_config.h"
-#include "glucose_rules.h"
-#include "nightscout_json.h"
 #include "panel_bitmap.h"
 #include "serial_panel.h"
 
@@ -37,12 +37,9 @@ static_assert(lk::packed_size(lk::kBoard.panel_width, lk::kBoard.panel_height) <
                   lk::kMaxPanelBytes,
               "the panel buffer holds the largest pinned profile");
 
-// No clock yet. Without a reading, classify never reads the time; and if a
-// reading ever got here, every plausible timestamp is decades after 0, so it
-// would be future-dated and shown as STALE, never as current.
-constexpr int64_t kNoClockMs = 0;
-
 uint8_t g_panel[lk::kMaxPanelBytes];
+
+void print_line(const char* line) { Serial.println(line); }
 
 }  // namespace
 
@@ -51,27 +48,15 @@ void setup() {
   const uint32_t start = millis();
   while (!Serial && millis() - start < lk::kSerialWaitMs) delay(10);
 
-  // No Wi-Fi yet, so no response body: the JSON layer reports an error and
-  // finds no reading, exactly as for a failed fetch.
-  const lk::JsonResult fetched = lk::newest_reading_from_json(nullptr, 0);
-  const bool fetch_error = fetched.status != lk::JsonStatus::Ok;
-  const lk::Reading* reading = !fetch_error && fetched.found ? &fetched.reading : nullptr;
-  const lk::Status status = lk::classify(reading, kNoClockMs, lk::Thresholds());
-  lk::Lines lines;
-  lk::render(status, fetch_error, &lines);
-
-  const char* text[lk::kMaxLines] = {};
-  for (int i = 0; i < lines.count; i++) text[i] = lines.text[i];
   const int width = lk::kBoard.panel_width;
   const int height = lk::kBoard.panel_height;
-  const bool drawn =
-      lk::render_panel(text, lines.count, width, height, nullptr, g_panel, sizeof(g_panel));
+  lk::Lines lines;
+  const bool drawn = lk::draw_offline_screen(width, height, &lines, g_panel, sizeof(g_panel));
 
   Serial.printf("o))) lightkeeper %s: bench dump, nothing is drawn on a panel yet",
                 lk::kBoard.name);
   Serial.println();
-  lk::print_panel(Serial, text, lines.count, drawn ? g_panel : nullptr, sizeof(g_panel), width,
-                  height);
+  lk::print_panel(print_line, lines, drawn ? g_panel : nullptr, sizeof(g_panel), width, height);
   Serial.flush();
 
   esp_sleep_enable_timer_wakeup(lk::kSleepSeconds * 1000000ULL);

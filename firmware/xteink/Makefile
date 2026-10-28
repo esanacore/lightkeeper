@@ -7,9 +7,11 @@
 #   make clean
 #
 # On Windows, run in WSL (`wsl -- make -C firmware/xteink test`): MinGW
-# toolchains cannot link the sanitizers. src/ is the device sketch (Arduino,
-# PlatformIO only: `pio run`, see README.md); nothing here compiles it. The
-# panel test reads only src/device_config.h, which is plain constants.
+# toolchains cannot link the sanitizers. src/main.cpp is the device sketch
+# (Arduino, PlatformIO only: `pio run`, see README.md); nothing here compiles
+# it. The panel test does build src/serial_panel.cpp, the skeleton's screen and
+# serial dump, which is plain C++, and reads src/device_config.h, which is
+# plain constants.
 
 CXX ?= g++
 PYTHON ?= python3
@@ -28,7 +30,12 @@ CXXFLAGS := -std=c++17 -Wall -Wextra -Werror -Wconversion -Wshadow -g \
 RULES := lib/glucose_rules/glucose_rules.cpp
 JSON := lib/nightscout_json/nightscout_json.cpp
 PANEL := lib/panel_bitmap/panel_bitmap.cpp
-PANEL_HEADERS := lib/panel_bitmap/panel_bitmap.h lib/panel_bitmap/font5x8_data.h src/device_config.h
+SERIAL_PANEL := src/serial_panel.cpp
+# Every header the panel test reaches: the rasterizer's, the two libraries the
+# skeleton's screen comes from, and the skeleton's own.
+PANEL_HEADERS := lib/panel_bitmap/panel_bitmap.h lib/panel_bitmap/font5x8_data.h \
+                 lib/glucose_rules/glucose_rules.h lib/nightscout_json/nightscout_json.h \
+                 src/device_config.h src/serial_panel.h
 
 .PHONY: test format-check coverage clean font-header panel-lint
 
@@ -47,11 +54,11 @@ $(BUILD)/panel_vectors.inc: $(PANEL_VECTORS) tools/gen_panel_vectors.py $(PANEL_
 $(BUILD)/host_tests: $(RULES) lib/glucose_rules/glucose_rules.h test/host/test_glucose_rules.cpp $(BUILD)/vectors.inc
 	$(CXX) $(CXXFLAGS) $(RULES) test/host/test_glucose_rules.cpp -o $@
 
-$(BUILD)/json_tests: $(RULES) $(JSON) lib/nightscout_json/nightscout_json.h test/host/test_nightscout_json.cpp $(BUILD)/response_vectors.inc
+$(BUILD)/json_tests: $(RULES) $(JSON) lib/glucose_rules/glucose_rules.h lib/nightscout_json/nightscout_json.h test/host/test_nightscout_json.cpp $(BUILD)/response_vectors.inc
 	$(CXX) $(CXXFLAGS) $(RULES) $(JSON) test/host/test_nightscout_json.cpp -o $@
 
-$(BUILD)/panel_tests: $(RULES) $(JSON) $(PANEL) $(PANEL_HEADERS) test/host/test_panel_bitmap.cpp $(BUILD)/panel_vectors.inc
-	$(CXX) $(CXXFLAGS) $(RULES) $(JSON) $(PANEL) test/host/test_panel_bitmap.cpp -o $@
+$(BUILD)/panel_tests: $(RULES) $(JSON) $(PANEL) $(SERIAL_PANEL) $(PANEL_HEADERS) test/host/test_panel_bitmap.cpp $(BUILD)/panel_vectors.inc
+	$(CXX) $(CXXFLAGS) $(RULES) $(JSON) $(PANEL) $(SERIAL_PANEL) test/host/test_panel_bitmap.cpp -o $@
 
 # The rasterizer is integers only and never touches the heap: fail on any
 # floating-point type or allocation call in its sources, comments included.
@@ -77,8 +84,8 @@ format-check:
 	else echo "clang-format not installed; skipping format check"; fi
 
 # Coverage build: no sanitizers (they distort counts), -O0 so lines map 1:1.
-# Prints gcov's summary for each library; the annotated sources land in
-# $(BUILD)/coverage/. Needs gcc's gcov (Linux, WSL).
+# Prints gcov's summary for each library and src/serial_panel.cpp; the
+# annotated sources land in $(BUILD)/coverage/. Needs gcc's gcov (Linux, WSL).
 coverage: $(BUILD)/vectors.inc $(BUILD)/response_vectors.inc $(BUILD)/panel_vectors.inc
 	mkdir -p $(BUILD)/coverage
 	$(CXX) -std=c++17 -O0 --coverage $(INCLUDES) \
@@ -86,7 +93,8 @@ coverage: $(BUILD)/vectors.inc $(BUILD)/response_vectors.inc $(BUILD)/panel_vect
 	$(CXX) -std=c++17 -O0 --coverage $(INCLUDES) \
 	  $(RULES) $(JSON) test/host/test_nightscout_json.cpp -o $(BUILD)/coverage/json_tests
 	$(CXX) -std=c++17 -O0 --coverage $(INCLUDES) \
-	  $(RULES) $(JSON) $(PANEL) test/host/test_panel_bitmap.cpp -o $(BUILD)/coverage/panel_tests
+	  $(RULES) $(JSON) $(PANEL) $(SERIAL_PANEL) test/host/test_panel_bitmap.cpp \
+	  -o $(BUILD)/coverage/panel_tests
 	./$(BUILD)/coverage/host_tests
 	./$(BUILD)/coverage/json_tests
 	./$(BUILD)/coverage/panel_tests $(BUILD)
@@ -96,6 +104,8 @@ coverage: $(BUILD)/vectors.inc $(BUILD)/response_vectors.inc $(BUILD)/panel_vect
 	  | sed -n "/nightscout_json.cpp'/,/^$$/p"
 	gcov -b -c -o $(BUILD)/coverage $(BUILD)/coverage/panel_tests-panel_bitmap.gcda \
 	  | sed -n "/panel_bitmap.cpp'/,/^$$/p"
+	gcov -b -c -o $(BUILD)/coverage $(BUILD)/coverage/panel_tests-serial_panel.gcda \
+	  | sed -n "/serial_panel.cpp'/,/^$$/p"
 	mv -f *.gcov $(BUILD)/coverage/
 
 clean:
