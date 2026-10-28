@@ -6,16 +6,24 @@ Common commands for this repository. Commands are the same on every platform onc
 
 - `python tools/doctor.py`: check every prerequisite and name what's missing.
 - `pip install -e ".[dev]"`: install the package in editable mode with test tools.
+- `python -m lightkeeper --help`: every option, with examples, the exit codes and the main environment variables.
 - `python -m lightkeeper --demo`: run with canned data, no network.
-- `python -m lightkeeper --demo --demo-mgdl 62 --demo-minutes-ago 2`: try a specific simulated reading.
-- `python -m lightkeeper`: read once from Nightscout (needs `NIGHTSCOUT_URL`), exit 0 if fresh and in range, 1 if someone should look, 2 on a configuration error.
-- `python -m lightkeeper --watch --interval 60`: refresh until Ctrl+C (minimum 15 seconds).
+- `python -m lightkeeper --demo --demo-mgdl 62 --demo-minutes-ago 2 --demo-trend SingleDown`: try a specific simulated reading. `--demo-trend` takes a Nightscout trend name (`DoubleUp`, `SingleUp`, `FortyFiveUp`, `Flat`, `FortyFiveDown`, `SingleDown`, `DoubleDown`, `Unknown`) in any case. The `--demo-*` options without `--demo` exit 2, so canned data never appears unless `--demo` is given.
+- `python -m lightkeeper`: read once from Nightscout (needs `NIGHTSCOUT_URL`) and print the screen. Exit codes:
+  - `0`: fresh and in range.
+  - `1`: someone should look (low, high, STALE, NO DATA, or Nightscout unreachable).
+  - `2`: a configuration error (the message names the setting and the clash), an unusable option, or a file a one-shot run could not write.
+  - `130`: a one-shot run stopped with Ctrl+C, so cron or Home Assistant never read an interrupted run as fresh and in range. `--watch` stopped with Ctrl+C (or by systemd) exits 0.
+- `python -m lightkeeper --watch --interval 60`: refresh until Ctrl+C (default 60 seconds, minimum 15). In an interactive terminal the screen redraws in place inside an ASCII logbook frame (`o))) lightkeeper   checked HH:MM:SS`); piped, under systemd, or with `TERM=dumb` the output is exactly the screen lines, with a line of 24 dashes between refreshes.
+- `python -m lightkeeper --watch --no-color`: the frame without color; reverse video, underline and strike stay (as `NO_COLOR=1` does).
 - `python -m lightkeeper --svg screen.svg --json status.json`: also write the screen as an SVG image and the status as JSON, each replaced atomically.
+- `python -m lightkeeper --png panel.png --bmp panel.bmp --panel 800x480`: also write the real 1-bit panel pixels as a PNG and a BMP, each replaced atomically and stamped with the local `HH:MM` they were drawn at. `--panel` takes a profile (`waveshare_2in9`, the default, `waveshare_1in54`, `waveshare_2in13`, `waveshare_4in2`, `waveshare_7in5` or `trmnl`, `kindle`) or a size `WxH`; a size too small for every screen exits 2.
+- When Nightscout fails, stdout still shows only the screen (NO DATA or STALE, with "Nightscout unreachable"), and stderr gets one line naming what failed and what to check, once per change of what failed, then `lightkeeper: Nightscout reachable again` when it recovers. The token is never in it. `docs/TROUBLESHOOTING.md` lists every line.
 - With `LK_MQTT_HOST` (and the other `LK_MQTT_*` settings in `docs/ENV_VARS.md`) set, every refresh is also published to Home Assistant over MQTT discovery.
 
 ## Testing
 
-- `python -m pytest --cov`: full suite with the 90% coverage floor.
+- `python -m pytest --cov`: full suite with the 100% coverage floor.
 - `python -m pytest --cov --cov-report=term-missing`: show uncovered lines.
 - `python -m pytest -k fr003`: everything verifying one requirement.
 - `make -C firmware/xteink test`: firmware host tests under AddressSanitizer and UBSan.
