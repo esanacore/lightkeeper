@@ -1,7 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="296" height="128" viewBox="0 0 296 128" role="img" aria-label="NO DATA: all_entries_rejected_is_no_data">
-<title>NO DATA: all_entries_rejected_is_no_data</title>
-<rect x="0.5" y="0.5" width="295" height="127" rx="4" fill="#e8e8e3" stroke="#b9b9b3"/>
-<text x="12" y="36" fill="#111111" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="24" font-weight="700">NO DATA</text>
-<text x="12" y="64" fill="#111111" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="15">Check sensor and phone</text>
-<text x="12" y="104" fill="#111111" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="15">Confirm on primary device</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="296" height="128" viewBox="0 0 296 128" role="img" aria-label="NO DATA / Check sensor and phone / Confirm on primary device">
+<title>NO DATA / Check sensor and phone / Confirm on primary device</title>
+<desc>NO DATA
+Check sensor and phone
+Confirm on primary device</desc>
+<rect x="0.5" y="0.5" width="295" height="127" fill="#E6E5DF" stroke="#5B6068"/>
+<line x1="5" y1="6" x2="291" y2="6" stroke="#15171C" stroke-width="2" stroke-dasharray="4 4"/>
+<line x1="5" y1="122" x2="291" y2="122" stroke="#15171C" stroke-width="2" stroke-dasharray="4 4"/>
+<line x1="6" y1="7" x2="6" y2="121" stroke="#15171C" stroke-width="2" stroke-dasharray="4 4" stroke-dashoffset="2"/>
+<line x1="290" y1="7" x2="290" y2="121" stroke="#15171C" stroke-width="2" stroke-dasharray="4 4" stroke-dashoffset="2"/>
+<text x="14" y="33" fill="#15171C" font-family="IBM Plex Mono, DejaVu Sans Mono, Consolas, monospace" font-size="24" textLength="101" font-weight="700">NO DATA</text>
+<text x="12" y="67" fill="#15171C" font-family="IBM Plex Mono, DejaVu Sans Mono, Consolas, monospace" font-size="15" textLength="198">Check sensor and phone</text>
+<text x="12" y="97" fill="#15171C" font-family="IBM Plex Mono, DejaVu Sans Mono, Consolas, monospace" font-size="15" textLength="225">Confirm on primary device</text>
 </svg>

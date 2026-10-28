@@ -1,7 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="296" height="128" viewBox="0 0 296 128" role="img" aria-label="URGENT LOW: urgent_low_55">
-<title>URGENT LOW: urgent_low_55</title>
-<rect x="0.5" y="0.5" width="295" height="127" rx="4" fill="#e8e8e3" stroke="#b9b9b3"/>
-<text x="12" y="36" fill="#111111" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="24" font-weight="700">URGENT LOW</text>
-<text x="12" y="64" fill="#111111" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="15">55 mg/dL vv</text>
-<text x="12" y="104" fill="#111111" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="15">1 min ago</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="296" height="128" viewBox="0 0 296 128" role="img" aria-label="URGENT LOW / 55 mg/dL vv / 1 min ago">
+<title>URGENT LOW / 55 mg/dL vv / 1 min ago</title>
+<desc>URGENT LOW
+55 mg/dL vv
+1 min ago</desc>
+<rect x="0.5" y="0.5" width="295" height="127" fill="#E6E5DF" stroke="#5B6068"/>
+<rect x="12" y="12" width="272" height="28" fill="#15171C"/>
+<text x="14" y="33" fill="#E6E5DF" font-family="IBM Plex Mono, DejaVu Sans Mono, Consolas, monospace" font-size="24" textLength="144" font-weight="700">URGENT LOW</text>
+<text x="12" y="69" fill="#15171C" font-family="IBM Plex Mono, DejaVu Sans Mono, Consolas, monospace" font-size="20" textLength="132">55 mg/dL vv</text>
+<text x="12" y="98" fill="#15171C" font-family="IBM Plex Mono, DejaVu Sans Mono, Consolas, monospace" font-size="15" textLength="81">1 min ago</text>
 </svg>

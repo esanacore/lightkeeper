@@ -1,7 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="296" height="128" viewBox="0 0 296 128" role="img" aria-label="IN RANGE: boundary_low_70_in_range">
-<title>IN RANGE: boundary_low_70_in_range</title>
-<rect x="0.5" y="0.5" width="295" height="127" rx="4" fill="#e8e8e3" stroke="#b9b9b3"/>
-<text x="12" y="36" fill="#111111" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="24" font-weight="700">IN RANGE</text>
-<text x="12" y="64" fill="#111111" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="15">70 mg/dL \</text>
-<text x="12" y="104" fill="#111111" font-family="DejaVu Sans Mono, Consolas, monospace" font-size="15">1 min ago</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="296" height="128" viewBox="0 0 296 128" role="img" aria-label="IN RANGE / 70 mg/dL \ / 1 min ago">
+<title>IN RANGE / 70 mg/dL \ / 1 min ago</title>
+<desc>IN RANGE
+70 mg/dL \
+1 min ago</desc>
+<rect x="0.5" y="0.5" width="295" height="127" fill="#E6E5DF" stroke="#5B6068"/>
+<text x="14" y="33" fill="#15171C" font-family="IBM Plex Mono, DejaVu Sans Mono, Consolas, monospace" font-size="24" textLength="115" font-weight="700">IN RANGE</text>
+<text x="12" y="69" fill="#15171C" font-family="IBM Plex Mono, DejaVu Sans Mono, Consolas, monospace" font-size="20" textLength="120">70 mg/dL \</text>
+<text x="12" y="98" fill="#15171C" font-family="IBM Plex Mono, DejaVu Sans Mono, Consolas, monospace" font-size="15" textLength="81">1 min ago</text>
 </svg>
