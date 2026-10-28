@@ -49,7 +49,7 @@ Known issues and fixes. If a display ever shows something that disagrees with th
 
 - **Symptom**: `Could not write <path>: <reason>` once per refresh with `--svg`, `--json`, `--png` or `--bmp`. A one-shot run exits 2; `--watch` keeps the display going and retries each refresh (HAZ-011).
 - **Cause**: The reason says it in plain words: `the folder ... does not exist`, `... is a file, not a folder`, `... is a folder`, `permission denied`, `the disk is full`, or `the disk is read-only`.
-- **Solution**: Create the folder, or point the option at a file in one the service may write (`/run/lightkeeper/` under the systemd unit). A failed write leaves no temporary file behind.
+- **Solution**: Create the folder, or point the option at a file in one the service may write (`/run/lightkeeper/` under the systemd unit). A failed write, or one cut short by Ctrl+C, leaves no temporary file behind.
 
 ### Configuration error on startup
 

@@ -110,10 +110,11 @@ environment:
   NIGHTSCOUT_TOKEN    a token with the readable role, never the API secret
   LK_URGENT_LOW, LK_LOW, LK_HIGH, LK_URGENT_HIGH, LK_STALE_MINUTES
                       the display thresholds in mg/dL, and minutes until STALE
-  LK_MQTT_HOST        turns on Home Assistant over MQTT (more LK_MQTT_* settings)
-  NO_COLOR            set to anything: no color in the --watch frame
+  LK_MQTT_HOST        turns on Home Assistant over MQTT (see LK_MQTT_*)
+  NO_COLOR            set and not empty: no color in the --watch frame
 
-every variable: {ENV_VARS_URL}
+every variable:
+  {ENV_VARS_URL}
 """
 
 
@@ -149,14 +150,15 @@ def write_bmp(path: str, bitmap: Bitmap) -> None:
 def _replace(target: Path, write: Callable[[Path], object]) -> None:
     """Write through a temporary file beside `target`, then rename it into place.
 
-    A reader never sees a half-written file. A failed write removes the
-    temporary file and raises the OSError for the caller to report.
+    A reader never sees a half-written file. A failed write, or one cut
+    short by Ctrl+C, removes the temporary file and raises again: the
+    caller reports an OSError, and main() handles the interrupt.
     """
     temp = target.with_name(target.name + ".tmp")
     try:
         write(temp)
         os.replace(temp, target)
-    except OSError:
+    except BaseException:
         try:
             temp.unlink(missing_ok=True)
         except OSError:
@@ -317,7 +319,7 @@ class _Diagnostics:
 
     def __init__(self, secrets: list[str]) -> None:
         self._secrets = [s for s in secrets if s]
-        self._kind: str | None = None
+        self._last: tuple[str, str] | None = None  # what was last reported
         self.advice: str | None = None  # what to check, while something is failing
 
     def _redact(self, text: str) -> str:
@@ -333,38 +335,68 @@ class _Diagnostics:
         is reported with its own message.
         """
         if error is None:
-            if self._kind is None:
+            if self._last is None:
                 return None
-            self._kind = self.advice = None
+            self._last = self.advice = None
             return "lightkeeper: Nightscout reachable again"
         if failure is not None:
             kind, advice = failure
+            self.advice = self._redact(advice)
+            # A Nightscout hint is fixed text for its kind and status, so a new
+            # hint is a real change (HTTP 404, then 500), never just a new cycle.
+            key = (kind, self.advice)
         else:
-            kind, advice = "other", f"could not read the readings: {error}"
-        self.advice = self._redact(advice)
-        if kind == self._kind:
+            # Any other message may differ every cycle; that it failed is the news.
+            self.advice = self._redact(f"could not read the readings: {error}")
+            key = ("other", "")
+        if key == self._last:
             return None
-        self._kind = kind
+        self._last = key
         return f"lightkeeper: {self.advice}"
+
+
+def _warn(text: str) -> None:
+    """Print one line on stderr; with no stderr at all, nowhere, and never on stdout.
+
+    print() to a stderr of None (pythonw, a Windows service, `2>&-`) would
+    fall back to stdout, which must stay exactly the vector lines.
+    """
+    if sys.stderr is not None:
+        print(text, file=sys.stderr, flush=True)
+
+
+def _isatty(stream: TextIO | None) -> bool:
+    """Return True only for an open stream on an interactive terminal.
+
+    No stdout at all (None under pythonw, a Windows service, a detached
+    process, or `>&-`) and a closed stream are not terminals: the screen is
+    then shown nowhere, but the files are still written (HAZ-011).
+    """
+    isatty = getattr(stream, "isatty", None)
+    if isatty is None:
+        return False
+    try:
+        return bool(isatty())
+    except (OSError, ValueError):  # ValueError: the stream is closed
+        return False
 
 
 class _Screen:
     """Shows each cycle: the plain vector lines, or the logbook frame.
 
     The frame is only for --watch on an interactive terminal whose TERM is
-    not `dumb`. Everything else gets exactly the vector lines.
+    not `dumb`. Everything else gets exactly the vector lines. A `stream` of
+    None shows nothing (print() to a None stdout writes nothing).
     """
 
     def __init__(
         self,
         args: argparse.Namespace,
-        stream: TextIO,
-        errors: TextIO,
+        stream: TextIO | None,
         environ: Mapping[str, str],
     ) -> None:
         self._stream = stream
-        self._errors = errors
-        self.framed = terminal_view.wants_frame(args.watch, stream.isatty(), environ)
+        self.framed = terminal_view.wants_frame(args.watch, _isatty(stream), environ)
         self._escapes = self.framed and terminal_view.enable_vt()
         self._color = terminal_view.wants_color(args.no_color, environ)
         self._drawn = False
@@ -398,12 +430,11 @@ class _Screen:
             first=not self._drawn,
         )
         self._drawn = True
-        self._stream.write(frame)
-        self._stream.flush()
+        print(frame, end="", file=self._stream, flush=True)
 
     def _advise(self, advice: str | None) -> None:
         if advice is not None:
-            print(advice, file=self._errors, flush=True)
+            _warn(advice)
 
     def end_cycle(self) -> None:
         """Mark the end of a --watch cycle on plain output."""
@@ -413,8 +444,7 @@ class _Screen:
     def close(self) -> None:
         """Leave the terminal's text attributes as they were, whatever was interrupted."""
         if self._escapes and self._drawn:
-            self._stream.write(terminal_view.RESET)
-            self._stream.flush()
+            print(terminal_view.RESET, end="", file=self._stream, flush=True)
 
 
 def _check_demo_flags(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
@@ -446,7 +476,7 @@ def main(argv: list[str] | None = None) -> int:
     except KeyboardInterrupt:
         if watch:
             return 0
-        print("lightkeeper: stopped", file=sys.stderr, flush=True)
+        _warn("lightkeeper: stopped")
         return EXIT_INTERRUPTED
 
 
@@ -460,16 +490,18 @@ def _start(parser: argparse.ArgumentParser, args: argparse.Namespace) -> int:
         source = source_from_env(args, client_factory=NightscoutClient)
         home_assistant = home_assistant_from_env(interval, thresholds)
     except ValueError as exc:  # ConfigError, naming the setting, or a library's own check
-        print(f"Configuration error: {exc}", file=sys.stderr)
+        _warn(f"Configuration error: {exc}")
         return 2
 
     notifier = SystemdNotifier()
     notifier.ready("starting")
-    screen = _Screen(args, sys.stdout, sys.stderr, os.environ)
     try:
-        return _run(args, source, thresholds, interval, home_assistant, notifier, screen)
+        screen = _Screen(args, sys.stdout, os.environ)
+        try:
+            return _run(args, source, thresholds, interval, home_assistant, notifier, screen)
+        finally:
+            screen.close()
     finally:
-        screen.close()
         notifier.stopping()
         if home_assistant is not None:
             # A --watch loop that stops marks the entities unavailable; a
@@ -516,8 +548,7 @@ def _run(
             except OSError as exc:
                 # A full disk or a locked file must not kill the watch loop
                 # (HAZ-011); the next cycle retries. Run-once reports it.
-                reason = describe_write_error(exc, target)
-                print(f"Could not write {target}: {reason}", file=sys.stderr, flush=True)
+                _warn(f"Could not write {target}: {describe_write_error(exc, target)}")
                 if not args.watch:
                     return 2
         if home_assistant is not None:
@@ -526,7 +557,7 @@ def _run(
             except MqttError as exc:
                 # Never stops the display. The broker's will and expire_after
                 # make Home Assistant show unavailable meanwhile (HAZ-013).
-                print(f"Home Assistant publish failed: {exc}", file=sys.stderr, flush=True)
+                _warn(f"Home Assistant publish failed: {exc}")
         # A finished cycle pets the systemd watchdog; a hung one does not, and
         # systemd restarts the service instead of leaving a frozen screen (HAZ-002).
         notifier.alive(status.level.value + (", Nightscout unreachable" if error else ""))

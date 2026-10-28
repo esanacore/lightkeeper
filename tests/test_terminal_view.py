@@ -197,16 +197,120 @@ def test_fr006_empty_lines_are_refused():
             ],
         ),
         (
-            10,
+            44,
             [
                 "next check in 45s - Ctrl+C to stop",
-                "secondary display, confirm on the primary app",
+                "secondary display, confirm on the primary",
+                "app",
+            ],
+        ),
+        (
+            33,
+            [
+                "next check in 45s",
+                "Ctrl+C to stop",
+                "secondary display, confirm on the",
+                "primary app",
+            ],
+        ),
+        (
+            # Below the frame's own width nothing is broken further: the box wraps anyway.
+            10,
+            [
+                "next check in 45s",
+                "Ctrl+C to stop",
+                "secondary display, confirm on",
+                "the primary app",
             ],
         ),
     ],
 )
-def test_fr006_footer_breaks_only_between_its_parts(columns, expected):
+def test_fr006_footer_is_broken_to_the_terminal_width(columns, expected):
     assert tv.footer_rows(45, columns) == expected
+
+
+def test_fr006_min_columns_is_the_narrowest_frame():
+    assert tv.MIN_COLUMNS == len(rows(["IN RANGE"])[1]) == 31
+
+
+LONG_NOTE = (
+    "Nightscout answered, but not with a list of readings. Check NIGHTSCOUT_URL points at "
+    "Nightscout itself, not a login or maintenance page"
+)
+
+
+@pytest.mark.parametrize("columns", [35, 36, 40, 44, 45, 50, 60, 79, 80, 120])
+@pytest.mark.parametrize("interval", [15, 60, 86400])
+def test_fr006_no_row_is_wider_than_the_terminal(columns, interval):
+    """A wider row would wrap, and the next redraw would leave its tail on the screen."""
+    for case in VECTORS:
+        frame = tv.frame_rows(case["lines"], CHECKED, interval, columns=columns, note=LONG_NOTE)
+        assert all(len(ESCAPE.sub("", row)) <= columns for row in frame), case["name"]
+
+
+def replay(text, columns, height=40):
+    """Return the screen after `text`, on a small model of a VT terminal.
+
+    It knows the codes a redraw uses (home, erase display, erase row, erase
+    below; SGR changes attributes only) and wraps like xterm and the Windows
+    console: a character in the last column leaves the cursor there, and the
+    next printable character goes to the start of the next row. A line feed
+    starts the next row, as a terminal's output processing makes it CR LF.
+    """
+    screen = [[" "] * columns for _ in range(height)]
+    row = col = 0
+    pending_wrap = False
+    for token in re.findall("\x1b\\[[0-9;]*[A-Za-z]|\n|[^\x1b\n]", text):
+        if token == "\n":
+            row, col, pending_wrap = row + 1, 0, False
+        elif token == tv.HOME:
+            row, col, pending_wrap = 0, 0, False
+        elif token == tv.CLEAR_SCREEN:
+            screen = [[" "] * columns for _ in range(height)]
+        elif token == tv.ERASE_ROW:
+            screen[row] = [" "] * columns
+        elif token == tv.ERASE_BELOW:
+            screen[row][col:] = [" "] * (columns - col)
+            for below in range(row + 1, height):
+                screen[below] = [" "] * columns
+        elif token.startswith("\x1b"):
+            continue  # SGR: attributes, not characters
+        else:
+            if pending_wrap:
+                row, col, pending_wrap = row + 1, 0, False
+            screen[row][col] = token
+            if col == columns - 1:
+                pending_wrap = True
+            else:
+                col += 1
+    return ["".join(cells).rstrip() for cells in screen]
+
+
+def test_fr006_the_replay_model_wraps_like_a_terminal():
+    assert replay("abcdef\nxy", 4, height=3) == ["abcd", "ef", "xy"]
+    assert replay("abcd\nxy", 4, height=3) == ["abcd", "xy", ""]  # exactly full: no blank row
+    assert replay("abcd\x1b[H\x1b[2Kz\x1b[J", 4, height=2) == ["z", ""]
+
+
+STALE_LINES = [
+    "STALE - DO NOT TRUST",
+    "last: 112 mg/dL ->",
+    "40 min ago",
+    "Nightscout unreachable",
+]
+FRESH_LINES = ["IN RANGE", "112 mg/dL ->", "3 min ago"]
+
+
+@pytest.mark.parametrize("columns", [31, 33, 35, 40, 44, 45, 60, 80])
+def test_fr006_a_redraw_leaves_nothing_of_the_last_frame_behind(columns):
+    """A taller frame with a note, then a shorter one: the screen shows only the second."""
+
+    def frame(lines, note=None, first=False):
+        return tv.render_frame(lines, CHECKED, 60, columns=columns, note=note, first=first)
+
+    shown = replay(frame(STALE_LINES, note=LONG_NOTE, first=True) + frame(FRESH_LINES), columns)
+    assert shown == replay(frame(FRESH_LINES, first=True), columns)
+    assert any("primary" in row for row in shown)  # the footer is there, and nothing else
 
 
 def test_fr006_footer_is_static_text_never_a_countdown():

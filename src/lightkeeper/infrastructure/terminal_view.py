@@ -29,7 +29,11 @@ Nothing moves between checks. A redraw homes the cursor, rewrites the frame
 row by row, and erases what is left below it. Erase-display (`ESC [2J`) is
 sent only before the first frame: some terminals, Windows Terminal among
 them, move the screen into the scrollback on it, so sending it on every
-redraw would grow the scrollback once a minute.
+redraw would grow the scrollback once a minute. The footer and the note are
+broken to the terminal's width, down to the frame's own 31 columns: a row
+that wrapped would be erased only on its first screen row next time, leaving
+its tail under the next frame. (The 35-column header wraps below 35 columns,
+but always the same way, so nothing is left behind.)
 
 Pure standard library (ADR-0005); imports no application code.
 """
@@ -69,8 +73,9 @@ ERASE_ROW = ESC + "[2K"  # the whole row the cursor is on
 ERASE_BELOW = ESC + "[J"  # from the cursor to the end of the screen
 RESET = ESC + "[0m"
 
-# Below this a footer or a note is not broken further; the frame is 31 wide.
-MIN_COLUMNS = 40
+# The narrowest frame (the widest vector line, padding and the two bars).
+# Below it the box itself wraps, so a footer or a note is not broken further.
+MIN_COLUMNS = len(WIDEST_LINE) + 2 * PADDING + 2
 
 # Windows console API (wincon.h).
 STD_OUTPUT_HANDLE = -11
@@ -107,20 +112,26 @@ def _styled(text: str, codes: str, escapes: bool) -> str:
 
 
 def footer_rows(interval_seconds: int, columns: int) -> list[str]:
-    """Return the footer rows, broken between its parts only where it would not fit."""
+    """Return the footer rows, none wider than `columns` (from MIN_COLUMNS up).
+
+    Its parts share a row where they fit, and a part wider than the terminal
+    is broken between words. A row wider than the terminal would wrap, and
+    the next redraw, erasing only the first screen row of it, would leave
+    its tail behind.
+    """
     parts = [
         f"next check in {interval_seconds}s",
         "Ctrl+C to stop",
         "secondary display, confirm on the primary app",
     ]
     columns = max(columns, MIN_COLUMNS)
-    rows = [parts[0]]
+    rows = textwrap.wrap(parts[0], columns)
     for part in parts[1:]:
         joined = f"{rows[-1]} - {part}"
         if len(joined) <= columns:
             rows[-1] = joined
         else:
-            rows.append(part)
+            rows.extend(textwrap.wrap(part, columns))
     return rows
 
 

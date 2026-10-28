@@ -12,6 +12,7 @@ import io
 import json
 import os
 import socket
+import time
 import types
 import urllib.error
 import urllib.parse
@@ -608,21 +609,44 @@ def test_fr006_diagnostic_once_per_kind_and_on_recovery_stdout_unchanged(monkeyp
             dns,
             OK_BODY,
             OK_BODY,
+            http_error(404),
+            http_error(500),  # the same kind, other advice: a new line, so the journal is right
             http_error(500),
         ),
     )
-    stop_after(monkeypatch, 8)
+    stop_after(monkeypatch, 10)
     assert cli.main(["--watch"]) == 0
     out, err = capsys.readouterr()
-    cycles = [FRESH, FAILING, FAILING, FAILING, FAILING, FRESH, FRESH, FAILING]
+    cycles = [FRESH, *[FAILING] * 4, FRESH, FRESH, *[FAILING] * 3]
     assert out == "".join(cycle + SEPARATOR for cycle in cycles)
     assert err.splitlines() == [
         REFUSED,
         DNS,
         "lightkeeper: Nightscout reachable again",
+        "lightkeeper: Nightscout answered HTTP 404 (not found). Check NIGHTSCOUT_URL is the "
+        "address you open Nightscout at in a browser",
         "lightkeeper: Nightscout answered HTTP 500, a problem on the site. Open the site in a "
         "browser to check it is running",
     ]
+
+
+def test_fr006_another_failure_is_reported_once_however_its_message_changes(monkeypatch, capsys):
+    """Only Nightscout's hints are fixed text; any other message may change every cycle."""
+
+    class Changing:
+        attempts = 0
+
+        def fetch_entries(self, count=12):
+            self.attempts += 1
+            raise RuntimeError(f"disk on fire, attempt {self.attempts}")
+
+    freeze(monkeypatch)
+    source_is(monkeypatch, Changing())
+    stop_after(monkeypatch, 3)
+    assert cli.main(["--watch"]) == 0
+    out, err = capsys.readouterr()
+    assert out.count("NO DATA\n") == 3
+    assert err == "lightkeeper: could not read the readings: disk on fire, attempt 1\n"
 
 
 def test_fr006_unreachable_site_shows_no_data_and_one_line_naming_dns(monkeypatch, capsys):
@@ -866,6 +890,90 @@ def test_fr006_framed_advice_stays_in_view_under_the_footer(monkeypatch, capsys)
     ]
 
 
+# --- no stdout or no stderr at all ---------------------------------------------------------
+# pythonw, a Windows service, a detached process, `>&-` or `2>&-`: sys.stdout or
+# sys.stderr is None. The writer of the dashboard image must keep going (HAZ-011).
+
+
+def test_haz011_no_stdout_still_writes_the_svg(monkeypatch, tmp_path):
+    monkeypatch.setattr(cli.sys, "stdout", None)
+    svg = tmp_path / "screen.svg"
+    assert cli.main(["--demo", "--svg", str(svg)]) == 0
+    assert svg.read_text(encoding="utf-8").startswith("<svg")
+
+
+def test_haz011_no_stdout_watch_writes_every_cycle_and_finishes(monkeypatch, tmp_path):
+    monkeypatch.setattr(cli.sys, "stdout", None)
+    ha = RecordingHA()
+    monkeypatch.setattr(cli, "home_assistant_from_env", lambda interval, thresholds: ha)
+    written = []
+    real_write_svg = cli.write_svg
+
+    def counting(path, lines, written_at=None):
+        written.append(path)
+        real_write_svg(path, lines, written_at)
+
+    monkeypatch.setattr(cli, "write_svg", counting)
+    stop_after(monkeypatch, 2)
+    svg = tmp_path / "screen.svg"
+    assert cli.main(["--demo", "--watch", "--svg", str(svg)]) == 0
+    assert written == [str(svg)] * 2
+    assert svg.read_text(encoding="utf-8").startswith("<svg")
+    assert ha.finished is True  # marked offline: the clean-up ran
+
+
+def test_fr006_no_stderr_never_moves_a_line_onto_stdout(monkeypatch, capsys, tmp_path):
+    """print() to a None stderr would fall back to stdout, the vector lines' place."""
+    nightscout_with(monkeypatch, scripted(http_error(401)))
+    monkeypatch.setattr(cli.sys, "stderr", None)
+    missing = tmp_path / "gone" / "status.json"
+    assert cli.main(["--json", str(missing)]) == 2  # the advice and the write error, unseen
+    assert capsys.readouterr() == (
+        "NO DATA\nCheck sensor and phone\nConfirm on primary device\nNightscout unreachable\n",
+        "",
+    )
+
+
+class BrokenTTY:
+    def isatty(self):
+        raise OSError("the console went away")
+
+
+def closed_stream():
+    stream = io.StringIO()
+    stream.close()
+    return stream
+
+
+@pytest.mark.parametrize(
+    ("stream", "tty"),
+    [
+        (None, False),
+        (object(), False),
+        (closed_stream(), False),
+        (BrokenTTY(), False),
+        (io.StringIO(), False),
+        (FakeTTY(), True),
+    ],
+    ids=["none", "no-isatty", "closed", "raises", "pipe", "terminal"],
+)
+def test_fr006_only_an_open_terminal_counts_as_one(stream, tty):
+    assert cli._isatty(stream) is tty
+
+
+def test_haz013_a_screen_that_cannot_start_still_finishes_home_assistant(monkeypatch):
+    ha = RecordingHA()
+    monkeypatch.setattr(cli, "home_assistant_from_env", lambda interval, thresholds: ha)
+
+    def broken(no_color, environ):
+        raise RuntimeError("no terminal")
+
+    monkeypatch.setattr(terminal_view, "wants_color", broken)
+    with pytest.raises(RuntimeError, match="no terminal"):
+        cli.main(["--demo", "--watch"])
+    assert ha.finished is True
+
+
 # --- write failures in plain words -----------------------------------------------------------
 
 
@@ -940,6 +1048,33 @@ def test_haz011_a_failed_write_removes_its_temporary_file(monkeypatch, tmp_path)
     assert caught.value.errno == errno.ENOSPC
 
 
+def test_haz011_an_interrupted_write_removes_its_temporary_file(tmp_path):
+    target = tmp_path / "screen.svg"
+
+    def interrupted(temp):
+        temp.write_text("<svg", encoding="utf-8")
+        raise KeyboardInterrupt
+
+    with pytest.raises(KeyboardInterrupt):
+        cli._replace(target, interrupted)
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_haz011_ctrl_c_mid_write_exits_130_and_leaves_no_temporary_file(
+    monkeypatch, capsys, tmp_path
+):
+    real_write_text = cli.Path.write_text
+
+    def interrupted(self, text, encoding=None):
+        real_write_text(self, text[:10], encoding=encoding)  # part of it is on disk
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(cli.Path, "write_text", interrupted)
+    assert cli.main(["--demo", "--json", str(tmp_path / "status.json")]) == 130
+    assert capsys.readouterr().err == "lightkeeper: stopped\n"
+    assert list(tmp_path.iterdir()) == []  # neither status.json.tmp nor half a status.json
+
+
 # --- --help ----------------------------------------------------------------------------------
 
 
@@ -970,11 +1105,14 @@ def test_fr006_help_lists_exit_codes_and_examples(capsys):
         "--bmp PATH",
         "--panel PROFILE",
         "trmnl (= waveshare_7in5)",
+        "NO_COLOR            set and not empty",  # an empty NO_COLOR keeps color (no-color.org)
     ]:
         assert expected in text, expected
     assert (
         cli.ENV_VARS_URL == "https://github.com/esanacore/lightkeeper/blob/main/docs/ENV_VARS.md"
     )
+    # Every line fits an 80-column terminal, the epilog's hand-made lines included.
+    assert max(len(line) for line in text.splitlines()) <= 80
 
 
 # --- stamped panel images (HAZ-014) ------------------------------------------------------------
@@ -1015,6 +1153,35 @@ def test_haz014_the_stamp_is_the_local_time_of_the_write(monkeypatch, tmp_path):
     width, height, pixels = decode_bmp(bmp.read_bytes())
     assert (width, height) == (800, 480)
     assert pixels == render_bitmap(lines, 800, 480, stamp=NOW.astimezone().strftime("%H:%M")).ink
+
+
+@pytest.fixture
+def local_time_ahead_of_utc(monkeypatch):
+    """Make local time UTC+05:30 for one test; CI runs in UTC, where local is UTC."""
+    monkeypatch.setenv("TZ", "LKT-5:30")  # a POSIX rule: no time zone database needed
+    time.tzset()
+    yield
+    monkeypatch.undo()  # TZ back as it was, before the C library reads it again
+    time.tzset()
+
+
+@pytest.mark.skipif(not hasattr(time, "tzset"), reason="time.tzset is POSIX only")
+def test_haz014_stamp_and_header_are_local_time_never_utc(
+    monkeypatch, tmp_path, local_time_ahead_of_utc
+):
+    assert NOW.astimezone().strftime("%H:%M") == "17:30"  # NOW is 12:00 UTC
+    freeze(monkeypatch)
+    tty = on_a_terminal(monkeypatch)
+    stop_after(monkeypatch, 1)
+    bmp = tmp_path / "out.bmp"
+    assert cli.main(["--demo", "--watch", "--bmp", str(bmp), "--panel", "800x480"]) == 0
+    lines = ["IN RANGE", "112 mg/dL ->", "3 min ago"]
+    assert decode_bmp(bmp.read_bytes()) == (
+        800,
+        480,
+        render_bitmap(lines, 800, 480, stamp="17:30").ink,
+    )
+    assert "o))) lightkeeper   checked 17:30:00" in tty.getvalue()
 
 
 def test_haz011_watch_survives_png_write_failure(monkeypatch, capsys, tmp_path):
