@@ -189,6 +189,25 @@ def test_nfr005_the_theme_uses_brand_colors_and_no_dynamic_color():
             assert value.startswith(("@color/lk_", "@android:color/transparent", "true", "false"))
 
 
+def theme_item(folder, name):
+    """Return the value of `android:<name>` in res/<folder>/themes.xml."""
+    themes = (RES / folder / "themes.xml").read_text(encoding="utf-8")
+    (value,) = re.findall(rf'<item name="android:{name}">([^<]+)</item>', themes)
+    return value
+
+
+def test_nfr005_the_light_navigation_bar_is_opaque_until_dark_buttons_exist():
+    # Android 8.0 (API 26) draws only light navigation buttons: on Fog they
+    # would all but vanish, so the light theme's bar is Ink there. From 8.1
+    # the bar is transparent with dark buttons; in dark mode light buttons
+    # sit on the dark window at every level.
+    assert theme_item("values", "navigationBarColor") == "@color/lk_ink"
+    assert theme_item("values-v27", "navigationBarColor") == "@android:color/transparent"
+    assert theme_item("values-v27", "windowLightNavigationBar") == "true"
+    assert theme_item("values-night", "navigationBarColor") == "@android:color/transparent"
+    assert theme_item("values-night-v27", "windowLightNavigationBar") == "false"
+
+
 # --- the native library is the firmware's own C++, compiled in place ----------------
 
 
@@ -344,11 +363,20 @@ def test_nfr004_the_android_workflow_pins_its_actions_and_watches_the_right_path
         assert re.fullmatch(r"[\w.-]+/[\w.-]+@[0-9a-f]{40}", action), (
             f"not pinned by SHA: {action}"
         )
+    # Every file the build reads from outside apps/android, the launcher icon included.
+    gradle = (APP / "build.gradle.kts").read_text(encoding="utf-8")
+    icons = re.findall(r'repoRoot\.resolve\("(assets/brand/png/[^"]+)"\)', gradle)
+    assert sorted(icons) == [
+        "assets/brand/png/app-icon.png",
+        "assets/brand/png/lightkeeper-mark-mono.png",
+    ]
     for path in (
         "apps/android/**",
         "firmware/xteink/lib/**",
         "spec/*.json",
         "assets/brand/tokens.json",
+        *icons,
+        ".github/workflows/android.yml",
     ):
         assert workflow.count(f'"{path}"') == 2, f"{path} in both push and pull_request filters"
     for task in ("assembleDebug", "testDebugUnitTest", "lint", "connectedDebugAndroidTest"):

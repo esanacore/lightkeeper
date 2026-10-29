@@ -127,7 +127,8 @@ class SettingsTest {
     }
 
     @Test
-    fun testInvalidStoredSetIsResetAndWrittenBack() {
+    fun testAnInvalidStoredSetIsResetToTheDefaultsAndFlaggedForWriteBack() {
+        // SettingsStore does the write-back; SettingsStoreTest checks it on the device.
         val stored = Settings(site, urgentLow = 90, low = 80).toStored()
         val restored = Settings.restore(stored)
         assertTrue(restored.wasReset)

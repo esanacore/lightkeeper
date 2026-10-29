@@ -29,16 +29,25 @@ import javax.crypto.spec.GCMParameterSpec
  * A sealed token is deleted only on proof that it can never open again: its
  * check fails, its bytes are not what this class wrote, or its key is gone
  * or permanently invalidated. A Keystore that is busy or cannot be reached
- * right now is no such proof, so the token stays for the next read.
+ * right now is no such proof, so the token stays for the next read. A key
+ * proved permanently invalidated is deleted too, so the next write makes a
+ * new one rather than failing on the dead key for good. (This key needs no
+ * screen lock or fingerprint, so Android has no reason to invalidate it;
+ * the case is handled all the same.)
  *
  * The fetch thread reads while the settings screen may write, so every read,
  * write and delete holds one lock, and a read takes the nonce and the sealed
  * bytes from one snapshot: a nonce is never paired with another write's
- * bytes. [findKey] looks the key up in the Keystore; tests pass a failing one.
+ * bytes. [findKey] looks the key up in the Keystore and [dropKey] deletes
+ * it; TokenStoreTest passes ones that fail.
  */
 class TokenStore
-internal constructor(context: Context, private val findKey: () -> SecretKey?) {
-    constructor(context: Context) : this(context, { keystoreKey() })
+internal constructor(
+    context: Context,
+    private val findKey: () -> SecretKey?,
+    private val dropKey: () -> Unit,
+) {
+    constructor(context: Context) : this(context, { keystoreKey() }, { deleteKeystoreKey() })
 
     private val prefs = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
@@ -65,14 +74,18 @@ internal constructor(context: Context, private val findKey: () -> SecretKey?) {
                 clear()
                 return true
             }
+            val cipher: Cipher
             val sealed: ByteArray
-            val nonce: ByteArray
             try {
-                val cipher = Cipher.getInstance(TRANSFORMATION)
-                // The Keystore picks a fresh random nonce for every encryption.
-                cipher.init(Cipher.ENCRYPT_MODE, findKey() ?: newKey())
+                cipher =
+                    try {
+                        sealer(findKey() ?: newKey())
+                    } catch (_: KeyPermanentlyInvalidatedException) {
+                        // The key can never seal or open again: a new one takes its place.
+                        dropKey()
+                        sealer(newKey())
+                    }
                 sealed = cipher.doFinal(token.toByteArray(Charsets.UTF_8))
-                nonce = cipher.iv
             } catch (_: GeneralSecurityException) {
                 return false
             } catch (_: IOException) {
@@ -82,7 +95,7 @@ internal constructor(context: Context, private val findKey: () -> SecretKey?) {
             }
             prefs
                 .edit()
-                .putString(KEY_NONCE, encode(nonce))
+                .putString(KEY_NONCE, encode(cipher.iv))
                 .putString(KEY_SEALED, encode(sealed))
                 .apply()
             true
@@ -113,6 +126,7 @@ internal constructor(context: Context, private val findKey: () -> SecretKey?) {
         } catch (_: AEADBadTagException) {
             damaged()
         } catch (_: KeyPermanentlyInvalidatedException) {
+            dropKey()
             damaged()
         } catch (_: GeneralSecurityException) {
             // Busy, locked or unreachable right now: no proof of damage.
@@ -128,6 +142,10 @@ internal constructor(context: Context, private val findKey: () -> SecretKey?) {
         clear()
         return null
     }
+
+    /** A cipher ready to seal under [key]; the Keystore picks a fresh random nonce each time. */
+    private fun sealer(key: SecretKey): Cipher =
+        Cipher.getInstance(TRANSFORMATION).apply { init(Cipher.ENCRYPT_MODE, key) }
 
     private fun newKey(): SecretKey {
         val generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, KEYSTORE)
@@ -166,9 +184,25 @@ internal constructor(context: Context, private val findKey: () -> SecretKey?) {
         private val LOCK = Any()
 
         /** The app's key in the Android Keystore, or null when there is none yet. */
-        private fun keystoreKey(): SecretKey? {
-            val keyStore = KeyStore.getInstance(KEYSTORE).apply { load(null) }
-            return keyStore.getKey(KEY_ALIAS, null) as? SecretKey
+        private fun keystoreKey(): SecretKey? = keystore().getKey(KEY_ALIAS, null) as? SecretKey
+
+        /**
+         * Deletes the app's key from the Android Keystore. Never throws: a
+         * key that cannot be deleted now is tried again the next time it is
+         * proved dead.
+         */
+        private fun deleteKeystoreKey() {
+            try {
+                keystore().deleteEntry(KEY_ALIAS)
+            } catch (_: GeneralSecurityException) {
+                // Nothing to do: the next write or read finds the key again.
+            } catch (_: IOException) {
+                // As above.
+            } catch (_: ProviderException) {
+                // As above.
+            }
         }
+
+        private fun keystore(): KeyStore = KeyStore.getInstance(KEYSTORE).apply { load(null) }
     }
 }

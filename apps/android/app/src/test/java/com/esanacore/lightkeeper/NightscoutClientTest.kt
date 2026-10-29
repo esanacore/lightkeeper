@@ -261,7 +261,8 @@ class NightscoutClientTest {
         lateinit var nightscout: NightscoutClient
         // The cancel arrives while a read is under way, as from the main thread.
         val stream = Trickle(100, 0L, longArrayOf(0L)) { nightscout.cancel() }
-        nightscout = client(token) { url -> FakeHttps(url, stream = stream).also { connection = it } }
+        nightscout =
+            client(token) { url -> FakeHttps(url, stream = stream).also { connection = it } }
         val failed = failureOf { nightscout.fetchEntries() }
         assertEquals(NightscoutClient.Failure.UNREACHABLE, failed.failure)
         assertTrue(connection!!.disconnected)

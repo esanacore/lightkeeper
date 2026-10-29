@@ -10,9 +10,24 @@ name: Android
 on:
   push:
     branches: [main]
-    paths: ["apps/android/**", "firmware/xteink/lib/**", "spec/*.json", "assets/brand/tokens.json", ".github/workflows/android.yml"]
+    paths:
+      - "apps/android/**"
+      - "firmware/xteink/lib/**"
+      - "spec/*.json"
+      - "assets/brand/tokens.json"
+      # The launcher icon (copyBrandIcon in app/build.gradle.kts).
+      - "assets/brand/png/app-icon.png"
+      - "assets/brand/png/lightkeeper-mark-mono.png"
+      - ".github/workflows/android.yml"
   pull_request:
-    paths: ["apps/android/**", "firmware/xteink/lib/**", "spec/*.json", "assets/brand/tokens.json", ".github/workflows/android.yml"]
+    paths:
+      - "apps/android/**"
+      - "firmware/xteink/lib/**"
+      - "spec/*.json"
+      - "assets/brand/tokens.json"
+      - "assets/brand/png/app-icon.png"
+      - "assets/brand/png/lightkeeper-mark-mono.png"
+      - ".github/workflows/android.yml"
 
 permissions:
   contents: read

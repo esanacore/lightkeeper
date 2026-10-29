@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Lint runs with every check on and fails the build on any error. Warnings are
-  reviewed by hand (apps/android/README.md, "Build and test"); the ones below
+  reviewed by hand (apps/android/README.md, "Build and install"); the ones below
   are turned off because they cannot apply to this app, each with its reason.
 -->
 <lint>

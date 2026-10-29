@@ -9,7 +9,8 @@ import java.util.concurrent.Executors
 
 /**
  * The main thread's queue, and a clock that keeps counting while the phone
- * sleeps: a [Handler] in the app, a queue driven by hand in the JVM tests.
+ * sleeps: a [Handler] in the app, a queue driven by hand in the JVM tests
+ * (GlanceControllerTest).
  */
 internal interface MainQueue {
     /** Runs [task] on the main thread after [delayMs]. */
@@ -46,9 +47,10 @@ internal interface FetchJob {
  * running, whose answer is then dropped.
  *
  * Fetches run one at a time on a background thread, each with a new
- * [NightscoutClient] and the token read fresh from [TokenStore]. A fetch due
- * while another is running waits for it rather than queueing behind it. A
- * fetch gets [FETCH_DEADLINE_MS], twice the client's timeout, as the iOS
+ * [NightscoutClient] and the token read fresh from [TokenStore]. A fetch that
+ * falls due while another is running starts when that one answers, and any
+ * more that fall due meanwhile are the same one fetch. A fetch gets
+ * [FETCH_DEADLINE_MS], twice the client's timeout, as the iOS
  * app's resource timeout: past that it is cancelled and shown at once as a
  * failed fetch ("Nightscout unreachable"), even if its thread is still stuck
  * in a call. Answers come back to the main thread, where the model decides
@@ -126,8 +128,9 @@ internal constructor(
     }
 
     /**
-     * The screen came to the front: re-age at once, with no fetch, and fetch
-     * too when the last fetch began [RESUME_FETCH_AFTER_MS] or more ago.
+     * The screen came to the front: re-age at once, which needs no fetch,
+     * and fetch as well when the last fetch began [RESUME_FETCH_AFTER_MS] or
+     * more ago. Nothing is fetched while the screen is not started.
      */
     fun resume() {
         if (closed) return
@@ -256,7 +259,13 @@ internal constructor(
     }
 }
 
-/** The main thread's [Handler], timed by the clock that counts through sleep. */
+/**
+ * The main thread's [Handler]. Its delays run on the uptime clock, which
+ * stops while the phone is asleep, so a timer can come due late after a
+ * sleep: the re-age when the screen comes back covers that. [elapsedMs] is
+ * the clock that does count through sleep, so the resume rule measures real
+ * time.
+ */
 private class HandlerQueue(private val handler: Handler) : MainQueue {
     override fun post(delayMs: Long, task: Runnable) {
         handler.postDelayed(task, delayMs)

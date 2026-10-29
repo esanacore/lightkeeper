@@ -11,8 +11,8 @@ There is no fourth copy of the rules. The app compiles the firmware's C++ (`firm
   - `NativeRules.kt` is the JNI side; `GlanceModel.kt` keeps the last good reading and re-ages it; `GlanceController.kt` runs the fetch and re-age timers while the screen is visible.
   - `Presentation.kt` arranges one screen of lines (a port of the iOS `ScreenPresentation`); `GlanceView.kt` and `PanelView.kt` draw it.
   - `SiteAddress.kt`, `Settings.kt`, `NightscoutClient.kt` and `TokenStore.kt` are the address check, the thresholds, the one GET, and the sealed token.
-- `app/src/test/`: JVM unit tests (no device): the address check case for case with iOS, the threshold rules, the request (header, URL, timeouts, redirect refusal), the captions, the color drift against `assets/brand/tokens.json`, the glance anatomy against every display vector, and the model's bookkeeping.
-- `app/src/androidTest/`: instrumented tests on a device or emulator, through JNI: every case in `spec/display_vectors.json` gives exactly its lines, every case in `spec/response_vectors.json` its reading, and every case in `spec/panel_vectors.json` its CRC-32 and ink count (all six profiles, so the 296x128 one the app shows among them); a 40-minute re-age turns STALE with no fetch; the first run shows the setup card and no number; STALE shows no large number; the headline is never under a system bar; and the token is never stored in the clear. A Gradle task copies the spec files into the test assets at build time.
+- `app/src/test/`: JVM unit tests (no device): the address check case for case with iOS, the threshold rules, the request (header, URL, timeouts, the 20-second limit, cancel, redirect refusal), the captions, the color drift against `assets/brand/tokens.json`, the glance anatomy against every display vector, the model's bookkeeping, and the controller's timing in virtual time (`GlanceControllerTest`: the fetch at once and every minute, the 30-second re-age with no fetch, the fetch on resume only after 15 seconds, one fetch at a time, the 20-second deadline, and nothing at all once the screen is hidden or gone).
+- `app/src/androidTest/`: instrumented tests on a device or emulator, through JNI: every case in `spec/display_vectors.json` gives exactly its lines, every case in `spec/response_vectors.json` its reading, and every case in `spec/panel_vectors.json` its CRC-32 and ink count (all six profiles, so the 296x128 one the app shows among them); a 40-minute re-age turns STALE with no fetch; the first run shows the setup card and no number; STALE shows no large number; the headline is never under a system bar; a panel too narrow for its image shows nothing rather than a crop; an invalid threshold set on disk is reset and written back, and Save writes nothing for one; Save never rewrites or deletes a token field nobody touched; and the token is never stored in the clear, and is deleted only on proof of damage, never because the Keystore could not be reached or a read ran alongside a write. A Gradle task copies the spec files into the test assets at build time.
 
 ## The glance
 
@@ -27,7 +27,7 @@ Top to bottom, in the Keeper's Logbook order (docs/BRAND.md): the status, the nu
 - For TalkBack the status area is one element, read as the display lines in order. (The spoken sentences of `spec/spoken_vectors.json` are Python and Swift only so far.)
 - Until a usable address is saved, the glance is replaced by a card, "Add your Nightscout site to start", with no number and no level word, and the app makes no fetch.
 
-The app fetches when the screen appears and every 60 seconds while it is visible, and re-ages the last good reading every 30 seconds and the moment the screen comes back, with no fetch, so the screen turns STALE on time even when fetches stop or the phone has slept. Nothing runs while the screen is hidden.
+The app fetches when the screen appears and every 60 seconds while it is visible, and re-ages the last good reading every 30 seconds and the moment the screen comes back, with no fetch, so the screen turns STALE on time even when fetches stop or the phone has slept. Coming back to the front also fetches when the last fetch began 15 seconds ago or more (after a dialog or the notification shade, where the screen never stopped); a quicker return only re-ages. One fetch runs at a time: one that falls due meanwhile starts when the running one answers. A fetch that has not answered after 20 seconds is cancelled and shown at once as `Nightscout unreachable`, so a hung request never leaves `checked HH:MM` frozen. Nothing runs while the screen is hidden: hiding it stops both timers and cancels a fetch still running, and its answer is dropped.
 
 ## Settings
 
@@ -37,7 +37,7 @@ The app fetches when the screen appears and every 60 seconds while it is visible
 
 ## The safety boundary
 
-- Read-only. One permission, `INTERNET`. One request: a GET of `/api/v1/entries/sgv.json?count=12`, with 10-second timeouts, a 1 MB cap, and no redirects: any redirect is a failed fetch, so the token is never carried anywhere else. Cleartext traffic is off for the whole app, and only the system's certificate authorities are trusted.
+- Read-only. One permission, `INTERNET`. One request: a GET of `/api/v1/entries/sgv.json?count=12`, with 10-second connect and read timeouts, a 20-second limit on the whole fetch (as the iOS app's resource timeout, so a server that trickles a byte at a time cannot hold it open), a 1 MB cap, and no redirects: any redirect is a failed fetch, so the token is never carried anywhere else. Cleartext traffic is off for the whole app, and only the system's certificate authorities are trusted.
 - No notifications, alarms, exact alarms, foreground services, widgets, sounds or vibration. Lightkeeper never alarms; the primary CGM app's alarms are the ones to rely on.
 - Nothing logs. No error message carries the token or the address.
 - Lightkeeper is a secondary display and not a medical device. Always confirm on the primary CGM app.
@@ -45,6 +45,8 @@ The app fetches when the screen appears and every 60 seconds while it is visible
 ## Build and install
 
 Supported platforms: Windows, macOS and Linux, with JDK 17 or 21 and the Android SDK (platform 36, NDK 28.2.13676358, CMake 3.22.1). Point Gradle at the SDK with `ANDROID_HOME` or a `local.properties` file (`sdk.dir=...`, not committed). The Gradle wrapper fetches Gradle 9.5.1 and checks it against the pinned checksum.
+
+On Windows, keep the checkout path short: about 60 characters or fewer, such as `C:\src\lightkeeper`. The firmware sources sit outside the app's CMake project, so CMake names their object files after the whole checkout path, under a build folder that is itself inside the checkout; from a long checkout path those names pass the Windows path limit and the native build stops with `ninja: error: mkdir(CMakeFiles/lightkeeper.dir/...): No such file or directory`, after a `CMAKE_OBJECT_PATH_MAX` warning. The build is known to work from a 57-character path and to fail from a 120-character one.
 
 <details>
 <summary>Windows (PowerShell)</summary>
@@ -72,7 +74,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 The debug APK is about 1 MB. To sideload it onto a phone, turn on USB debugging in Developer options and install it with `adb` as above, or copy the APK to the phone and open it (Android asks once to allow installs from that app). `connectedDebugAndroidTest` needs a phone or an emulator attached.
 
-Lint runs with every check on and fails on any error; the checks turned off in `app/lint.xml` each say why. `.github/workflows/android.yml` builds the APK, runs the unit tests and lint, then the instrumented tests on an API 36 emulator, whenever the app, the firmware libraries, the spec vectors or the brand tokens change.
+Lint runs with every check on and fails on any error; the checks turned off in `app/lint.xml` each say why. `.github/workflows/android.yml` builds the APK, runs the unit tests and lint, then the instrumented tests on an API 36 emulator, whenever the app, the firmware libraries, the spec vectors, the brand tokens or the two brand PNGs the launcher icon is built from change.
 
 ## What it does not do
 

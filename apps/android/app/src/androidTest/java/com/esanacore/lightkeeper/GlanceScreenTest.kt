@@ -212,4 +212,30 @@ class GlanceScreenTest {
         assertTrue(MainActivity.PANEL_HEIGHT * panel.scale <= panel.height)
         assertEquals(View.IMPORTANT_FOR_ACCESSIBILITY_NO, panel.importantForAccessibility)
     }
+
+    @Test
+    fun testAPanelTooNarrowForItsImageShowsNothingRatherThanACrop() {
+        val width = MainActivity.PANEL_WIDTH
+        val height = MainActivity.PANEL_HEIGHT
+        val frame = 2 * (Logbook.dp(context, 2) + Logbook.dp(context, 8))
+        val reading = Reading(mgdl = 112, timestampMs = Spec.NOW_MS, trendCode = 3)
+        val rows = NativeRules.panel(lines(reading, ageMs = 0), width, height, "12:00")
+        assertNotNull(rows)
+        var measured = emptyList<Pair<Int, Int>>()
+        instrumentation.runOnMainSync {
+            val panel = PanelView(ContextThemeWrapper(context, R.style.Theme_Lightkeeper))
+            panel.show(rows, width, height)
+            val unbounded = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+            measured =
+                listOf(width + frame - 1, width + frame, 2 * width + frame).map { across ->
+                    val spec = View.MeasureSpec.makeMeasureSpec(across, View.MeasureSpec.EXACTLY)
+                    panel.measure(spec, unbounded)
+                    panel.scale to panel.measuredHeight
+                }
+        }
+        // One pixel short of the whole image and its margin: no room taken, nothing drawn.
+        assertEquals(0 to 0, measured[0])
+        assertEquals(1 to height + frame, measured[1])
+        assertEquals(2 to 2 * height + frame, measured[2])
+    }
 }

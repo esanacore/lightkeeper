@@ -80,16 +80,23 @@ class PanelView(context: Context) : View(context) {
         invalidate()
     }
 
+    /**
+     * The largest whole-number scale that fits the image inside the bezel.
+     * Narrower than one screen pixel per panel pixel (a small or freeform
+     * window), it is 0 and the view takes no room: a cropped panel would
+     * show part of the screen as if it were all of it.
+     */
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val width = MeasureSpec.getSize(widthMeasureSpec)
         val inner = width - 2 * (bezel + pad)
-        scale = if (image == null || panelWidth == 0) 0 else maxOf(1, inner / panelWidth)
+        scale = if (image == null || panelWidth == 0) 0 else maxOf(0, inner / panelWidth)
         val height = if (scale == 0) 0 else panelHeight * scale + 2 * (bezel + pad)
         setMeasuredDimension(width, height)
     }
 
     override fun onDraw(canvas: Canvas) {
         val bitmap = image ?: return
+        if (scale == 0) return
         notched(outline, width.toFloat(), height.toFloat(), bezel.toFloat())
         canvas.drawPath(outline, paper)
         canvas.drawPath(outline, edge)
