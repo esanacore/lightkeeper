@@ -26,7 +26,9 @@ Display behavior is implemented in four places that must agree, and the vectors 
 2. `firmware/xteink/lib/glucose_rules/` (C++).
 3. `apps/ios/LightkeeperCore/Sources/` (Swift).
 4. `spec/display_vectors.json`: add a case that pins the new behavior, or update an existing one and bump `spec_version`, then update the version assertion in all three suites.
-5. Run `python tools/gen_display_gallery.py` to regenerate `docs/DISPLAY_STATES.md`, the SVGs under `docs/img/display-states/`, and the state table in `demo.html`, and commit the result.
+5. Run `python tools/gen_display_gallery.py` to regenerate `docs/DISPLAY_STATES.md`, the SVGs under `docs/img/display-states/`, and the state table in `demo.html`, and commit the result. Then `python tools/gen_panel_spec.py` (panel vectors), `python tools/gen_spoken_vectors.py` (spoken vectors) and `python tools/gen_demo_panel.py` (the demo page counts its own size).
+
+A change to the panel layout bumps `panel_spec_version`, and the C++ rasterizer and the demo's JavaScript port must match the regenerated `spec/panel_vectors.json`.
 
 The suites enforce this: the three vector tests fail if an implementation disagrees, and `tests/test_gallery.py` fails if the gallery or demo drifts. If you cannot build one of the three locally (no Swift toolchain, say), say so in the pull request; CI runs the Swift tests on macOS and Linux, but the code still has to change. The Swift package also builds with the Windows Swift toolchain. [[How It Works]] explains why there are four places; [[Testing and Quality]] describes the parity tests.
 
@@ -37,13 +39,14 @@ Any change that could affect what number or status a person sees gets a hazard r
 - Identify which HAZ rows in `docs/SAFETY.md` the change touches, or add a new row with ID, hazard, cause, severity, likelihood, mitigation, and the verifying test.
 - Name the requirement (`FR-` or `NFR-`) and acceptance criterion the change serves. New behavior gets a new requirement in `docs/PRODUCT_REQUIREMENTS.md` and a row in `docs/REQUIREMENTS_TRACEABILITY.md`, in the same change as its first test.
 - Name the test with the requirement or hazard ID prefix, for example `test_fr003_...` or `test_haz011_...`, so `pytest -k` finds it.
+- Cite tests by their real names (`test_x`, `testX`, or the file); `tests/test_safety_doc.py` fails the build if `docs/SAFETY.md` or the traceability matrix cites one that does not exist.
 - If the change would cross the safety boundary (talk to a pump or sensor, calculate a dose, write to Nightscout), stop. That needs a new ADR, a hazard review, and the agreement of the person whose data it shows. The default answer is no. See [[Safety]] and [[Architecture Decisions]].
 
 Changes touching the token, URL handling, or network behavior also get a line in the pull request against the STRIDE table in `docs/SECURITY_MODEL.md`. See [[Security and Privacy]].
 
 ## What a complete change includes
 
-- The code, with tests named by requirement ID, coverage at or above the floors (90% overall, 100% domain), and synthetic data only: never a real reading, token, or URL.
+- The code, with tests named by requirement ID, coverage at or above the floors (100% line and branch everywhere), and synthetic data only: never a real reading, token, or URL.
 - Documentation updated: `README.md` content (its structure is fixed house style; do not add sections), `CHANGELOG.md` under Unreleased, `TODO.md`, `docs/OTS_SOFTWARE.md` if a dependency changed, and the relevant wiki page if the shape of the project changed.
 - `demo.html` updated if user-facing behavior changed (the generator does this for display states).
 - The full suite green: `python -m ruff check . && python -m ruff format --check . && python -m mypy && python -m pytest --cov && make -C firmware/xteink format-check test`.
@@ -51,7 +54,7 @@ Changes touching the token, URL handling, or network behavior also get a line in
 
 ## Code style in brief
 
-Python: ruff and strict mypy as configured in `pyproject.toml`, 99 columns, standard library only at runtime (a new runtime dependency needs an ADR-level conversation and an OTS entry). C++: clang-format on a Google base with the deviations in ADR-0007, no heap in `glucose_rules`. Swift: mirror the Python names and structure.
+Python: ruff and strict mypy as configured in `pyproject.toml`, 99 columns, standard library only at runtime (a new runtime dependency needs an ADR-level conversation and an OTS entry). C++: clang-format on a Google base with the deviations in ADR-0007, no heap in `glucose_rules`, and no heap or floating point in `lib/panel_bitmap`. Swift: mirror the Python names and structure.
 
 ## Where to ask
 

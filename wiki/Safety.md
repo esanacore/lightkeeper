@@ -40,17 +40,23 @@ Severity and pre-mitigation likelihood in parentheses.
 | HAZ-005 | Sentinel shown as a precise number (Serious, Likely) | 39 and 401 render as "LOW (<40)" and "HIGH (>400)" | FR-004, `test_fr004_sentinels_render_as_words_not_numbers` |
 | HAZ-006 | Misconfigured thresholds hide a low (Serious, Possible) | Validated at startup; invalid configuration stops the program | NFR-002 tests |
 | HAZ-007 | Health data or credentials exposed (Moderate, Possible) | HTTPS required; read-only token; token redacted from errors | NFR-001 tests |
-| HAZ-008 | Secondary display trusted over the primary app (Serious, Possible) | Disclaimer in CLI help, README, and device label; STALE and NO DATA say to confirm; iOS strikes through a STALE number | FR-004, manual review |
+| HAZ-008 | Secondary display trusted over the primary app (Serious, Possible) | Disclaimer in CLI help, README, and device label; STALE and NO DATA say to confirm; on STALE the iOS app shows no large number; the old value is only in the struck `last:` line | FR-004, manual review |
 | HAZ-009 | Trio misconfiguration (Critical, Possible) | Outside this codebase: open loop first, settings validated with the endocrinologist | Process, `docs/SETUP.md` |
 | HAZ-010 | Bolus request wrong or doubled (Critical, Possible, planned) | Request-only: Trio enforces its limits; app requires confirm, shows pending, never marks delivered, disabled when STALE | ADR-0008 criteria; tests not yet written |
-| HAZ-011 | One bad entry or failed write blanks the display for a long time (Critical, Possible) | Numbers range-checked before conversion, timestamps bounded to 2000-2100, one poisoned entry never discards its neighbors; watch loop survives a failed SVG write; SVG carries a "written" stamp | FR-001, `test_haz011_*`, vector `huge_value_rejected` |
+| HAZ-011 | One bad entry or failed write blanks the display for a long time (Critical, Possible) | Numbers range-checked before conversion, timestamps bounded to 2000-2100, one poisoned entry never discards its neighbors; watch loop survives a failed SVG write; SVG carries a "written" stamp; PNG and BMP images carry a local `HH:MM` stamp | FR-001, `test_haz011_*`, vector `huge_value_rejected` |
 | HAZ-012 | iOS app crashes on launch or runs on thresholds other than shown (Serious, Possible) | Swift range-checks before `Int()`; settings edit a draft, Save disabled while invalid, invalid set on disk resets to defaults | FR-012, `testHugeNumbersThrowInsteadOfCrashing` |
+| HAZ-013 | A Home Assistant automation acts on a level that is no longer true (Serious, Possible) | The displays' own classification; Last Will and `expire_after`; state never retained; no number for STALE, NO DATA or sentinels; never a negative age | FR-008, `tests/test_home_assistant.py` |
+| HAZ-014 | An image or panel that stopped updating looks current (Critical, Possible) | A local `HH:MM` stamp of when the image was drawn, never the reading's time; always on for exported PNG and BMP | FR-006, `test_haz014_png_and_bmp_written_atomically_with_stamp` |
+| HAZ-015 | A widget keeps a fresh-looking frame long after the data went stale (Critical, Possible once widgets ship) | The glance timeline schedules STALE in advance | FR-019, `testFR019EntryAtFirstStaleMillisecond` |
+| HAZ-016 | A port draws a different panel from the reference (Serious, Possible) | Integer-only layout and pixel vectors every renderer must match | FR-016, `test_fr016_every_panel_vector_matches_python` |
+
+HAZ-014 to HAZ-016 wait for the hazard review with the person with diabetes. HAZ-017 to HAZ-019 are reserved for ADR-0011, which is Proposed.
 
 HAZ-010 was logged before its feature exists, on purpose. Every screen is pictured in [[Display States]].
 
 ## Review triggers
 
-The log is re-reviewed when a change touches parsing, classification, rendering, or the Nightscout client in any implementation; when a display host's clock is found wrong; when a new display device or alert path is added; when the upstream stack changes; and when a real-world incident or near miss happens, which gets a new HAZ ID. [[Contributing]] describes the review in a pull request.
+The log is re-reviewed when a change touches parsing, classification, rendering, or the Nightscout client in any implementation; when a display host's clock is found wrong; when a new display device or alert path is added; when the upstream stack changes; and when a real-world incident or near miss happens, which gets a new HAZ ID. A change to the panel layout or any panel renderer is a trigger too. Every test the hazard log cites is checked by `tests/test_safety_doc.py`. [[Contributing]] describes the review in a pull request.
 
 ## The disclaimer wording
 
@@ -60,6 +66,6 @@ Every public surface carries one line:
 
 The project never calls anything it does an "alarm" ([[Community Research]]).
 
-Still open: the person with diabetes has not yet reviewed `docs/SAFETY.md` and the default thresholds (55 / 70 / 180 / 250 mg/dL, stale after 15 minutes), a Phase 0 exit item in `docs/MVP_BACKLOG.md`. The review is a one-page checklist, `docs/SAFETY_REVIEW.md`: confirm or change each threshold and the stale limit, acknowledge the limitations, and sign off.
+Still open: the person with diabetes has not yet reviewed `docs/SAFETY.md` and the default thresholds (55 / 70 / 180 / 250 mg/dL, stale after 15 minutes), a Phase 0 exit item in `docs/MVP_BACKLOG.md`. The review is a one-page checklist, `docs/SAFETY_REVIEW.md`: confirm or change each threshold and the stale limit, acknowledge the limitations, and sign off. The ADR-0011 section of that sheet is still to be signed too.
 
 Back to [[Home]], or see [[Security and Privacy]] for the data side of the same question.

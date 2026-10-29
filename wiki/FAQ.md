@@ -34,7 +34,7 @@ Yes, for anything beyond demo mode. Nightscout is the single data hub every disp
 A token for a Nightscout subject with the `readable` role only, created under Admin Tools, Subjects. Never the `API_SECRET`; it grants write access and Lightkeeper has nothing to write. See [[Security and Privacy]].
 
 **Can I try it without any of that?**
-Yes. `python -m lightkeeper --demo` serves one made-up reading and never touches the network; `--demo-mgdl` and `--demo-minutes-ago` let you see each state. The [live demo](https://esanacore.github.io/lightkeeper/) (`demo.html` in the repository) shows every screen in a browser, with a button for every vector. See [[Getting Started]].
+Yes. `python -m lightkeeper --demo` serves one made-up reading and never touches the network; `--demo-mgdl` and `--demo-minutes-ago` let you see each state. The [live demo](https://esanacore.github.io/lightkeeper/) (`demo.html` in the repository) shows every screen in a browser, with a button for every vector. `--demo-trend` picks the arrow, and the `--demo-*` options work only with `--demo`. The live demo draws the real panel pixels at six panel sizes. See [[Getting Started]].
 
 **Does it support mmol/L?**
 Not yet. Thresholds and screens are in mg/dL. mmol/L is reserved requirement FR-013, alongside delta (FR-014) and device status (FR-015). See [[Roadmap]].
@@ -46,15 +46,18 @@ Yes, with `LK_URGENT_LOW`, `LK_LOW`, `LK_HIGH`, `LK_URGENT_HIGH`, and `LK_STALE_
 For a bedside display, a Raspberry Pi Zero 2 WH and a Waveshare 2.9 inch black and white e-paper HAT; the Python code runs on it as is. For a pocket display, the Xteink X4 Pro, once the firmware's device build exists. No Mac is needed anywhere. See [[Hardware]].
 
 **Does it work with Home Assistant?**
-Yes, over MQTT discovery (ADR-0010). Set `LK_MQTT_HOST` and the other `LK_MQTT_*` settings and three sensors appear: Glucose level, Glucose, and Glucose reading age. They go `unavailable` if the publisher stops, and the glucose number is blank whenever the level is STALE or NO DATA, so an automation cannot act on an old value. Home Assistant's own Nightscout integration shows the raw number without that protection. Setup and example automations are in `docs/SETUP.md`.
+Yes, over MQTT discovery (ADR-0010). Set `LK_MQTT_HOST` and the other `LK_MQTT_*` settings and four sensors appear: Glucose level, Glucose, Glucose reading age, and Last reading. They go `unavailable` if the publisher stops, and the glucose number is blank whenever the level is STALE or NO DATA, so an automation cannot act on an old value. Home Assistant's own Nightscout integration shows the raw number without that protection. Setup and example automations are in `docs/SETUP.md`. The status never carries a negative age.
 
 ## About the project
 
 **Why are the rules written three times?**
-Because a Raspberry Pi runs Python, an ESP32-C3 cannot, and an iPhone wants Swift. Drift is handled by `spec/display_vectors.json`, 39 cases that all three implementations must pass identically, and by the rule that a change touches all of them in one commit. See [[How It Works]] and [[Testing and Quality]].
+Because a Raspberry Pi runs Python, an ESP32-C3 cannot, and an iPhone wants Swift. Drift is handled by `spec/display_vectors.json`, 39 cases that all three implementations must pass identically, and by the rule that a change touches all of them in one commit. The panel's pixels are held the same way, by `spec/panel_vectors.json`, which the Python reference, the C++ rasterizer and the demo's JavaScript port all match. See [[How It Works]] and [[Testing and Quality]].
 
 **How tested is it?**
-389 Python tests at 100% line and branch coverage against a 90% floor, 294 firmware checks under AddressSanitizer and UBSan (100% of lines by gcov), the Swift vector tests in CI on macOS and Linux, and a traceability matrix in which every declared requirement has a verifying test named with its ID. See [[Testing and Quality]].
+On the current tree: 1,755 Python tests at 100% line and branch coverage, which is also the floor; firmware host tests under AddressSanitizer and UBSan (294 checks for the rules, 2,970 for the response parser, 2,744 for the panel rasterizer); 75 Swift package tests, which pass on Windows and which CI runs on macOS and Linux; and a traceability matrix in which every declared requirement has a verifying test named with its ID, checked by a guard that fails on a citation to a test that does not exist. See [[Testing and Quality]].
+
+**Does it work with a screen reader?**
+Yes. Every screen has one plain spoken sentence that says what the screen says and is never more current, for example "In range. 112 milligrams per deciliter, steady. 3 minutes ago." The iOS app uses it as the VoiceOver label, and the demo page announces it through a polite live region. It is never sent to Home Assistant or read aloud on its own. The sentences are pinned in `spec/spoken_vectors.json` (FR-017), and their wording still waits for review.
 
 **Why Trio and not Loop or AndroidAPS?**
 Trio for its oref algorithm features, active community, and Omnipod 5 support since v1.0.0. Loop remains a fallback; AndroidAPS lacked Omnipod 5 support as of October 2026. See [[Architecture Decisions]].
