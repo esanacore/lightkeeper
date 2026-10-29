@@ -47,6 +47,15 @@ In rough order:
 - Companion app extras (widgets, watch complication, background refresh), then the bolus request screen once ADR-0008 is accepted; the widget timeline core is done and the extension waits on Apple signing. See [[Companion App]].
 - PyPI release (Phase 6); the demo page is already published.
 
+## Further out: more places to see it
+
+Once the first Phase 4 devices have earned trust, Lightkeeper should grow into more hardware. Each idea is a new place to see the same data, so it sits inside the one rule. None has a requirement ID yet, and each comes in the way any feature does. `docs/ROADMAP.md` lists what each one has to solve.
+
+- **A dashboard box for the car**: a small e-paper box with a solar panel on top. It must never ask for attention while the car moves, it has to survive a car parked in the sun, and it must go STALE on time when the link drops on the road.
+- **Big signs**: a large panel readable across a kitchen or hallway. A big sign shows someone's glucose to anyone walking past, so it belongs in rooms the household controls, with a way to blank it and a real night profile.
+- **A departure-board ticker**: a long, thin split-flap or LED dot-matrix board like the ones at train and bus stations. It changes once per reading and never scrolls, a split-flap board must not clatter at night, and its short lines need their own compact screen text and a hazard review.
+- **And more**: the test for each is the same. Does it show the data honestly, say plainly when the data is old, and stay quiet?
+
 ## Versioning
 
 Semantic versioning; `VERSION`, `pyproject.toml`, and `lightkeeper.__version__` all read 0.2.0, tagged `v0.2.0` on 2026-10-27 (0.1.0 was tagged 2026-10-24). The display vectors carry their own `spec_version` (currently 1): a change to an existing case bumps it, adding a case does not, and all three implementations assert it, so a vector change cannot be silently ignored by one port. `spec/panel_vectors.json` has its own `panel_spec_version` (currently 1). Token-in-query-string debt is noted in [[Security and Privacy]].

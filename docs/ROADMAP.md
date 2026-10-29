@@ -45,6 +45,25 @@ Phases 1 to 3 are mostly about the therapy half and belong to Kaitlin and her ca
 - Screen text v2 (ADR-0011), once its hazard review is done and Eric and Kaitlin have signed it off.
 - PyPI release (Phase 6). The demo page is already published at https://esanacore.github.io/lightkeeper/.
 
+## Further out: more places to see it
+
+Once the first devices from Phase 4 have earned trust, Lightkeeper should grow into more hardware. Each idea below is a new place to see the same data, so it sits inside the one rule. None has a requirement ID yet; each gets one in the Planned section when work on it starts, and each comes in the way any feature does (above), with its parts in `docs/HARDWARE.md` and the shared display and panel vectors running on its renderer. Eric decides the order; the person with diabetes decides whether to rely on each one.
+
+- **A dashboard box for the car.** A small e-paper box on the dashboard, with a solar panel on top to keep it charged. E-paper suits it: it reads well in sunlight and draws power only when the picture changes. What it has to solve:
+  - It must never ask for attention while the car moves: no alerts, no motion, nothing to press. It must not block the view, a mirror or an airbag. The primary CGM app stays the thing to act on.
+  - A car parked in the sun gets hotter inside than most batteries and panels are rated for, and lithium cells must not charge when hot. It needs parts rated for that heat, a charger that stops when the cell is too hot, and a plan for winter cold.
+  - It reads through the phone's hotspot or the car's Wi-Fi, and on the road the link drops often. Going STALE on time and saying `Nightscout unreachable` matter even more there.
+  - When the battery runs flat, e-paper keeps its last picture. The box must draw its "not updating" screen before it sleeps (HAZ-014).
+- **Big signs.** A large panel for a kitchen or a hallway, readable across the room. The panel layout already draws any panel that holds every screen line, up to 4096 pixels a side, so the pixels exist and the work is the hardware. What it has to solve:
+  - A big sign shows someone's glucose to everyone who walks past. It belongs in rooms the household controls, never facing a window, with an easy way to blank it.
+  - A bright LED sign needs a real night profile: dim, or off.
+  - The panel rules hold at every size: STALE is never weaker than a fresh reading, and the status word is never smaller than the number.
+- **A departure-board ticker.** A long, thin board in the style of train and bus station signs, split-flap or LED dot matrix. It suits the 1-bit, lo-fi look. What it has to solve:
+  - Nothing scrolls, blinks or ticks once a second. The board changes once per reading, the way a departures board updates a line, never as a scrolling marquee.
+  - A split-flap board clatters when it changes, which breaks "no sound". It needs a quiet mechanism, or a night mode that holds still.
+  - One or two short lines cannot hold today's screens. It needs a compact form of the screen text with its own display vectors and a hazard review, the same route as ADR-0011.
+- **And more.** Other ideas will come. The test for each is the same: does it show the data honestly, say plainly when the data is old, and stay quiet?
+
 ## Versioning
 
 Semantic versioning for the Python package and the repository as a whole. The display vectors carry their own `spec_version` inside `spec/display_vectors.json`; any change to an existing case bumps it, and all three implementations assert the version they were built against (`tests/test_vectors.py`, `firmware/xteink/test/host/test_glucose_rules.cpp`, `VectorTests.swift`). `spec/panel_vectors.json` carries its own `panel_spec_version` (currently 1): a change to the panel layout or its integer rules that alters an existing case's pixels bumps it (adding a case or a profile does not), and the Python, C++ and JavaScript renderers move together, each asserting the version (`tests/test_panel_vectors.py`, `firmware/xteink/test/host/test_panel_bitmap.cpp`, `web/panel/panel.test.mjs`).
