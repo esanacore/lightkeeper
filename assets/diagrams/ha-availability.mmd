@@ -6,7 +6,7 @@ sequenceDiagram
     P->>B: discovery configs (retained), availability = online (retained)
     loop every refresh
         P->>B: state JSON (not retained)
-        B->>H: sensors update: level, glucose, age
+        B->>H: sensors update: level, glucose, age, last reading
     end
     alt publisher dies or loses power
         B->>H: Last Will: availability = offline
