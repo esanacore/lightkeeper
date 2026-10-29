@@ -55,6 +55,19 @@ Worries, situations we haven't thought of, or things that happened with other de
 
 &nbsp;
 
+## 5. Screen text v2 (ADR-0011)
+
+Three small wording changes. Each one says less than today about old or missing data, and none of them touches a fresh screen. Nothing changes until both lines are signed.
+
+| Change | Today | Proposed | Agree? |
+| --- | --- | --- | --- |
+| No arrow beside an old number | `last: 45 mg/dL v` | `last: 45 mg/dL` | [ ] yes [ ] no |
+| NO DATA names the link that failed when the display can't reach Nightscout | `Check sensor and phone` | `Check Nightscout/Wi-Fi` | [ ] yes [ ] no |
+| A STALE age never matches a fresh one (15 min 1 s old) | `15 min ago` | [ ] `16 min ago` (round up) [ ] `over 15 min ago` | pick one |
+
+- Kaitlin: ______________________ Date: ____________
+- Eric: ______________________ Date: ____________
+
 ## Sign-off
 
 - Reviewed by: ______________________ Date: ____________
@@ -63,5 +76,6 @@ Worries, situations we haven't thought of, or things that happened with other de
 ## What happens next (for Eric or an agent)
 
 - Kept the defaults: mark step 6 done in `docs/AGENT_HANDOFF.md`, tick the TODO item, and record the date in `docs/MEMORY.md`.
-- Changed a default: update `docs/ENV_VARS.md`, the defaults in all three implementations (Python `Thresholds`, firmware `lk::Thresholds`, Swift `Thresholds`), and the shared vectors. Changing an existing vector bumps `spec_version` and its three assertions. Then regenerate the gallery with `python tools/gen_display_gallery.py`.
+- Changed a default: update `docs/ENV_VARS.md`, the defaults in all three implementations (Python `Thresholds`, firmware `lk::Thresholds`, Swift `Thresholds`), and the shared vectors. Changing an existing vector bumps `spec_version` and its three assertions. Then regenerate the gallery with `python tools/gen_display_gallery.py`, the panel vectors with `python tools/gen_panel_spec.py`, the spoken vectors with `python tools/gen_spoken_vectors.py`, and the demo's panel block with `python tools/gen_demo_panel.py`. The iOS steppers move in steps of 5, so a new default must sit on that grid or the ranges in `GlucoseModel.swift` move too.
 - New concern: add it to the hazard log in `SAFETY.md` with a new HAZ ID before any code changes.
+- Signed section 5: ADR-0011 is implemented in one pull request at `spec_version` 2 (its promotion criteria), then marked Accepted in `docs/adr/README.md`.
