@@ -37,7 +37,7 @@ Choices waiting on Eric (and Kaitlin where named). The code runs on the default 
 - [ ] A stale-colour rule on the demo's STALE banner (Eric): give the phone mock and chip the 4 px stale-colour leading rule the URGENT bands have? Default: no; the stale colour reaches it only through the hatched frame.
 - [ ] Firmware panel buffer per board (Eric): size it per board (5,000 bytes on 200x200, 48,000 on 800x480) instead of the 60,000-byte cap from the profile list, which costs about 55 KB of static RAM on the bench board? Default: `kMaxPanelBytes` = 60,000.
 - [ ] An LGPL note before distributing firmware binaries (Eric): the firmware statically links Arduino-ESP32 (LGPL-2.1-or-later); add a release-process note on relinking obligations now? Default: the OTS row records it as a Medium risk; no note yet, and no binaries are distributed.
-- [ ] Hazard severity (Eric and Kaitlin): confirm in the hazard review the severity and likelihood set for HAZ-014 (Critical, Possible) and HAZ-016 (Serious, Possible), and review HAZ-014 to HAZ-016 with the log. Default: the rows are in `docs/SAFETY.md` with those values and a note that the review is pending.
+- [ ] Hazard severity (Eric and Kaitlin): confirm in the hazard review the severity and likelihood set for HAZ-014 (Critical, Possible), HAZ-015 (Critical, Possible once widgets ship) and HAZ-016 (Serious, Possible), and review HAZ-014 to HAZ-016 with the log. Default: the rows are in `docs/SAFETY.md` with those values and a note that the review is pending.
 - [ ] Where "phone quiet" goes (Eric): FR-015 keeps device status on hardware displays; the "phone quiet N min" idea ADR-0011 defers (uploader device status) has no ID until it is promoted. Default: FR-015 stays device status (COULD, Planned).
 
 ## Features
@@ -106,6 +106,7 @@ From `docs/COMMUNITY_RESEARCH.md` (October 2026):
 - [ ] GAP-010: the widget extension and its reload cadence (see Features).
 - [ ] GAP-011 (HUMAN): on a real Windows laptop at 125% and 150% scaling, open `demo.html` and zoom into the panel to confirm even stroke widths (headless emulation cannot show device-pixel snapping at the canvas edges).
 - [ ] GAP-012: small-panel exceptions at 200x200 and 250x122 wait on D4.
+- [ ] Four `tests/test_cli.py` tests fail now and then on a loaded Windows machine (CPython 3.14) and pass on rerun. `test_fr006_ctrl_c_watch_exits_0_and_marks_ha_offline` (about 1 in 5 runs alone), `test_fr006_ctrl_c_mid_fetch_in_watch_still_marks_ha_offline` and `test_fr006_ctrl_c_one_shot_after_a_publish_leaves_ha_available`: the fake broker's `wait_for` returns, or times out after 5 s, before the last packets (OFFLINE, DISCONNECT) arrive; wait for DISCONNECT itself, or allow longer. `test_fr006_demo_values_all_apply`: it printed `1 min ago` for a reading built 2 minutes before now, which only a wall clock stepping backwards explains; pin a fixed clock.
 - [ ] First CI runs on the pull request (AUTOMATED): `firmware-device.yml` (never run yet), the Constitution Test Runner (the first Linux g++ ASan run of `panel_tests` and the first run of the POSIX-only `test_haz014_stamp_and_header_are_local_time_never_utc`), and all three `ios.yml` jobs.
 
 ## Documentation

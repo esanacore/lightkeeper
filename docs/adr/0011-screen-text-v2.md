@@ -181,7 +181,7 @@ Each of these changes screen text too, but none is part of this bump. Each one i
 ## Consequences
 
 - A STALE screen no longer suggests a direction, NO DATA after a failed fetch points at the link that failed, and the age on a STALE screen can no longer be mistaken for a fresh one. The screen and the spoken form agree again on STALE (neither gives a trend).
-- One coordinated change: three implementations, three version assertions, and every generated file move together, and any port that reads the vectors (web panel, Android) fails loudly until it follows.
+- One coordinated change: three implementations, three version assertions, and every generated file move together, and any port that reads the vectors (the web panel today, and any later port) fails loudly until it follows.
 - With (c2), the render functions take the stale limit, a signature change in three languages; with (c1) they do not.
 - The household sees changed words once. The signed review sheet records that they expected it.
 - A Home Assistant automation that matches on line text would need updating; the documented automations match on `level`, which does not change.

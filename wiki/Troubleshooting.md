@@ -80,7 +80,7 @@ By design (FR-006), so a display never hammers a Nightscout site.
 
 - `python tools/doctor.py` names the missing piece: Python 3.11+, the `constitution/` submodule (`git submodule update --init --recursive`), pytest, ruff, mypy, or the C++ toolchain (on Windows it looks inside WSL; only the firmware host tests need it).
 - `make -C firmware/xteink test` needs `g++` or `clang++`, `make`, and Python 3. On Windows, run it in WSL (`wsl -- make -C firmware/xteink test`): MinGW toolchains (MSYS2, WinLibs, Git Bash) cannot link AddressSanitizer. A missing `clang-format` skips `format-check` with a note rather than failing.
-- On Windows without WSL, the firmware host tests also run with the `clang++` that ships with the Swift toolchain, with clang's AddressSanitizer runtime (`clang_rt.asan_dynamic.dll`) on `PATH`.
+- On Windows without WSL, the firmware host tests also run with the `clang++` that ships with the Swift toolchain, with clang's AddressSanitizer runtime (`clang_rt.asan_dynamic.dll`) on `PATH`. The full command is in `docs/TROUBLESHOOTING.md`, "Firmware host tests on Windows without WSL".
 - `tests/test_gallery.py` fails after editing the vectors until you run `python tools/gen_display_gallery.py` and commit the result. See [[Display States]].
 - The demo's panel tests need Node 20 or later (they skip without it locally); after editing `demo.html`, run `python tools/gen_demo_panel.py`.
 

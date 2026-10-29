@@ -73,7 +73,7 @@ Known issues and fixes. If a display ever shows something that disagrees with th
 
 - **Symptom**: `make -C firmware/xteink test` cannot link AddressSanitizer with a MinGW toolchain.
 - **Cause**: MinGW toolchains (MSYS2, WinLibs, Git Bash) cannot link the sanitizers.
-- **Solution**: Run it in WSL (`wsl -- make -C firmware/xteink test`), or with Windows clang++ for the MSVC target (as shipped with the Swift toolchain): `mingw32-make -C firmware/xteink test CXX=clang++ BUILD=build/asan CXXFLAGS="-std=c++17 -Wall -Wextra -Werror -Wconversion -Wshadow -g -fsanitize=address,undefined -fno-sanitize-recover=all -D_CRT_SECURE_NO_WARNINGS -Ilib/glucose_rules -Ilib/nightscout_json -Ilib/panel_bitmap -Ibuild/asan"`, with the folder holding clang's x86_64 `clang_rt.asan_dynamic.dll` on `PATH`. CI's Linux run is the authority.
+- **Solution**: Run it in WSL (`wsl -- make -C firmware/xteink test`), or with Windows clang++ for the MSVC target (as shipped with the Swift toolchain): `mingw32-make -C firmware/xteink test CXX=clang++ BUILD=build/asan CXXFLAGS="-std=c++17 -Wall -Wextra -Werror -Wconversion -Wshadow -g -fsanitize=address,undefined -fno-sanitize-recover=all -D_CRT_SECURE_NO_WARNINGS -Ilib/glucose_rules -Ilib/nightscout_json -Ilib/panel_bitmap -Ibuild/asan"`, with the folder holding clang's x86_64 `clang_rt.asan_dynamic.dll` on `PATH`. The Makefile calls `python3`; if there is none on `PATH`, add `PYTHON=python`. CI's Linux run is the authority.
 
 ### The demo's panel tests skip or fail
 

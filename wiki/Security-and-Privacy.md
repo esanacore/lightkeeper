@@ -6,11 +6,11 @@ Lightkeeper handles glucose readings, which are personal health data, and a cred
 
 | Data | Level | Where it lives | Notes |
 | --- | --- | --- | --- |
-| Glucose readings, trend, timestamps | Restricted | Nightscout; `lightkeeper` process memory (latest reading only); the panel; the optional `--svg`, `--json`, `--png` and `--bmp` files; the MQTT broker and Home Assistant when `LK_MQTT_HOST` is set | Health data. Never in logs, fixtures, docs, or bug reports; all of those use synthetic values. |
+| Glucose readings, trend, timestamps | Restricted | Nightscout; `lightkeeper` process memory (latest reading only); the iOS app's memory (latest reading only); the panel; the optional `--svg`, `--json`, `--png` and `--bmp` files; the MQTT broker and Home Assistant when `LK_MQTT_HOST` is set | Health data. Never in logs, fixtures, docs, or bug reports; all of those use synthetic values. |
 | Nightscout readable token | Confidential | Environment (`NIGHTSCOUT_TOKEN`), a root-only env file on a Pi, or the iOS Keychain | Read-only scope. Redacted from every error. |
 | MQTT broker password | Confidential | Environment (`LK_MQTT_PASSWORD`), the root-only env file on a Pi | Scope it with the broker's ACL to Lightkeeper's topics. Redacted from every error. |
 | Nightscout `API_SECRET` | Restricted | Nightscout server, and Trio so it can upload | Grants write access. Never given to Lightkeeper. |
-| Thresholds and stale limit | Internal | Environment (`LK_*`) | Display settings, not therapy settings. |
+| Thresholds and stale limit | Internal | Environment (`LK_*`); the iOS app's settings (UserDefaults, with the Nightscout address) | Display settings, not therapy settings. |
 | Display vectors, gallery images, demo | Public | The repository | Synthetic data only. |
 
 ## Data flows across boundaries
@@ -26,7 +26,7 @@ Lightkeeper handles glucose readings, which are personal health data, and a cred
 
 ## Retention and deletion
 
-Lightkeeper keeps the newest reading in memory and nothing else; it is gone when the process exits. The `--svg`, `--png` and `--bmp` files each hold one screen and are overwritten on every refresh; delete a file to remove it. Nightscout's own retention is configured on the Nightscout server, and its retention period and deletion path get recorded in `docs/OPERATIONS.md` when hosting is chosen in Phase 1.
+Lightkeeper keeps the newest reading in memory and nothing else; it is gone when the process exits. The optional `--svg`, `--json`, `--png` and `--bmp` files each hold one screen and are overwritten on every refresh; delete a file to remove it. Nightscout's own retention is configured on the Nightscout server, and its retention period and deletion path get recorded in `docs/OPERATIONS.md` when hosting is chosen in Phase 1.
 
 ## Token handling
 

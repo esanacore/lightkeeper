@@ -6,11 +6,11 @@ Data classification, retention, and the threat model for Lightkeeper, following 
 
 | Data | Level | Where it lives | Notes |
 | --- | --- | --- | --- |
-| Glucose readings, trend, and timestamps | Restricted | Nightscout (source of truth); `lightkeeper` process memory (latest reading only); the panel; the optional `--svg`, `--json`, `--png` and `--bmp` files; the MQTT broker and Home Assistant when `LK_MQTT_HOST` is set | Personal health data. Never in logs, test fixtures, docs, or bug reports; all of those use synthetic values. |
+| Glucose readings, trend, and timestamps | Restricted | Nightscout (source of truth); `lightkeeper` process memory (latest reading only); the iOS app's memory (latest reading only); the panel; the optional `--svg`, `--json`, `--png` and `--bmp` files; the MQTT broker and Home Assistant when `LK_MQTT_HOST` is set | Personal health data. Never in logs, test fixtures, docs, or bug reports; all of those use synthetic values. |
 | Nightscout readable token | Confidential | Environment (`NIGHTSCOUT_TOKEN`), typically from `/etc/lightkeeper.env` under systemd (there is no `.env` loader), or the iOS Keychain | Read-only scope. Redacted from every error. |
 | MQTT broker password | Confidential | Environment (`LK_MQTT_PASSWORD`), typically from `/etc/lightkeeper.env` | Scope it with the broker's ACL to Lightkeeper's topics. Redacted from every error. |
 | Nightscout API_SECRET | Restricted | Nightscout server only | Grants write access to treatments. Never given to Lightkeeper. |
-| Thresholds and stale limit | Internal | Environment (`LK_*`) | Display settings, not therapy settings. |
+| Thresholds and stale limit | Internal | Environment (`LK_*`); the iOS app's settings (UserDefaults, with the Nightscout address) | Display settings, not therapy settings. |
 | Display vectors, gallery images, demo | Public | This repository | Synthetic data only. |
 
 ## Data Flows Across Boundaries
