@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- In dark mode the navigation bar buttons stay light. -->
+<resources>
+    <style name="Theme.Lightkeeper" parent="Base.Lightkeeper">
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+</resources>

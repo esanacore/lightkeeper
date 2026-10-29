@@ -1,0 +1,5 @@
+BasedOnStyle: Google
+ColumnLimit: 100
+# The firmware's style (firmware/xteink/.clang-format, ADR-0007): the bridge
+# calls those libraries and reads the same way. tests/test_android.py keeps
+# the two files' settings equal.

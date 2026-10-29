@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The dark theme: the same items as values/themes.xml on the dark Material base. -->
+<resources>
+    <style name="Base.Lightkeeper" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/lk_fog</item>
+        <item name="android:colorBackground">@color/lk_fog</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:colorPrimary">@color/lk_ink</item>
+        <item name="android:colorAccent">@color/lk_beam_text</item>
+        <item name="android:colorControlNormal">@color/lk_line_strong</item>
+        <item name="android:colorControlActivated">@color/lk_beam_text</item>
+        <item name="android:textColorPrimary">@color/lk_ink</item>
+        <item name="android:textColorSecondary">@color/lk_muted</item>
+        <item name="android:textColorHint">@color/lk_muted</item>
+    </style>
+</resources>

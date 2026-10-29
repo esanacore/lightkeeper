@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The brand palette, dark theme: the "dark" value of every color in
+  assets/brand/tokens.json (values/colors.xml holds the "light" ones).
+  tests/test_android.py and ColorDriftTest hold every value here to tokens.json.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="UnusedResources">
+    <!-- Grounds. -->
+    <color name="lk_night">#0E1116</color>
+    <color name="lk_fog">#0E1116</color>
+    <color name="lk_surface">#161A21</color>
+    <color name="lk_paper">#DDDCD5</color>
+
+    <!-- Text and lines. -->
+    <color name="lk_ink">#E6E5DF</color>
+    <color name="lk_muted">#9AA0A9</color>
+    <color name="lk_line">#262B33</color>
+    <color name="lk_line_strong">#646C77</color>
+
+    <!-- Accent. -->
+    <color name="lk_beam">#E0A526</color>
+    <color name="lk_beam_text">#E0A526</color>
+    <color name="lk_beam_soft">#3A2E13</color>
+
+    <!-- Status colors. -->
+    <color name="lk_in_range">#6CC597</color>
+    <color name="lk_low">#FF6B5E</color>
+    <color name="lk_high">#F5A341</color>
+    <color name="lk_stale">#9AA0A9</color>
+
+    <!-- Chip tints, and the words on an Ink band. -->
+    <color name="lk_chip_in_range">#335D4A</color>
+    <color name="lk_chip_low">#783433</color>
+    <color name="lk_chip_high">#734D29</color>
+    <color name="lk_chip_stale">#484C52</color>
+    <color name="lk_band_text">#0E1116</color>
+
+    <!-- The panel at night. -->
+    <color name="lk_night_paper">#1C1E22</color>
+    <color name="lk_night_ink">#B9B7AE</color>
+
+    <!-- Pairs drawn from two tokens. -->
+    <color name="lk_panel_paper">#1C1E22</color>
+    <color name="lk_panel_ink">#B9B7AE</color>
+    <color name="lk_hard_shadow">#262B33</color>
+</resources>

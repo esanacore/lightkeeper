@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 8.1 and later can draw dark navigation bar buttons on a light window. -->
+<resources>
+    <style name="Theme.Lightkeeper" parent="Base.Lightkeeper">
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+</resources>

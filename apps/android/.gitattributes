@@ -1,0 +1,5 @@
+# The wrapper scripts must keep their own line endings on every checkout:
+# gradlew runs under sh (CI, macOS, Linux, Git Bash), gradlew.bat under cmd.
+gradlew text eol=lf
+gradlew.bat text eol=crlf
+*.jar binary

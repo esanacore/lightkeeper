@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The launcher icon: the brand app icon (assets/brand/png/app-icon.png) on
+  Night, and the mono mark (lightkeeper-mark-mono.png) for a themed icon. Both
+  are copied into the build by the copyBrandIcon task, never by hand. Each
+  layer is 108 dp; an 18 dp inset puts the whole square in the 72 dp the
+  launcher shows.
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/lk_night" />
+    <foreground>
+        <inset
+            android:drawable="@drawable/lk_app_icon"
+            android:inset="18dp" />
+    </foreground>
+    <monochrome>
+        <inset
+            android:drawable="@drawable/lk_app_icon_mono"
+            android:inset="18dp" />
+    </monochrome>
+</adaptive-icon>
