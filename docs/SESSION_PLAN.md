@@ -6,19 +6,14 @@ This document records the current session's planned work before implementation b
 
 ## Session
 
-- **Date/Time**: 2026-10-23
+- **Date/Time**: 2026-10-27 to 2026-10-28
 - **Agent**: Claude
-- **Previous Session**: 2026-10-18 reviews, wiki, and iOS hardening; handoff in `docs/AGENT_HANDOFF.md`.
+- **Previous Session**: 2026-10-23 to 2026-10-27 vectors, portability, v0.2.0, decisions and hardware docs.
 
 ## Goal
 
-Extend the shared vector schema, then make the Swift package portable and teach `tools/doctor.py` about WSL. First goal: (`seconds_ago`, several entries per case, custom thresholds) so boundary, tie-break, poisoned-entry, and custom-threshold cases are shared across Python, firmware, and Swift.
+Keeper's Logbook batch: sharpen what exists, build out more platforms (desktop window, Android, ESP32 skeleton), and bring the UI up to what industry leaders do with a home-grown, lo-fi, 1-bit look.
 
 ## Status
 
-Complete. Outcomes and next steps are in `docs/AGENT_HANDOFF.md`.
-
-## Resumption Notes
-
-- **Last completed step**: all planned work done and verified locally; see the handoff for push and CI status.
-- **Known issues**: none.
+Waves 1 to 3 and the waves 1 and 2 docs are merged and pushed to `main`. Still to merge: the wave 3 docs pass (`docs3/integrated`) and the cross-batch review fixes (`review/<area>`). Outcomes and next steps are in `docs/AGENT_HANDOFF.md`.
