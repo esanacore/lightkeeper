@@ -18,7 +18,7 @@ Common commands for this repository. Commands are the same on every platform onc
 - `python -m lightkeeper --watch --no-color`: the frame without color; reverse video, underline and strike stay (as `NO_COLOR=1` does).
 - `python -m lightkeeper --svg screen.svg --json status.json`: also write the screen as an SVG image and the status as JSON, each replaced atomically. To show the image on a web page, embed the file with `<img>` or `<object>`. If you inline the SVG markup instead, a STALE image defines a hatch pattern with a page-wide id, so inline only one, or draw each with its own `id_prefix` (`render_svg(..., id_prefix=...)` in Python; the CLI has no flag for it).
 - `python -m lightkeeper --png panel.png --bmp panel.bmp --panel 800x480`: also write the real 1-bit panel pixels as a PNG and a BMP, each replaced atomically and stamped with the local `HH:MM` they were drawn at. `--panel` takes a profile (`waveshare_2in9`, the default, `waveshare_1in54`, `waveshare_2in13`, `waveshare_4in2`, `waveshare_7in5` or `trmnl`, `kindle`) or a size `WxH`; a size too small for every screen exits 2.
-- When Nightscout fails, stdout still shows only the screen (NO DATA or STALE, with "Nightscout unreachable"), and stderr gets one line naming what failed and what to check, once per change of what failed, then `lightkeeper: Nightscout reachable again` when it recovers. The token is never in it. `docs/TROUBLESHOOTING.md` lists every line.
+- When Nightscout fails, stdout still shows only the screen (the last good reading, STALE once it ages, or NO DATA, each with "Nightscout unreachable"), and stderr gets one line naming what failed and what to check, once per change of what failed, then `lightkeeper: Nightscout reachable again` when it recovers. The token is never in it. `docs/TROUBLESHOOTING.md` lists every line.
 - With `LK_MQTT_HOST` (and the other `LK_MQTT_*` settings in `docs/ENV_VARS.md`) set, every refresh is also published to Home Assistant over MQTT discovery.
 
 ## Testing
@@ -50,5 +50,5 @@ Common commands for this repository. Commands are the same on every platform onc
 - `systemctl status lightkeeper` and `journalctl -u lightkeeper -f`: on a Pi running `deploy/lightkeeper.service`, the current level and the live log.
 - `systemd-analyze security lightkeeper`: check the service's sandboxing (expect about 1.2, "OK").
 - `cd firmware/xteink && pio run -e bench_s3 -e x4`: build the ESP32 device skeleton for both boards (PlatformIO 6.2.0; nothing is flashed).
-- `pio run -e bench_s3 -t upload`, then `pio device monitor -e bench_s3`: flash the bench board and read its NO DATA panel dump; check the board's flash size first (`firmware/xteink/README.md`).
+- `cd firmware/xteink && pio run -e bench_s3 -t upload`, then `pio device monitor -e bench_s3`: flash the bench board and read its NO DATA panel dump; check the board's flash size first (`firmware/xteink/README.md`).
 - `git submodule update --remote constitution`: pull the latest constitution, then follow `constitution/INTEGRATION.md`.

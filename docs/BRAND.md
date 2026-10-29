@@ -74,7 +74,7 @@ Five rules keep it calm by construction:
 4. Anything that can outlive its writer says when it was written.
 5. Nothing moves, blinks, ticks every second, or makes a sound. A change is one redraw, the way e-ink swaps an image.
 
-Everything in this section is presentation only. Screen text still comes from `spec/display_vectors.json`, unchanged. The two items under Proposed, not in use are written down for a decision, and no surface uses them.
+Everything in this section is presentation only. Screen text still comes from `spec/display_vectors.json`, unchanged. The two items under Proposed, not in use are written down for a decision, and no surface uses them. The new tokens, the textures, the Keeper 5x8 name, the hard shadow and the pixel icons and marks are in use but await Eric's approval (D1 in `TODO.md`).
 
 ### New tokens
 

@@ -46,7 +46,7 @@ Yes, with `LK_URGENT_LOW`, `LK_LOW`, `LK_HIGH`, `LK_URGENT_HIGH`, and `LK_STALE_
 For a bedside display, a Raspberry Pi Zero 2 WH and a Waveshare 2.9 inch black and white e-paper HAT; the Python code runs on it as is. For a pocket display, the Xteink X4 Pro, once the firmware's device build exists. No Mac is needed anywhere. See [[Hardware]].
 
 **Does it work with Home Assistant?**
-Yes, over MQTT discovery (ADR-0010). Set `LK_MQTT_HOST` and the other `LK_MQTT_*` settings and four sensors appear: Glucose level, Glucose, Glucose reading age, and Last reading. They go `unavailable` if the publisher stops, and the glucose number is blank whenever the level is STALE or NO DATA, so an automation cannot act on an old value. Home Assistant's own Nightscout integration shows the raw number without that protection. Setup and example automations are in `docs/SETUP.md`. The status never carries a negative age.
+Yes, over MQTT discovery (ADR-0010). Set `LK_MQTT_HOST` and the other `LK_MQTT_*` settings and four sensors appear: Glucose level, Glucose, Glucose reading age, and Last reading. They go `unavailable` if the publisher stops, and the glucose number is blank whenever the level is STALE or NO DATA, so an automation cannot act on an old value. Home Assistant shows Last reading as a relative time that keeps growing ("16 minutes ago"), and it goes unavailable with the others; a display with a non-default `LK_MQTT_NODE_ID` appears as `Lightkeeper (<node id>)`. Home Assistant's own Nightscout integration shows the raw number without that protection. Setup and example automations are in `docs/SETUP.md`. The status never carries a negative age.
 
 ## About the project
 

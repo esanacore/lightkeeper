@@ -69,7 +69,7 @@ An open source stack for managing one person's type 1 diabetes (built first for 
 - Level: `MUST`
 - Acceptance criteria:
   - `FR-006-AC-1`: `--demo` runs with no network.
-  - `FR-006-AC-2`: Exit code is 0 for fresh in-range, 1 for anything needing attention, 2 for a configuration error (naming the variable, its value and the clash), an unusable option or a `--demo-*` option without `--demo`, and 130 for a one-shot run stopped with Ctrl+C; `--watch` stopped with Ctrl+C or by systemd exits 0.
+  - `FR-006-AC-2`: Exit code is 0 for fresh in-range, 1 for anything needing attention, 2 for a configuration error (naming the variable, its value and the clash), an unusable option, a file a one-shot run could not write, or a `--demo-*` option without `--demo`, and 130 for a one-shot run stopped with Ctrl+C; `--watch` stopped with Ctrl+C or by systemd exits 0.
   - `FR-006-AC-3`: `--watch` refreshes no more often than every 15 seconds.
   - `FR-006-AC-4`: Piped, systemd and `--json` output is exactly the vector lines; only an interactive `--watch` on a terminal (TERM not dumb) draws the logbook frame, which is ASCII only, never rings the bell, redraws in place, and keeps reverse, underline and strike without color (`--no-color`, `NO_COLOR`).
   - `FR-006-AC-5`: When Nightscout fails, stderr gets one redacted line naming the failing link and the setting to check, once per change, and `lightkeeper: Nightscout reachable again` on recovery; the screen text is unchanged.
@@ -134,7 +134,7 @@ An open source stack for managing one person's type 1 diabetes (built first for 
 - Acceptance criteria:
   - `FR-008-AC-1`: With `LK_MQTT_HOST` set, Home Assistant discovers sensors for level (an enum of the seven levels), glucose in mg/dL, reading age, and the time of the last reading, under a device named "Lightkeeper" ("Lightkeeper (<node id>)" for a non-default node id, with unique ids unchanged), and receives each refresh, so an automation can trigger on `URGENT LOW` or `STALE`.
   - `FR-008-AC-2`: When the publisher stops, the entities become unavailable (MQTT Last Will, `expire_after`, and `offline` on a clean `--watch` exit); state messages are never retained (HAZ-013).
-  - `FR-008-AC-3`: The glucose number is published only for a fresh, measured reading; STALE, NO DATA, and sensor sentinels publish no number; the payload never carries a negative age (version 2: `age_minutes` is null for a reading dated more than 2 minutes in the future), and the age sensor reads unknown for a negative or missing age (HAZ-013).
+  - `FR-008-AC-3`: The glucose number is published only for a fresh, measured reading; STALE, NO DATA, and sensor sentinels publish no number; the payload never carries a negative age (payload version 2, pending Eric's decision: `age_minutes` is null for a reading dated more than 2 minutes in the future), and the age sensor reads unknown for a negative or missing age (HAZ-013).
   - `FR-008-AC-4`: TLS is the default; plain MQTT is refused except to a broker on localhost, and a publish failure never stops the display.
   - `FR-008-AC-5`: `--json PATH` writes the same status payload atomically.
 

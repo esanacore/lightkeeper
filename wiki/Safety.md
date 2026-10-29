@@ -56,7 +56,7 @@ HAZ-010 was logged before its feature exists, on purpose. Every screen is pictur
 
 ## Review triggers
 
-The log is re-reviewed when a change touches parsing, classification, rendering, or the Nightscout client in any implementation; when a display host's clock is found wrong; when a new display device or alert path is added; when the upstream stack changes; and when a real-world incident or near miss happens, which gets a new HAZ ID. A change to the panel layout or any panel renderer is a trigger too. Every test the hazard log cites is checked by `tests/test_safety_doc.py`. [[Contributing]] describes the review in a pull request.
+The log is re-reviewed when a change touches parsing, classification, rendering, or the Nightscout client in any implementation; when a display host's clock is found wrong; when a new display device or alert path is added; when the upstream stack changes; and when a real-world incident or near miss happens, which gets a new HAZ ID. A change to the panel layout or any panel renderer is a trigger too. So is any new surface that shows or speaks the vector lines, after the calm-technology checklist in `docs/BRAND.md`; building the widget, StandBy or Live Activity extension (HAZ-015); the device firmware gaining networking, a clock or a panel driver, or the Pi panel driver landing (HAZ-014, HAZ-016); and Eric deciding a pending choice a mitigation rests on, such as the stamp default on physical panels or the status payload version. Every test the hazard log cites is checked by `tests/test_safety_doc.py`. [[Contributing]] describes the review in a pull request.
 
 ## The disclaimer wording
 

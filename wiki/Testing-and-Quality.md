@@ -40,7 +40,7 @@ Two more files follow the same pattern. `spec/panel_vectors.json` pins the 1-bit
 | --- | --- | --- | --- |
 | Repository default | Line and branch | 100% (`fail_under` in `pyproject.toml`) | 100% |
 | Domain layer (the safety rules) | Line and branch | 100% | 100% |
-| Nightscout client | Line and branch | 95% | 100% |
+| Nightscout client | Line and branch | 100% | 100% |
 | Firmware `nightscout_json` | Every response case, edge cases, fuzzing | 100% of cases | 2,970 checks pass, 100% of lines |
 | Firmware `glucose_rules` | Every shared vector plus edge cases | 100% of vectors | 294 checks pass; 100% of lines and 113 of 114 branches (gcov) |
 | Firmware `panel_bitmap` | Every panel vector plus extra cases, sizes and stamps | 100% of the 237 panel vectors | 2,744 checks pass; 100% of lines (gcov) |
@@ -76,6 +76,6 @@ bash constitution/scripts/check_wiki_links.sh --strict .
 
 Coverage says a line ran, not that a test would notice if it were wrong. For the firmware rules a mutation check was done by hand and recorded in `docs/OTS_SOFTWARE.md` (OTS-106): a staleness comparison was deliberately broken and the host tests failed. There is no automated mutation tool. To repeat it on any implementation, flip one comparison in `classify` (`>=` for `>` on the stale check, or drop the future-skew branch), confirm the boundary vectors (`fresh_at_15_minutes`, `stale_at_16_minutes`, `small_clock_skew_ok`, `future_dated`) fail, then revert. A rule that does not fail at least one vector when mutated needs a new vector.
 
-The Keeper's Logbook work added deliberate-bug checks: six on the spoken form, 25 on the glance timeline (one equivalent mutant survives by design), and 17 of 17 on the firmware's serial dump, each caught by the suite.
+The Keeper's Logbook work added deliberate-bug checks: six on the spoken form, 25 on the glance timeline, and 17 on the firmware's serial dump. The suite caught every one that changes behavior; one equivalent glance-timeline mutant survives by design.
 
 See [[Contributing]] for what a change must bring with it, and [[Safety]] for the hazards each test defends.

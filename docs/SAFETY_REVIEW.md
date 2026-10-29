@@ -44,6 +44,7 @@ A shorter limit flags trouble sooner but shows STALE more often during normal Bl
 
 - [ ] No Wi-Fi or no Nightscout means no new numbers. The screen ages into STALE rather than freezing.
 - [ ] Even a fresh screen can be a few minutes behind the sensor (sensor, phone, upload, then display).
+- [ ] A screen or an image file keeps its last picture if the display stops updating. Exported images show the time they were drawn (`HH:MM`), not the time of the reading; check the age line, and the phone when in doubt.
 - [ ] mg/dL only for now.
 - [ ] The bedside screen is for a glance. Anyone who sees LOW or URGENT LOW, or STALE at night, checks the phone.
 
