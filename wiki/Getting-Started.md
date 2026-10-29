@@ -42,9 +42,12 @@ Demo mode serves one made-up reading and never opens a network connection, so it
 ```bash
 python -m lightkeeper --demo                          # IN RANGE, 112 mg/dL, 3 minutes old
 python -m lightkeeper --demo --demo-mgdl 62           # LOW
+python -m lightkeeper --demo --demo-mgdl 62 --demo-trend SingleDown   # LOW with a falling arrow
 python -m lightkeeper --demo --demo-mgdl 55           # URGENT LOW
 python -m lightkeeper --demo --demo-minutes-ago 40    # STALE - DO NOT TRUST
 ```
+
+The `--demo-*` options work only with `--demo`; without it they exit 2.
 
 For a click-through of every possible screen without installing anything, open `demo.html` from the repository in a browser, or read [[Display States]].
 
@@ -72,9 +75,10 @@ python -m lightkeeper
 
 Useful options:
 
-- `--watch` refreshes until Ctrl+C, which exits cleanly. `--interval N` sets the seconds between refreshes, with a floor of 15 seconds so it never hammers the server. Output is flushed every cycle, so `journalctl -f` is live under systemd.
+- `--watch` refreshes until Ctrl+C (exit 0). In an interactive terminal it redraws one screen in place inside a plain ASCII frame headed `o))) lightkeeper   checked HH:MM:SS`; `--no-color` or `NO_COLOR` keeps its reverse video, underline and strike without color; piped or under systemd it prints exactly the screen lines, with a dashed separator between refreshes. `--interval N` sets the seconds between refreshes, with a floor of 15 seconds so it never hammers the server. Output is flushed every cycle, so `journalctl -f` is live under systemd.
 - `--svg PATH` also writes each screen as an SVG image of the e-paper panel, with a small "written HH:MM UTC" stamp so a dashboard can tell a live writer from a dead one. The file is written to a temporary name and renamed, so a reader never sees a half-written image. In watch mode a failed write (full disk, locked file) is logged and retried next cycle; run once, it is exit code 2.
-- `--json PATH` writes the same status as JSON (level, glucose, trend, age, the screen's lines, any error), replaced atomically the same way. The glucose field is empty whenever the level is STALE or NO DATA. Home Assistant publishing is set up separately; see `docs/SETUP.md`.
+- `--json PATH` writes the same status as JSON (level, glucose, trend, age, the screen's lines, any error), replaced atomically the same way. The glucose field is empty whenever the level is STALE or NO DATA. The payload is version 2 (still waiting for Eric's sign-off): the age is never negative, and `reading_at` gives the reading's time. Home Assistant publishing is set up separately; see `docs/SETUP.md`.
+- `--png PATH` and `--bmp PATH` write the exact 1-bit panel pixels, replaced atomically and stamped with the local `HH:MM` they were drawn at; `--panel` picks the panel (`waveshare_2in9` by default, `trmnl`, `kindle`, or a size such as `800x480`).
 - `--version` prints the package version.
 
 ## Environment variables
@@ -99,7 +103,8 @@ When run without `--watch`, the exit code is a signal for scripts, cron, and Hom
 | --- | --- |
 | `0` | Fresh reading, IN RANGE. |
 | `1` | Someone should look: LOW, URGENT LOW, HIGH, URGENT HIGH, STALE, or NO DATA. |
-| `2` | Configuration error (missing `NIGHTSCOUT_URL`, an `http://` URL, a non-numeric or out-of-order threshold), a failed `--svg` or `--json` write when run once, or unusable `LK_MQTT_*` settings. |
+| `2` | Configuration error (missing `NIGHTSCOUT_URL`, an `http://` URL, a non-numeric or out-of-order threshold, unusable `LK_MQTT_*` settings), a failed `--svg`, `--json`, `--png` or `--bmp` write when run once, a `--demo-*` option without `--demo`, or an unusable `--panel`. |
+| `130` | A one-shot run stopped with Ctrl+C, so cron or Home Assistant never read it as fresh and in range. `--watch` stopped that way exits 0. |
 
 ## Before anyone relies on it
 

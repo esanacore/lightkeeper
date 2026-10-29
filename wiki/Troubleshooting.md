@@ -28,7 +28,15 @@ Lightkeeper is a secondary display and not a medical device. Always confirm on t
 
 **What it means:** the program cannot reach Nightscout and has no earlier reading. Causes: a wrong `NIGHTSCOUT_URL`, DNS or network failure, the site is down, or the token is wrong or lacks the `readable` role. An HTML maintenance page or a response over 1 MB lands here too.
 
-**What to do:** open the URL in a browser from the same device. Re-create the token in Nightscout's Admin Tools if needed. Error messages never contain the token, so they are safe to paste into an issue.
+**What to do:** read the `lightkeeper:` line on stderr (next section), which names the link that failed. Open the URL in a browser from the same device. Re-create the token in Nightscout's Admin Tools if needed. Error messages never contain the token, so they are safe to paste into an issue.
+
+### A `lightkeeper:` line on stderr
+
+**What you see:** the screen says "Nightscout unreachable", and stderr (or `journalctl -u lightkeeper`) has one line starting `lightkeeper:`.
+
+**What it means:** the line names the link that failed: the token was refused, the site needs a token, a 404, a 5xx answer, a DNS failure, no connection, a timeout, a TLS failure, an answer that was not a list of readings, or a refused redirect. It is written once when the failure starts or changes, not every refresh, and `lightkeeper: Nightscout reachable again` follows on recovery. It never contains the token. The screen still says "Nightscout unreachable" whatever failed, because its job is only to say the data cannot be trusted.
+
+**What to do:** check what the line names. `docs/TROUBLESHOOTING.md`, "A `lightkeeper:` line on stderr", lists every line with the setting to check.
 
 ### NO DATA with no error line
 
@@ -42,25 +50,25 @@ Lightkeeper is a secondary display and not a medical device. Always confirm on t
 
 ### Home Assistant shows the Lightkeeper sensors as unavailable
 
-**What it means:** the publisher stopped, and Home Assistant is doing what it should instead of showing an old level (HAZ-013): the broker published Lightkeeper's Last Will, no update arrived within `expire_after`, or the service was stopped cleanly. A glucose sensor that reads unknown while the level reads STALE or NO DATA is also by design: no number is published for a reading that is not current.
+**What it means:** the publisher stopped, and Home Assistant is doing what it should instead of showing an old level (HAZ-013): the broker published Lightkeeper's Last Will, no update arrived within `expire_after`, or the service was stopped cleanly. There are four sensors: Glucose level, Glucose, Glucose reading age, and Last reading. A glucose sensor that reads unknown while the level reads STALE or NO DATA is also by design: no number is published for a reading that is not current. Last reading should likewise read unknown when there is no reading at all, because the status then carries no reading time; that is still to be checked against a real Home Assistant (GAP-002).
 
 **What to do:** on the display device, `systemctl status lightkeeper` (the Status line shows the level) and `journalctl -u lightkeeper -f`. If the log says "Home Assistant publish failed", check the broker host, port (8883 with TLS), user, password, and ACL; Lightkeeper reconnects on its own each cycle and never stops the display over it.
 
 ### A dashboard shows an image that never changes
 
-**What it means:** the writer may have died. The SVG carries a "written HH:MM UTC" stamp; if it is old, check `journalctl -u lightkeeper -f`, which is live because output is flushed every cycle. A failed write (full disk, locked file) is logged and retried instead of killing the watch loop (HAZ-011).
+**What it means:** the writer may have died. The SVG carries a "written HH:MM UTC" stamp; if it is old, check `journalctl -u lightkeeper -f`, which is live because output is flushed every cycle. A failed write (full disk, locked file) is logged and retried instead of killing the watch loop (HAZ-011). A `--png` or `--bmp` image carries the local `HH:MM` it was drawn at (HAZ-014).
 
 ## Starting the program
 
 ### Exit code 2 on startup
 
-**What you see:** "Configuration error: base_url must use https", "invalid threshold settings", or "LK_LOW must be a whole number".
+**What you see:** one line, `Configuration error: ...`, naming the variable, its value and the clash, for example "Configuration error: NIGHTSCOUT_URL must use https: http would send the glucose readings and the token unencrypted", "Configuration error: LK_LOW=200 must be below LK_HIGH=180 (the default)", or "Configuration error: LK_LOW='abc' must be a whole number".
 
-**What it means:** an `http://` URL, a URL with a query string or embedded login, a non-numeric threshold, or thresholds that do not satisfy `40 <= urgent low < low < high < urgent high <= 400`. The program refuses to run rather than run with settings that could hide a low (HAZ-006). Run once, a failed `--svg` or `--json` write also exits 2, and so do unusable `LK_MQTT_*` settings (TLS not true or false, plain MQTT to a remote broker, an invalid node id).
+**What it means:** an `http://` URL, a URL with a query string or embedded login, a non-numeric threshold, or thresholds that do not satisfy `40 <= urgent low < low < high < urgent high <= 400`. The program refuses to run rather than run with settings that could hide a low (HAZ-006). Run once, a failed `--svg` or `--json` write also exits 2, and so do unusable `LK_MQTT_*` settings (TLS not true or false, plain MQTT to a remote broker, an invalid node id). A failed `--png` or `--bmp` write when run once, a `--demo-*` option without `--demo`, and a `--panel` too small for every screen also exit 2. `docs/TROUBLESHOOTING.md`, "Configuration error on startup", has the full list.
 
 **What to do:** use the HTTPS URL with nothing after the host, and check the thresholds against [[Getting Started]]. Thresholds change only which word the display shows; match them to the primary app's alerts.
 
-### "Set NIGHTSCOUT_URL (see docs/ENV_VARS.md) or use --demo."
+### "Configuration error: NIGHTSCOUT_URL is not set: set it to your Nightscout site's https address (see docs/ENV_VARS.md), or use --demo"
 
 The variable is unset. There is no `.env` loader, so set it in the shell or the service definition.
 
@@ -72,7 +80,9 @@ By design (FR-006), so a display never hammers a Nightscout site.
 
 - `python tools/doctor.py` names the missing piece: Python 3.11+, the `constitution/` submodule (`git submodule update --init --recursive`), pytest, ruff, mypy, or the C++ toolchain (on Windows it looks inside WSL; only the firmware host tests need it).
 - `make -C firmware/xteink test` needs `g++` or `clang++`, `make`, and Python 3. On Windows, run it in WSL (`wsl -- make -C firmware/xteink test`): MinGW toolchains (MSYS2, WinLibs, Git Bash) cannot link AddressSanitizer. A missing `clang-format` skips `format-check` with a note rather than failing.
+- On Windows without WSL, the firmware host tests also run with the `clang++` that ships with the Swift toolchain, with clang's AddressSanitizer runtime (`clang_rt.asan_dynamic.dll`) on `PATH`.
 - `tests/test_gallery.py` fails after editing the vectors until you run `python tools/gen_display_gallery.py` and commit the result. See [[Display States]].
+- The demo's panel tests need Node 20 or later (they skip without it locally); after editing `demo.html`, run `python tools/gen_demo_panel.py`.
 
 Full environment reset:
 

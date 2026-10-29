@@ -37,7 +37,9 @@ Two neutral families and one accent. Status colors are separate from the accent 
 | High, urgent high | `#B86A00` | `#F5A341` | Status |
 | Stale, no data | `#6B6F76` | `#9AA0A9` | Status |
 
-Beam deep (`#B8730A`) is the accent on light backgrounds because the bright amber fails contrast on paper tones. Red and orange are kept apart in lightness so low and high never rely on hue alone, and every status is also printed as text. The SVG panel renderer used for the gallery and `--svg` draws with its own paper and ink values (`#e8e8e3` on `#111111`) because a black and white e-paper panel has no color at all; the palette applies to screens that do.
+Beam deep (`#B8730A`) is the accent on light backgrounds because the bright amber fails contrast on paper tones. Red and orange are kept apart in lightness so low and high never rely on hue alone, and every status is also printed as text. The SVG panel renderer used for the gallery and `--svg` draws in the brand's Paper (`#E6E5DF`) and Ink (`#15171C`), with Muted (`#5B6068`) only for the written stamp and Line strong (`#7D7B74`) only for the panel's edge; each status keeps its 1-bit panel shape, because a black and white e-paper panel has no color at all.
+
+`docs/BRAND.md` also carries a Keeper's Logbook section (new tokens such as Line strong, contrast measured for every color, the 1-bit shape grammar, and pixel icons), with the same tokens in `assets/brand/tokens.json`. Those additions wait for Eric's approval; this page will mirror them once they are approved.
 
 ## Type
 
