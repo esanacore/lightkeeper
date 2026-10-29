@@ -24,7 +24,7 @@ Phases 1 to 3 are mostly about the therapy half and belong to Kaitlin and her ca
 
 1. **Name the requirement.** Add an `FR-` or `NFR-` entry with acceptance criteria to `docs/PRODUCT_REQUIREMENTS.md`. Unstarted work sits in the Planned section so the traceability gate stays honest.
 2. **Check the boundary.** If the feature reads data and shows it, it is in scope. If it asks Trio to do something, it goes through Trio's remote protocol and gets a hazard entry first. If it would touch the pump or sensor, stop and write an ADR; the default answer is no.
-3. **Change the rules in one commit.** Display behavior lives in four places that must agree: `src/lightkeeper`, `firmware/xteink/lib/glucose_rules`, `apps/ios/LightkeeperCore`, and `spec/display_vectors.json`. A rule change updates all three, then `python tools/gen_display_gallery.py` refreshes the gallery and the demo.
+3. **Change the rules in one commit.** Display behavior lives in four places that must agree: `src/lightkeeper`, `firmware/xteink/lib/glucose_rules`, `apps/ios/LightkeeperCore`, and `spec/display_vectors.json`. A rule change updates all three, then `python tools/gen_display_gallery.py` refreshes the gallery and the demo. The panel's pixels have their own source of truth: a layout change regenerates `spec/panel_vectors.json` with `python tools/gen_panel_spec.py`, and the C++ rasterizer and the demo's JavaScript port must match it (FR-016). The spoken sentences follow the vectors through `python tools/gen_spoken_vectors.py` (FR-017).
 4. **Add the hazard.** Anything that changes what a person sees gets a row in `docs/SAFETY.md` with a mitigating test.
 5. **Keep the docs current.** README content, CHANGELOG, TODO, the OTS inventory for any new dependency, and the wiki if the shape of the project changed. The README's structure is fixed; only its content moves.
 6. **Run the suite and the constitution checks.** `docs/TEST_PLAN.md` has the one command; CI runs it on every push.
@@ -37,13 +37,14 @@ Phases 1 to 3 are mostly about the therapy half and belong to Kaitlin and her ca
 
 - Nightscout deployment notes and a real-instance end-to-end test (closes GAP-003).
 - Hardware per `docs/HARDWARE.md`: Pi Zero 2 WH with a 2.9" e-paper HAT first, then the Xteink X4 Pro and an ESP32-S3 bench board.
-- Raspberry Pi e-paper panel driver for the bedside display (FR-007). The rasterizer and the hardened systemd service are done; the SPI driver waits for the parts.
+- Raspberry Pi e-paper panel driver for the bedside display (FR-007). The rasterizer and the hardened systemd service are done; the SPI driver waits for the parts. The panel layout draws at six sizes and exported PNG and BMP images carry a stamp; whether the physical panel shows the stamp is Eric's call.
 - Home Assistant against a real install (FR-008 is built and tested against a fake broker; GAP-002).
-- Xteink device build: Wi-Fi, HTTPS, JSON, e-paper, deep sleep (FR-010).
+- Xteink device build (FR-010): the panel rasterizer and a build-only skeleton exist; next Wi-Fi, HTTPS, the panel driver (a choice Eric makes between a home-grown SSD16xx driver and GxEPD2) and deep sleep with real data.
 - Optional mmol/L display units, and a delta from the previous reading.
-- Companion app extras (widgets, watch complication, background refresh); the read-only layer (Phase 5a) builds and is tested in CI. Then the bolus request screen (Phase 5b).
+- Companion app extras (widgets, watch complication, background refresh); the read-only layer (Phase 5a) builds and is tested in CI, and the glance timeline core that widgets will draw from is done (FR-019); the widget extension waits on Apple signing and App Groups. Then the bolus request screen (Phase 5b).
+- Screen text v2 (ADR-0011), once its hazard review is done and Eric and Kaitlin have signed it off.
 - PyPI release (Phase 6). The demo page is already published at https://esanacore.github.io/lightkeeper/.
 
 ## Versioning
 
-Semantic versioning for the Python package and the repository as a whole. The display vectors carry their own `spec_version` inside `spec/display_vectors.json`; any change to an existing case bumps it, and all three implementations assert the version they were built against (`tests/test_vectors.py`, `firmware/xteink/test/host/test_glucose_rules.cpp`, `VectorTests.swift`).
+Semantic versioning for the Python package and the repository as a whole. The display vectors carry their own `spec_version` inside `spec/display_vectors.json`; any change to an existing case bumps it, and all three implementations assert the version they were built against (`tests/test_vectors.py`, `firmware/xteink/test/host/test_glucose_rules.cpp`, `VectorTests.swift`). `spec/panel_vectors.json` carries its own `panel_spec_version` (currently 1): a change to the panel layout or its integer rules that alters an existing case's pixels bumps it (adding a case or a profile does not), and the Python, C++ and JavaScript renderers move together, each asserting the version (`tests/test_panel_vectors.py`, `firmware/xteink/test/host/test_panel_bitmap.cpp`, `web/panel/panel.test.mjs`).

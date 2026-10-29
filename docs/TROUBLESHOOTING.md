@@ -65,9 +65,21 @@ Known issues and fixes. If a display ever shows something that disagrees with th
 
 ### Home Assistant shows the Lightkeeper sensors as unavailable
 
-- **Symptom**: The three sensors read `unavailable`.
+- **Symptom**: The four sensors read `unavailable`.
 - **Cause**: The designed behavior when the publisher stops (HAZ-013): the broker published the Last Will, or no update arrived within `expire_after` (three refresh intervals, capped at the stale limit), or the service was stopped cleanly.
 - **Solution**: Check the display device: `systemctl status lightkeeper` and `journalctl -u lightkeeper -f`. The sensors return on the next successful publish.
+
+### Firmware host tests on Windows without WSL
+
+- **Symptom**: `make -C firmware/xteink test` cannot link AddressSanitizer with a MinGW toolchain.
+- **Cause**: MinGW toolchains (MSYS2, WinLibs, Git Bash) cannot link the sanitizers.
+- **Solution**: Run it in WSL (`wsl -- make -C firmware/xteink test`), or with Windows clang++ for the MSVC target (as shipped with the Swift toolchain): `mingw32-make -C firmware/xteink test CXX=clang++ BUILD=build/asan CXXFLAGS="-std=c++17 -Wall -Wextra -Werror -Wconversion -Wshadow -g -fsanitize=address,undefined -fno-sanitize-recover=all -D_CRT_SECURE_NO_WARNINGS -Ilib/glucose_rules -Ilib/nightscout_json -Ilib/panel_bitmap -Ibuild/asan"`, with the folder holding clang's x86_64 `clang_rt.asan_dynamic.dll` on `PATH`. CI's Linux run is the authority.
+
+### The demo's panel tests skip or fail
+
+- **Symptom**: `tests/test_demo_panel.py` skips its Node tests locally, or fails them on CI, or asks you to run `tools/gen_demo_panel.py`.
+- **Cause**: `node` is missing (Node 20 or later is needed), or `demo.html` was edited after its generated block was written; the page counts its own size.
+- **Solution**: Install Node 20 or later. After any edit to `demo.html` (including a states block rewritten by `gen_display_gallery.py`), run `python tools/gen_demo_panel.py`.
 
 ## Environment Reset
 
