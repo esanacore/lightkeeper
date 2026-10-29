@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The brand palette, light theme: every color in assets/brand/tokens.json, named
+  lk_ plus its color id, with its "light" value. values-night/colors.xml holds
+  the "dark" values. tests/test_android.py and ColorDriftTest hold every value
+  here to tokens.json, so a color changes there first, never here. The whole
+  token set is mirrored, used or not, so the drift test can say "all of them".
+  Colors are only ever the second cue: every status also has its word and shape.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="UnusedResources">
+    <!-- Grounds. -->
+    <color name="lk_night">#0E1116</color>
+    <color name="lk_fog">#ECEBE5</color>
+    <color name="lk_surface">#F6F5F0</color>
+    <color name="lk_paper">#E6E5DF</color>
+
+    <!-- Text and lines. Line is for decorative dividers only. -->
+    <color name="lk_ink">#15171C</color>
+    <color name="lk_muted">#5B6068</color>
+    <color name="lk_line">#CFCDC4</color>
+    <color name="lk_line_strong">#7D7B74</color>
+
+    <!-- Accent. Text under 24 px uses Beam text, never Beam. -->
+    <color name="lk_beam">#B8730A</color>
+    <color name="lk_beam_text">#8C5800</color>
+    <color name="lk_beam_soft">#F1DDB4</color>
+
+    <!-- Status colors: borders, rules and the stale hatch, never small text. -->
+    <color name="lk_in_range">#2E6B4A</color>
+    <color name="lk_low">#B3261E</color>
+    <color name="lk_high">#B86A00</color>
+    <color name="lk_stale">#6B6F76</color>
+
+    <!-- Chip tints, and the words on an Ink band. -->
+    <color name="lk_chip_in_range">#E4E6E0</color>
+    <color name="lk_chip_low">#EDE3DE</color>
+    <color name="lk_chip_high">#EDE6DE</color>
+    <color name="lk_chip_stale">#E7E6E2</color>
+    <color name="lk_band_text">#E6E5DF</color>
+
+    <!-- The panel at night. -->
+    <color name="lk_night_paper">#1C1E22</color>
+    <color name="lk_night_ink">#B9B7AE</color>
+
+    <!-- Pairs drawn from two tokens: (light token, dark token). -->
+    <!-- The panel image: Paper and Ink by day, Night paper and Night ink in dark mode. -->
+    <color name="lk_panel_paper">#E6E5DF</color>
+    <color name="lk_panel_ink">#15171C</color>
+    <!-- The hard offset shadow under cards and buttons: Beam soft, or Line in dark mode. -->
+    <color name="lk_hard_shadow">#F1DDB4</color>
+</resources>

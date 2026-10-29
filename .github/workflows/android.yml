@@ -1,0 +1,103 @@
+name: Android
+
+# Builds, tests and lints the Android companion app (apps/android) on
+# GitHub's Linux runners, so the project needs no Android Studio. The app
+# compiles the firmware's C++ libraries in place and runs the shared vectors
+# through them, so a change to either, to the vectors or to the brand tokens
+# runs this too. The emulator job runs the instrumented tests: every display,
+# response and panel vector through JNI, the re-age to STALE, and the screen.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/android/**"
+      - "firmware/xteink/lib/**"
+      - "spec/*.json"
+      - "assets/brand/tokens.json"
+      # The launcher icon (copyBrandIcon in app/build.gradle.kts).
+      - "assets/brand/png/app-icon.png"
+      - "assets/brand/png/lightkeeper-mark-mono.png"
+      - ".github/workflows/android.yml"
+  pull_request:
+    paths:
+      - "apps/android/**"
+      - "firmware/xteink/lib/**"
+      - "spec/*.json"
+      - "assets/brand/tokens.json"
+      - "assets/brand/png/app-icon.png"
+      - "assets/brand/png/lightkeeper-mark-mono.png"
+      - ".github/workflows/android.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Debug APK, unit tests and lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      # The runner image carries the Android SDK and its command-line tools;
+      # the NDK and CMake versions the build pins are installed here.
+      - name: Install the NDK and CMake
+        run: |
+          sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$sdkmanager" --licenses > /dev/null || true
+          "$sdkmanager" --install "platforms;android-36" "ndk;28.2.13676358" "cmake;3.22.1" > /dev/null
+
+      # The wrapper downloads Gradle 9.5.1 and checks it against the
+      # distributionSha256Sum in gradle-wrapper.properties.
+      - name: Build, test and lint
+        working-directory: apps/android
+        run: ./gradlew --no-daemon assembleDebug testDebugUnitTest lint
+
+      - name: APK size
+        run: ls -l apps/android/app/build/outputs/apk/debug/app-debug.apk
+
+  instrumented:
+    name: Instrumented tests on an emulator (API 36)
+    runs-on: ubuntu-24.04
+    needs: build
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Install the NDK and CMake
+        run: |
+          sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$sdkmanager" --licenses > /dev/null || true
+          "$sdkmanager" --install "platforms;android-36" "ndk;28.2.13676358" "cmake;3.22.1" > /dev/null
+
+      # Hardware acceleration for the x86_64 emulator on Linux runners.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run the instrumented tests
+        uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 36
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          working-directory: apps/android
+          script: ./gradlew --no-daemon connectedDebugAndroidTest

@@ -1,0 +1,11 @@
+# Gradle, CMake and Android Studio output. local.properties holds the path to
+# this machine's Android SDK and is written by Android Studio or by hand.
+.gradle/
+.kotlin/
+build/
+.cxx/
+.externalNativeBuild/
+local.properties
+.idea/
+*.iml
+captures/

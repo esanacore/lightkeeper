@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Lint runs with every check on and fails the build on any error. Warnings are
+  reviewed by hand (apps/android/README.md, "Build and install"); the ones below
+  are turned off because they cannot apply to this app, each with its reason.
+-->
+<lint>
+    <!--
+      Dependency and SDK version checks ask the network for newer releases.
+      Versions here are pinned on purpose and bumped by review (the build must
+      also work offline); a newer release is not a defect.
+    -->
+    <issue id="GradleDependency" severity="ignore" />
+    <issue id="NewerVersionAvailable" severity="ignore" />
+    <issue id="AndroidGradlePluginVersion" severity="ignore" />
+    <!--
+      targetSdk 36 is the platform this slice is built and tested against
+      (D9); moving to a newer one is its own reviewed change.
+    -->
+    <issue id="OldTargetApi" severity="ignore" />
+    <!--
+      A private member used from a nested object costs one tiny accessor
+      method, which matters to libraries near the dex method limit, not here.
+    -->
+    <issue id="SyntheticAccessor" severity="ignore" />
+    <!--
+      The app is English only, like the rest of Lightkeeper, and the glucose
+      lines are fixed by spec/display_vectors.json, never translated.
+    -->
+    <issue id="MissingTranslation" severity="ignore" />
+</lint>

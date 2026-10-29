@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A framework Material theme (no AndroidX, no dynamic color) in the brand
+  colors. The window draws behind the system bars and the app pads its
+  content by their insets (EdgeToEdge.kt). Dark mode: values-night.
+
+  The navigation bar is Ink here, for Android 8.0 (API 26) alone: it can only
+  draw light navigation buttons, which would all but vanish on Fog.
+  values-v27 makes the bar transparent, with dark buttons, from Android 8.1.
+-->
+<resources>
+    <style name="Base.Lightkeeper" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/lk_fog</item>
+        <item name="android:colorBackground">@color/lk_fog</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@color/lk_ink</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:colorPrimary">@color/lk_ink</item>
+        <item name="android:colorAccent">@color/lk_beam_text</item>
+        <item name="android:colorControlNormal">@color/lk_line_strong</item>
+        <item name="android:colorControlActivated">@color/lk_beam_text</item>
+        <item name="android:textColorPrimary">@color/lk_ink</item>
+        <item name="android:textColorSecondary">@color/lk_muted</item>
+        <item name="android:textColorHint">@color/lk_muted</item>
+    </style>
+
+    <style name="Theme.Lightkeeper" parent="Base.Lightkeeper" />
+</resources>

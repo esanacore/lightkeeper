@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Stable ids for the views the code builds, so the instrumented tests can find them. -->
+<resources>
+    <item name="lk_root" type="id" />
+    <item name="lk_status_area" type="id" />
+    <item name="lk_status_mark" type="id" />
+    <item name="lk_hero" type="id" />
+    <item name="lk_struck_line" type="id" />
+    <item name="lk_age_line" type="id" />
+    <item name="lk_placeholder" type="id" />
+    <item name="lk_checked" type="id" />
+    <item name="lk_offline" type="id" />
+    <item name="lk_setup_card" type="id" />
+    <item name="lk_open_settings" type="id" />
+    <item name="lk_panel" type="id" />
+    <item name="lk_settings_root" type="id" />
+    <item name="lk_url" type="id" />
+    <item name="lk_token" type="id" />
+    <item name="lk_save" type="id" />
+    <item name="lk_stale_caution" type="id" />
+    <item name="lk_invalid_thresholds" type="id" />
+</resources>

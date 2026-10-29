@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The app's own words: chrome, settings and help. What the glance says about
+  glucose is never here: those lines come from the firmware's rules through
+  JNI, exactly as spec/display_vectors.json pins them.
+-->
+<resources>
+    <string name="app_name">Lightkeeper</string>
+    <string name="settings">Settings</string>
+    <string name="open_settings">Open Settings</string>
+    <string name="setup_title">Add your Nightscout site to start</string>
+    <string name="setup_message">Lightkeeper reads glucose from your own Nightscout site and never changes it. Add the site’s address and a readable token in Settings.</string>
+    <string name="setup_problem">The saved address cannot be used. %1$s</string>
+    <string name="disclaimer">Lightkeeper is a secondary display and not a medical device. Always confirm on the primary CGM app.</string>
+
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="token_not_saved">The token could not be saved on this phone, so nothing was saved. Try again.</string>
+    <string name="section_nightscout">Nightscout</string>
+    <string name="url_hint">https://your-site.example</string>
+    <string name="url_label">Nightscout address</string>
+    <string name="address_problem_spoken">Address not usable: %1$s</string>
+    <string name="token_hint">Readable token (never the API secret)</string>
+    <string name="token_footnote">Make a readable token in Nightscout: Admin Tools, Subjects, add a subject with the readable role, and copy its access token here. Never paste the API secret: it can change your Nightscout, and Lightkeeper only ever reads. The token stays on this phone, sealed with a key in the Android Keystore, and travels only in a request header, never in an address.</string>
+    <string name="section_thresholds">Display thresholds (mg/dL)</string>
+    <string name="urgent_low_label">Urgent low: %1$d</string>
+    <string name="low_label">Low: %1$d</string>
+    <string name="high_label">High: %1$d</string>
+    <string name="urgent_high_label">Urgent high: %1$d</string>
+    <string name="stale_label">Stale after: %1$d min</string>
+    <string name="urgent_low_name">urgent low</string>
+    <string name="low_name">low</string>
+    <string name="high_name">high</string>
+    <string name="urgent_high_name">urgent high</string>
+    <string name="stale_name">stale after</string>
+    <string name="decrease">Decrease %1$s</string>
+    <string name="increase">Increase %1$s</string>
+    <string name="caution_spoken">Caution: %1$s</string>
+    <string name="invalid_spoken">Invalid thresholds: %1$s</string>
+    <string name="reset_defaults">Reset to defaults</string>
+    <string name="thresholds_footnote">Thresholds change only which word the display shows. They do not affect dosing or the primary app’s alarms. Match them to the alert settings already in the primary app.</string>
+</resources>
