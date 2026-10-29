@@ -32,7 +32,8 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Kept across a rotation or a theme change, so the last good reading survives it.
-        controller = lastNonConfigurationInstance as? GlanceController ?: GlanceController(this)
+        controller =
+            lastNonConfigurationInstance as? GlanceController ?: GlanceController.create(this)
         val root = buildLayout()
         setContentView(root)
         EdgeToEdge.install(this, root)

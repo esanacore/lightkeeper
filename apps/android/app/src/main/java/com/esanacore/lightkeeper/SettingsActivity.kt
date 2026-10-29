@@ -23,8 +23,17 @@ import android.widget.TextView
  * screen any other way applies nothing.
  */
 class SettingsActivity : Activity() {
-    /** The draft and the typed token, kept in memory across a rotation and never in a Bundle. */
-    private class Draft(var settings: Settings, var token: String)
+    /**
+     * The draft and the typed token, kept in memory across a rotation and
+     * never in a Bundle. [tokenEdited] is false until the token field is
+     * changed: an untouched field never rewrites or deletes the saved token,
+     * even when it shows empty because the Keystore could not open it just now.
+     */
+    private class Draft(
+        var settings: Settings,
+        var token: String,
+        var tokenEdited: Boolean = false,
+    )
 
     private lateinit var store: SettingsStore
     private lateinit var tokens: TokenStore
@@ -73,7 +82,7 @@ class SettingsActivity : Activity() {
         val settings = draft.settings
         if (!settings.canSave) return
         // The token first: if the Keystore refuses it, nothing is saved.
-        if (!tokens.write(draft.token)) {
+        if (draft.tokenEdited && !tokens.write(draft.token)) {
             saveError.visibility = View.VISIBLE
             return
         }
@@ -126,7 +135,12 @@ class SettingsActivity : Activity() {
                 importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO
                 isSaveEnabled = false
                 setText(draft.token)
-                addTextChangedListener(afterChange { typed -> draft.token = typed.trim() })
+                addTextChangedListener(
+                    afterChange { typed ->
+                        draft.token = typed.trim()
+                        draft.tokenEdited = true
+                    }
+                )
             }
         column.addView(token, matchWidth(top = 8))
         column.addView(footnote(R.string.token_footnote), matchWidth(top = 4))

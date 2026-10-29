@@ -2,12 +2,14 @@ package com.esanacore.lightkeeper
 
 import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyPermanentlyInvalidatedException
 import android.security.keystore.KeyProperties
 import java.io.IOException
 import java.security.GeneralSecurityException
 import java.security.KeyStore
 import java.security.ProviderException
 import java.util.Base64
+import javax.crypto.AEADBadTagException
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
@@ -24,81 +26,107 @@ import javax.crypto.spec.GCMParameterSpec
  * cannot be opened anywhere else. Nothing here logs, and nothing puts the
  * token in a URL: [NightscoutClient] sends it only in the api-secret header.
  *
- * A sealed token that no longer opens (the key was removed, the file was
- * damaged) is deleted and read as no token, never as a guess.
+ * A sealed token is deleted only on proof that it can never open again: its
+ * check fails, its bytes are not what this class wrote, or its key is gone
+ * or permanently invalidated. A Keystore that is busy or cannot be reached
+ * right now is no such proof, so the token stays for the next read.
+ *
+ * The fetch thread reads while the settings screen may write, so every read,
+ * write and delete holds one lock, and a read takes the nonce and the sealed
+ * bytes from one snapshot: a nonce is never paired with another write's
+ * bytes. [findKey] looks the key up in the Keystore; tests pass a failing one.
  */
-class TokenStore(context: Context) {
+class TokenStore
+internal constructor(context: Context, private val findKey: () -> SecretKey?) {
+    constructor(context: Context) : this(context, { keystoreKey() })
+
     private val prefs = context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
     /**
-     * The saved token, or null when there is none or it cannot be opened. A
-     * sealed token that fails its check is deleted; a Keystore that cannot
-     * be reached right now leaves it for the next read.
+     * The saved token, or null when there is none or it cannot be opened
+     * now. A sealed token proved damaged is deleted; any other failure
+     * leaves it for the next read.
      */
-    fun read(): String? {
-        val nonce = prefs.getString(KEY_NONCE, null) ?: return null
-        val sealed = prefs.getString(KEY_SEALED, null) ?: return null
-        return try {
-            val cipher = Cipher.getInstance(TRANSFORMATION)
-            cipher.init(
-                Cipher.DECRYPT_MODE,
-                existingKey() ?: throw GeneralSecurityException("no key"),
-                GCMParameterSpec(TAG_BITS, decode(nonce)),
-            )
-            String(cipher.doFinal(decode(sealed)), Charsets.UTF_8)
-        } catch (_: GeneralSecurityException) {
-            clear()
-            null
-        } catch (_: IllegalArgumentException) {
-            clear()
-            null
-        } catch (_: IOException) {
-            null
-        } catch (_: ProviderException) {
-            null
+    fun read(): String? =
+        synchronized(LOCK) {
+            val saved = prefs.all
+            val nonce = saved[KEY_NONCE] as? String ?: return null
+            val sealed = saved[KEY_SEALED] as? String ?: return null
+            open(nonce, sealed)
         }
-    }
 
     /**
      * Seals and saves [token]; an empty token deletes the saved one. Returns
      * false, saving nothing, when the Keystore refuses.
      */
-    fun write(token: String): Boolean {
-        if (token.isEmpty()) {
-            clear()
-            return true
+    fun write(token: String): Boolean =
+        synchronized(LOCK) {
+            if (token.isEmpty()) {
+                clear()
+                return true
+            }
+            val sealed: ByteArray
+            val nonce: ByteArray
+            try {
+                val cipher = Cipher.getInstance(TRANSFORMATION)
+                // The Keystore picks a fresh random nonce for every encryption.
+                cipher.init(Cipher.ENCRYPT_MODE, findKey() ?: newKey())
+                sealed = cipher.doFinal(token.toByteArray(Charsets.UTF_8))
+                nonce = cipher.iv
+            } catch (_: GeneralSecurityException) {
+                return false
+            } catch (_: IOException) {
+                return false
+            } catch (_: ProviderException) {
+                return false
+            }
+            prefs
+                .edit()
+                .putString(KEY_NONCE, encode(nonce))
+                .putString(KEY_SEALED, encode(sealed))
+                .apply()
+            true
         }
-        val sealed: ByteArray
-        val nonce: ByteArray
-        try {
-            val cipher = Cipher.getInstance(TRANSFORMATION)
-            // The Keystore picks a fresh random nonce for every encryption.
-            cipher.init(Cipher.ENCRYPT_MODE, existingKey() ?: newKey())
-            sealed = cipher.doFinal(token.toByteArray(Charsets.UTF_8))
-            nonce = cipher.iv
-        } catch (_: GeneralSecurityException) {
-            return false
-        } catch (_: IOException) {
-            return false
-        } catch (_: ProviderException) {
-            return false
-        }
-        prefs
-            .edit()
-            .putString(KEY_NONCE, encode(nonce))
-            .putString(KEY_SEALED, encode(sealed))
-            .apply()
-        return true
-    }
 
     /** Deletes the saved token. The key stays for the next one. */
     fun clear() {
-        prefs.edit().remove(KEY_NONCE).remove(KEY_SEALED).apply()
+        synchronized(LOCK) { prefs.edit().remove(KEY_NONCE).remove(KEY_SEALED).apply() }
     }
 
-    private fun existingKey(): SecretKey? {
-        val keyStore = KeyStore.getInstance(KEYSTORE).apply { load(null) }
-        return keyStore.getKey(KEY_ALIAS, null) as? SecretKey
+    /** Opens a sealed token, deleting it only when it is proved damaged. */
+    private fun open(nonceText: String, sealedText: String): String? {
+        val nonce: ByteArray
+        val sealed: ByteArray
+        try {
+            nonce = decode(nonceText)
+            sealed = decode(sealedText)
+        } catch (_: IllegalArgumentException) {
+            return damaged()
+        }
+        if (nonce.size != NONCE_BYTES) return damaged()
+        return try {
+            // No key under the alias: nothing can ever open these bytes again.
+            val key = findKey() ?: return damaged()
+            val cipher = Cipher.getInstance(TRANSFORMATION)
+            cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(TAG_BITS, nonce))
+            String(cipher.doFinal(sealed), Charsets.UTF_8)
+        } catch (_: AEADBadTagException) {
+            damaged()
+        } catch (_: KeyPermanentlyInvalidatedException) {
+            damaged()
+        } catch (_: GeneralSecurityException) {
+            // Busy, locked or unreachable right now: no proof of damage.
+            null
+        } catch (_: IOException) {
+            null
+        } catch (_: ProviderException) {
+            null
+        }
+    }
+
+    private fun damaged(): String? {
+        clear()
+        return null
     }
 
     private fun newKey(): SecretKey {
@@ -130,5 +158,17 @@ class TokenStore(context: Context) {
         private const val TRANSFORMATION = "AES/GCM/NoPadding"
         private const val TAG_BITS = 128
         private const val KEY_BITS = 256
+
+        /** The Keystore's GCM nonce: 12 bytes, chosen by the Keystore on every write. */
+        private const val NONCE_BYTES = 12
+
+        /** Shared by every TokenStore in the process: they all use one preferences file. */
+        private val LOCK = Any()
+
+        /** The app's key in the Android Keystore, or null when there is none yet. */
+        private fun keystoreKey(): SecretKey? {
+            val keyStore = KeyStore.getInstance(KEYSTORE).apply { load(null) }
+            return keyStore.getKey(KEY_ALIAS, null) as? SecretKey
+        }
     }
 }

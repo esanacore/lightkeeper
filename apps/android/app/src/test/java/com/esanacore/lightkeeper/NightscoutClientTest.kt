@@ -33,6 +33,7 @@ class NightscoutClientTest {
         private val body: ByteArray = "[]".toByteArray(),
         private val failOnStatus: Boolean = false,
         private val failOnRead: Boolean = false,
+        private val stream: InputStream? = null,
     ) : HttpsURLConnection(URI(url).toURL()) {
         var disconnected = false
         var bodyRead = false
@@ -45,7 +46,7 @@ class NightscoutClientTest {
         override fun getInputStream(): InputStream {
             bodyRead = true
             if (failOnRead) throw IOException("connection reset")
-            return ByteArrayInputStream(body)
+            return stream ?: ByteArrayInputStream(body)
         }
 
         override fun connect() = Unit
@@ -204,6 +205,75 @@ class NightscoutClientTest {
             }
         assertEquals(NightscoutClient.Failure.NOT_NIGHTSCOUT, failed.failure)
         assertNull(plain!!.getRequestProperty("api-secret"))
+    }
+
+    /** A server that sends one byte per read, each [stepMs] after the last, on [clock]. */
+    private class Trickle(
+        private val bytes: Int,
+        private val stepMs: Long,
+        private val clock: LongArray,
+        private val onRead: () -> Unit = {},
+    ) : InputStream() {
+        private var sent = 0
+
+        override fun read(): Int = throw AssertionError("read in blocks")
+
+        override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
+            onRead()
+            if (sent == bytes) return -1
+            clock[0] += stepMs * 1_000_000L
+            sent += 1
+            buffer[offset] = ' '.code.toByte()
+            return 1
+        }
+    }
+
+    @Test
+    fun testAFetchPastItsDeadlineFailsAsUnreachable() {
+        // A byte every 3 seconds: every read beats the 10-second read timeout,
+        // and the whole fetch still has to end at 20 seconds, as on iOS.
+        val clock = longArrayOf(0L)
+        var connection: FakeHttps? = null
+        val trickling =
+            NightscoutClient(site, token, nanoTime = { clock[0] }) { url ->
+                FakeHttps(url, stream = Trickle(100, 3_000L, clock)).also { connection = it }
+            }
+        assertEquals(20_000L, trickling.deadlineMs)
+        val failed = failureOf { trickling.fetchEntries() }
+        assertEquals(NightscoutClient.Failure.UNREACHABLE, failed.failure)
+        assertEquals(21_000L * 1_000_000L, clock[0])
+        assertTrue(connection!!.disconnected)
+    }
+
+    @Test
+    fun testASlowBodyInsideTheDeadlineIsKept() {
+        val clock = longArrayOf(0L)
+        val slow =
+            NightscoutClient(site, token, nanoTime = { clock[0] }) { url ->
+                FakeHttps(url, stream = Trickle(6, 3_000L, clock))
+            }
+        assertEquals(6, slow.fetchEntries().size)
+    }
+
+    @Test
+    fun testCancelEndsTheFetchAsUnreachableAndClosesTheConnection() {
+        var connection: FakeHttps? = null
+        lateinit var nightscout: NightscoutClient
+        // The cancel arrives while a read is under way, as from the main thread.
+        val stream = Trickle(100, 0L, longArrayOf(0L)) { nightscout.cancel() }
+        nightscout = client(token) { url -> FakeHttps(url, stream = stream).also { connection = it } }
+        val failed = failureOf { nightscout.fetchEntries() }
+        assertEquals(NightscoutClient.Failure.UNREACHABLE, failed.failure)
+        assertTrue(connection!!.disconnected)
+    }
+
+    @Test
+    fun testACancelledClientOpensNoConnection() {
+        val nightscout = client(token) { FakeHttps(it) }
+        nightscout.cancel()
+        val failed = failureOf { nightscout.fetchEntries() }
+        assertEquals(NightscoutClient.Failure.UNREACHABLE, failed.failure)
+        assertTrue(opened.isEmpty())
     }
 
     @Test
