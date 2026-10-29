@@ -2,9 +2,11 @@
 
 main() runs here with a fake source and FakeTk (tests/test_tk_window.py) in
 sys.modules as tkinter, so no display is needed. The window starts on NO DATA
-until the first answer; every fetch runs on the worker thread, never on Tk's;
-a setting that cannot be used, or no tkinter, exits 2 before any window opens;
-`q` exits 0 and Ctrl+C 130; and the CLI never loads tkinter at all.
+until the first answer; every fetch runs on the worker thread, never on Tk's,
+and a fetch given up on leaves its thread behind; the ticker thread keeps the
+poll going when Tk's wall-clock timers stall; a setting that cannot be used, a
+panel too large for the screen, or no tkinter, exits 2; `q` exits 0 and Ctrl+C
+130; and the CLI never loads tkinter at all.
 """
 
 import os
@@ -362,6 +364,76 @@ def test_fr018_theme_option_skips_the_system_theme(tk):
     assert tk.canvases[3].options["background"] == LIGHT.paper
 
 
+def test_fr018_panel_larger_than_the_screen_is_shown_smaller_and_says_so(tk, capsys):
+    tk.screen = (1920, 1080)
+    tk.driver = lambda root: root.press("q")
+    assert desktop.main(["--demo", "--panel", "kindle"]) == 0
+    assert tk.photos[0].data.startswith(b"P6\n600 800\n255\n")
+    assert capsys.readouterr().err == (
+        "lightkeeper: at --scale 2 the kindle panel is larger than this screen, so each "
+        "panel pixel is drawn as 1x1 screen pixels instead of 2x2\n"
+    )
+
+
+def test_fr018_panel_the_screen_cannot_hold_exits_2(tk, capsys):
+    tk.screen = (1366, 768)
+    assert desktop.main(["--demo", "--panel", "kindle"]) == 2
+    assert capsys.readouterr().err == (
+        "Configuration error: a 600x800 panel does not fit on this 1366x768 screen even at "
+        "one screen pixel a panel pixel: choose a smaller panel\n"
+    )
+    [root] = tk.roots
+    assert root.destroyed == 1 and tk.photos == []
+
+
+def test_fr018_ticker_polls_when_tk_timers_stall(tk, monkeypatch):
+    """No after() timer ever fires here; the ticker thread's wake-ups bring the answer in."""
+    monkeypatch.setattr(desktop, "POLL_MS", 5)
+    source = GatedSource(fresh_entries())
+    source.gate.set()
+    use_source(monkeypatch, source)
+    tickers = []
+
+    def driver(root):
+        deadline = time.monotonic() + WAIT_SECONDS
+        while not root.titles[-1].startswith("IN RANGE"):
+            assert time.monotonic() < deadline, "timed out waiting for a wake-up"
+            root.deliver()
+            time.sleep(0.001)
+        tickers.extend(t for t in threading.enumerate() if t.name == "lightkeeper-tick")
+        root.press("q")
+
+    tk.driver = driver
+    assert desktop.main([]) == 0
+    assert tk.roots[0].now_ms == 0  # the fake after() clock never moved
+    assert tickers and all(ticker.daemon for ticker in tickers)
+    deadline = time.monotonic() + WAIT_SECONDS
+    while any(ticker.is_alive() for ticker in tickers):
+        assert time.monotonic() < deadline, "the ticker thread is still running"
+        time.sleep(0.005)
+
+
+def test_fr018_ticker_wakes_every_period_until_stopped():
+    calls = []
+    enough = threading.Event()
+
+    def wake():
+        calls.append(threading.current_thread().name)
+        if len(calls) == 1:
+            raise RuntimeError("main thread is not in main loop")  # skips one beat only
+        if len(calls) >= 3:
+            enough.set()
+
+    ticker = desktop.Ticker(wake, 0.001)
+    try:
+        assert enough.wait(WAIT_SECONDS)
+    finally:
+        ticker.stop()
+    ticker._thread.join(WAIT_SECONDS)
+    assert not ticker._thread.is_alive() and ticker._thread.daemon
+    assert set(calls) == {"lightkeeper-tick"}
+
+
 # --- the session, with a fake window, worker and clock ------------------------------------
 
 
@@ -371,10 +443,18 @@ class FakeWindow:
         self.timers = {}
         self.cancelled = []
         self.quits = 0
+        self.on_wake = None
         self._jobs = 0
 
     def show(self, lines, title, drawn_at):
         self.shown.append((lines, title, drawn_at))
+
+    def bind_wake(self, callback):
+        self.on_wake = callback
+
+    def wake(self):
+        """Run the binding at once, as Tk's thread would for the ticker's wake-up."""
+        self.on_wake()
 
     def after(self, delay_ms, callback):
         self._jobs += 1
@@ -399,6 +479,7 @@ class FakeWorker:
     def __init__(self):
         self.submitted = []
         self.answers = []
+        self.closed = False
 
     def submit(self, fetch):
         self.submitted.append(fetch)
@@ -406,6 +487,19 @@ class FakeWorker:
     def finished(self):
         answers, self.answers = self.answers, []
         return answers
+
+    def close(self):
+        self.closed = True
+
+
+class FakeTicker:
+    def __init__(self, wake, period):
+        self.wake = wake
+        self.period = period
+        self.stopped = False
+
+    def stop(self):
+        self.stopped = True
 
 
 class Clock:
@@ -416,28 +510,57 @@ class Clock:
         return self.now
 
 
-def session_at(now=NOW):
+class Started:
+    """The session's workers and ticker, as its factories made them."""
+
+    def __init__(self):
+        self.workers = []
+        self.tickers = []
+
+    def new_worker(self):
+        self.workers.append(FakeWorker())
+        return self.workers[-1]
+
+    def new_ticker(self, wake, period):
+        self.tickers.append(FakeTicker(wake, period))
+        return self.tickers[-1]
+
+    def submitted(self):
+        return [fetch for worker in self.workers for fetch in worker.submitted]
+
+
+def session_at(now=NOW, window=None):
     clock = Clock(now)
     source = FakeSource(entries=[entry(mgdl=110, minutes_ago=14)])
     session = desktop.Session(Glance(Thresholds(), timedelta(seconds=60), now), source, clock)
-    window, worker = FakeWindow(), FakeWorker()
-    session.start(window, worker)
-    return session, window, worker, clock, source
+    window, started = window or FakeWindow(), Started()
+    session.start(window, started.new_worker, started.new_ticker)
+    return session, window, started.workers[0], clock, source, started
 
 
 def test_fr018_session_starts_on_no_data_and_submits_the_first_fetch():
-    session, window, worker, clock, source = session_at()
+    session, window, worker, clock, source, started = session_at()
     assert window.shown == [(tuple(NO_DATA), NO_DATA_TITLE, NOW)]
     assert worker.submitted == [source.fetch_entries]
     assert source.calls == 0  # submitted, never run here
     delays = sorted(delay for delay, _cb in window.timers.values())
     assert delays == [desktop.POLL_MS, 30_000]
+    [ticker] = started.tickers
+    assert (ticker.wake, ticker.period) == (window.wake, desktop.POLL_MS / 1000)
+    assert window.on_wake == session._poll
+    session.stop()
+    assert ticker.stopped and worker.closed
+
+
+def test_fr018_session_stop_before_start_is_fine():
+    session = desktop.Session(Glance(Thresholds(), timedelta(seconds=60), NOW), FakeSource())
+    session.stop()
 
 
 def test_fr018_session_turns_stale_on_its_own_timer():
-    session, window, worker, clock, source = session_at()
+    session, window, worker, clock, source, started = session_at()
     worker.answers.append(source.entries)
-    window.fire(session._poll)
+    window.fire(session._tick)
     assert window.shown[-1][0][0] == "IN RANGE"
     assert window.cancelled  # the re-age timer restarted from the new screen
     # Only the re-age timer from here on: the reading turns STALE with no fetch.
@@ -451,44 +574,94 @@ def test_fr018_session_turns_stale_on_its_own_timer():
 
 
 def test_fr018_session_redraws_at_once_on_a_wake_jump():
-    session, window, worker, clock, source = session_at()
+    session, window, worker, clock, source, started = session_at()
     worker.answers.append(source.entries)
-    window.fire(session._poll)
+    window.fire(session._tick)
     shown = len(window.shown)
     clock.now += timedelta(hours=2)
-    window.fire(session._poll)
+    window.fire(session._tick)
     assert len(window.shown) == shown + 1
     assert window.shown[-1][0][0] == "STALE - DO NOT TRUST"
     assert len(worker.submitted) == 2  # and a fetch went out at once
 
 
 def test_fr018_session_quiet_poll_draws_nothing():
-    session, window, worker, clock, source = session_at()
+    session, window, worker, clock, source, started = session_at()
     clock.now += timedelta(milliseconds=250)
-    window.fire(session._poll)
+    window.fire(session._tick)
     assert len(window.shown) == 1 and len(worker.submitted) == 1
 
 
 def test_fr018_session_hung_fetch_is_redrawn_as_unreachable():
-    session, window, worker, clock, source = session_at()
+    session, window, worker, clock, source, started = session_at()
     for step in (timedelta(seconds=60), timedelta(seconds=60)):
         clock.now += step
-        window.fire(session._poll)
+        window.fire(session._tick)
     assert len(window.shown) == 1  # two intervals with no answer: not yet given up
     clock.now += timedelta(milliseconds=1)
-    window.fire(session._poll)
+    window.fire(session._tick)
     lines, title, _at = window.shown[-1]
     assert lines == (*NO_DATA, "Nightscout unreachable")
     assert "checked" in title
-    assert len(worker.submitted) == 1  # no second fetch while the first is still out
+    assert len(started.submitted()) == 1  # the next fetch waits an interval
+
+
+def test_haz002_hung_fetch_is_retried_on_a_new_worker_one_interval_later():
+    """A fetch that never returns holds its thread; the next one gets a new thread."""
+    session, window, hung, clock, source, started = session_at()
+    for step in (timedelta(seconds=60), timedelta(seconds=60), timedelta(milliseconds=1)):
+        clock.now += step  # in steps no longer than two intervals: no jump
+        window.fire(session._tick)
+    assert window.shown[-1][0][-1] == "Nightscout unreachable"  # the watchdog gave up on it
+    assert hung.closed  # its thread ends whenever the hung fetch returns
+    [_hung, fresh] = started.workers
+    assert fresh.submitted == []
+    clock.now += timedelta(seconds=60) - timedelta(milliseconds=1)
+    window.fire(session._tick)
+    assert fresh.submitted == []  # not before the interval is up
+    clock.now += timedelta(milliseconds=1)
+    window.fire(session._tick)
+    assert fresh.submitted == [source.fetch_entries]
+    assert hung.submitted == [source.fetch_entries]  # nothing more for the hung one
+    # The hung fetch's late answer is never read; the fresh one's is.
+    hung.answers.append([entry(mgdl=250, minutes_ago=0)])
+    fresh.answers.append([entry(mgdl=99, minutes_ago=0)])
+    window.fire(session._tick)
+    assert window.shown[-1][0][:2] == ("IN RANGE", "99 mg/dL ->")
+    assert hung.answers  # still unread
+    assert len(started.workers) == 2
+
+
+def test_fr018_clock_set_back_is_seen_through_the_ticker_not_tk_timers():
+    """Tk 8.6 times after() by the wall clock; the ticker's wake-up polls regardless."""
+    tk = FakeTk()
+    window = tk_window.GlanceWindow(tk, 296, 128, platform="linux")
+    session, window, worker, clock, source, started = session_at(window=window)
+    root = tk.roots[0]
+    worker.answers.append(source.entries)
+    root.deliver()  # nothing queued yet
+    started.tickers[0].wake()  # as the ticker thread does, every POLL_MS
+    root.deliver()
+    assert root.titles[-1].startswith("IN RANGE - 14 min ago - checked")
+    stalled = {job for _due, _seq, job, _cb in root.timers}
+    # The clock goes back an hour. No after() timer fires: in Tk 8.6 they would wait an
+    # hour. Only the ticker's wake-ups come.
+    clock.now -= timedelta(hours=1)
+    started.tickers[0].wake()
+    root.deliver()
+    # Re-classified at once: the reading is now 46 minutes ahead of the clock.
+    assert root.titles[-1].startswith("STALE - DO NOT TRUST - time is in the future - checked")
+    assert len(worker.submitted) == 2  # a fetch went out at once
+    redraws = [job for _due, _seq, job, cb in root.timers if cb == session._timer]
+    assert len(redraws) == 1 and redraws[0] not in stalled  # the re-age timer, set again
 
 
 def test_fr018_session_refresh_and_fail():
-    session, window, worker, clock, source = session_at()
+    session, window, worker, clock, source, started = session_at()
     session.refresh()
     assert len(worker.submitted) == 1  # one is out already
     worker.answers.append([])
-    window.fire(session._poll)
+    window.fire(session._tick)
     session.refresh()
     assert len(worker.submitted) == 2
     first, second = RuntimeError("one"), RuntimeError("two")

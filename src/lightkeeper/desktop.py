@@ -9,10 +9,19 @@ is what to act on.
 
 Fetches run on a worker thread, never on Tk's: a slow Nightscout must not
 freeze the window. Their answers come back through a queue that Tk's thread
-polls with after(), every POLL_MS. A second timer re-ages the screen from the
-last good reading on its own schedule, so the window goes STALE on time with
-no fetch at all, and a wall-clock jump (sleep and wake) or a hung fetch is
-caught at the next poll (glance.py says how).
+polls every POLL_MS. A second timer re-ages the screen from the last good
+reading on its own schedule, so the window goes STALE on time with no fetch at
+all, and a wall-clock jump (sleep and wake, or a clock set forward or back) or
+a hung fetch is caught at the next poll (glance.py says how). A fetch the
+glance gives up on keeps its thread; the next fetch gets a new worker, and the
+old one's answer, if it ever comes, is dropped with it.
+
+Two wake-ups drive the poll: Tk's after(), and a ticker thread that waits on
+the monotonic clock and queues a wake-up event for Tk's thread. Tk 8.6 times
+after() by the wall clock, so a clock set back stalls every after() timer for
+as long as it went back; the ticker's wake-ups keep coming, the poll sees the
+jump, and the redraw that follows sets the re-age timer again from the new
+clock. Either wake-up alone keeps the window polling.
 
 tkinter is imported only when the window opens, so the CLI and the Pi never
 load it. With no tkinter at all, a one-line hint says what to install; a
@@ -26,6 +35,8 @@ window is exactly what gets started with pythonw, where both are None.
 from __future__ import annotations
 
 import argparse
+import contextlib
+import functools
 import queue
 import sys
 import textwrap
@@ -58,7 +69,8 @@ examples:
 
 exit codes:
   0    the window was closed
-  2    a setting that cannot be used, no tkinter, or no display to open a window on
+  2    a setting that cannot be used, a panel too large for the screen, no tkinter,
+       or no display to open a window on
   130  stopped with Ctrl+C in the terminal that started it
 
 settings come from the same environment variables as the CLI (NIGHTSCOUT_URL,
@@ -132,34 +144,86 @@ class Worker:
             self._done.put(answer)
 
 
+class Ticker:
+    """A daemon thread that calls `wake` every `period` seconds, on the monotonic clock.
+
+    threading.Event.wait counts on the monotonic clock, so neither sleep nor a
+    clock set back or forward changes the beat. `wake` is GlanceWindow.wake,
+    which queues the wake-up for Tk's thread. An error in `errors` (Tk not in
+    its main loop yet or any more, the window going) skips that beat only.
+    """
+
+    def __init__(
+        self,
+        wake: Callable[[], object],
+        period: float,
+        errors: tuple[type[Exception], ...] = (RuntimeError,),
+    ) -> None:
+        """Start the thread; the first wake-up comes one period from now."""
+        self._wake = wake
+        self._period = period
+        self._errors = errors
+        self._stop = threading.Event()
+        self._thread = threading.Thread(target=self._run, name="lightkeeper-tick", daemon=True)
+        self._thread.start()
+
+    def stop(self) -> None:
+        """Let the thread end at its next beat; does not wait for it."""
+        self._stop.set()
+
+    def _run(self) -> None:
+        while not self._stop.wait(self._period):
+            with contextlib.suppress(*self._errors):
+                self._wake()
+
+
 class Session:
     """Runs the glance on Tk's thread: the poll, the re-age timer, and the keys."""
 
     def __init__(
         self, glance: Glance, source: EntrySource, clock: Callable[[], datetime] = _now
     ) -> None:
-        """Hold `glance` and `source`; the window and the worker come with `start`.
+        """Hold `glance` and `source`; the window and the threads come with `start`.
 
         The window needs this session's `refresh` and `fail` before it opens,
-        and the worker thread starts only once the window has opened.
+        and the threads start only once the window has opened.
         """
         self._glance = glance
         self._source = source
         self._clock = clock
         self._window: Any = None
+        self._new_worker: Callable[[], Any] = Worker
         self._worker: Any = None
+        self._ticker: Any = None
         self._redraw_job: Any = None
         self.failure: BaseException | None = None  # what a Tk callback raised, if anything
 
-    def start(self, window: Any, worker: Any) -> None:
+    def start(
+        self,
+        window: Any,
+        new_worker: Callable[[], Any],
+        new_ticker: Callable[[Callable[[], object], float], Any],
+    ) -> None:
         """Show the first screen (NO DATA until an answer) in `window`, then start polling.
 
-        `window` is a GlanceWindow and `worker` a Worker, or stand-ins for them.
+        `window` is a GlanceWindow; `new_worker` makes a Worker (again for each
+        fetch given up on) and `new_ticker(wake, period)` a Ticker; or
+        stand-ins for them. `stop` ends both threads.
         """
         self._window = window
-        self._worker = worker
+        self._new_worker = new_worker
+        self._worker = new_worker()
+        window.bind_wake(self._poll)
         self._redraw()
-        self._poll()
+        self._tick()
+        self._ticker = new_ticker(window.wake, POLL_MS / 1000)
+
+    def stop(self) -> None:
+        """Let the ticker and the worker threads end; waits for neither."""
+        if self._ticker is not None:
+            self._ticker.stop()
+        if self._worker is not None:
+            self._worker.close()
 
     def refresh(self) -> None:
         """Check Nightscout now (the `r` key), unless a check is running already."""
@@ -173,18 +237,29 @@ class Session:
             self.failure = error
         self._window.quit()
 
+    def _tick(self) -> None:
+        """Poll now and again in POLL_MS, by Tk's after(); the ticker polls as well."""
+        self._poll()
+        self._window.after(POLL_MS, self._tick)
+
     def _poll(self) -> None:
+        """Take the answers, look for a jump or a hung fetch, and start a fetch that is due."""
         now = self._clock()
         changed = False
         for answer in self._worker.finished():
             self._glance.fetch_finished(answer, now)
             changed = True
+        in_flight = self._glance.fetching
         if self._glance.poll(now):
             changed = True
+        if in_flight and not self._glance.fetching:
+            # Given up on: its thread may never come back, so the next fetch gets a new
+            # one, and the old one's answer, if it ever comes, is dropped with it.
+            self._worker.close()
+            self._worker = self._new_worker()
         self._fetch_if_due(now)
         if changed:
             self._redraw()
-        self._window.after(POLL_MS, self._poll)
 
     def _fetch_if_due(self, now: datetime) -> None:
         if self._glance.fetch_due(now):
@@ -221,8 +296,8 @@ def build_parser() -> argparse.ArgumentParser:
         default=SCALES[0],
         help=(
             "whole-number zoom for the panel's pixels, in 96 dpi pixels: on a display "
-            f"scaled to 200%%, each panel pixel is twice as many device pixels "
-            f"(default {SCALES[0]})"
+            f"scaled to 200%%, each panel pixel is twice as many device pixels; "
+            f"smaller when the window would not fit the screen (default {SCALES[0]})"
         ),
     )
     names = [*PROFILES, *(f"{alias} (= {name})" for alias, name in ALIASES.items())]
@@ -296,13 +371,25 @@ def _start(args: argparse.Namespace) -> int:
     except tkinter.TclError as exc:  # no display to open a window on
         _warn(f"lightkeeper: could not open the window: {exc}")
         return 2
+    except ValueError as exc:  # a panel this screen cannot hold; the window is closed already
+        _warn(f"Configuration error: {exc}")
+        return 2
+    asked = args.scale * window.ui_scale
+    if window.zoom < asked:
+        _warn(
+            f"lightkeeper: at --scale {args.scale} the {profile.name} panel is larger than "
+            f"this screen, so each panel pixel is drawn as {window.zoom}x{window.zoom} screen "
+            f"pixels instead of {asked}x{asked}"
+        )
+    # A wake-up that finds Tk outside its main loop, or the window gone, skips a beat.
+    new_ticker = functools.partial(Ticker, errors=(RuntimeError, tkinter.TclError))
     try:
-        worker = Worker()
         try:
-            session.start(window, worker)
+            # Worker is looked up here, at call time, so tests can stand in for it.
+            session.start(window, Worker, new_ticker)
             window.mainloop()
         finally:
-            worker.close()
+            session.stop()
     finally:
         # Whatever stopped it, the window goes: a window that no longer updates
         # must not stay on screen looking alive.

@@ -15,10 +15,15 @@ tested with a fake clock:
   STALE is one redraw: a change due in the second before it waits for it, so
   `15 min ago` never flashes up a millisecond before STALE replaces it.
 - Whether something went wrong between looks: a wall-clock jump of more than two
-  fetch intervals (sleep and wake, or a clock set by hand) re-classifies at once
-  and asks for a fetch, and a fetch with no answer after two intervals counts as
-  a fetch error, so a hung request turns into "Nightscout unreachable" and then
-  STALE instead of a frozen window (HAZ-002).
+  fetch intervals (sleep and wake, or a clock set forward or back) re-classifies
+  at once and asks for a fetch, and a fetch with no answer after two intervals
+  counts as a fetch error, so a hung request turns into "Nightscout unreachable"
+  and then STALE instead of a frozen window (HAZ-002). The glance then lets go
+  of that fetch: the next one goes out an interval later, so a request that
+  never returns cannot hold up every fetch after it.
+
+The caller must look in on a clock a wall-clock step cannot stall, or a clock
+set back would stop the looks for as long as it went back; desktop.py does.
 
 The lines themselves are never decided here: `current_status` and
 `render_lines` (application/monitor.py, pinned by spec/display_vectors.json)
@@ -130,8 +135,7 @@ class Glance:
         self._last_good: Status | None = None
         self._error: str | None = None
         self._checked_at: datetime | None = None
-        self._fetch_started: datetime | None = None
-        self._gave_up = False  # the watchdog already counted the fetch in flight as failed
+        self._fetch_started: datetime | None = None  # None once answered or given up on
         self._next_fetch = now
         self._seen = now  # the clock at the last poll, to see a jump
 
@@ -142,7 +146,7 @@ class Glance:
 
     @property
     def fetching(self) -> bool:
-        """True while a fetch is in flight, given up on or not."""
+        """True while a fetch is in flight and not given up on."""
         return self._fetch_started is not None
 
     def _reading(self) -> GlucoseReading | None:
@@ -202,9 +206,13 @@ class Glance:
         Called every few hundred milliseconds. A step of more than two fetch
         intervals since the last poll is sleep and wake, or a clock change: the
         screen is re-classified now, not at the next timer, and a fetch is due.
-        A fetch with no answer two intervals after it started is counted, once,
-        as a fetch error, so the screen says "Nightscout unreachable" and goes on
-        aging into STALE (HAZ-002). Its answer, if one ever comes, is still used.
+        A fetch with no answer two intervals after it started is counted as a
+        fetch error, so the screen says "Nightscout unreachable" and goes on
+        aging into STALE (HAZ-002). It is then no longer in flight: the next
+        fetch is due an interval later (at once after a jump), so a request
+        that never returns does not hold up the ones after it. The caller runs
+        that next fetch on a thread of its own, and drops the hung one's
+        answer if it ever comes.
         """
         limit = JUMP_INTERVALS * self._interval
         jumped = abs(now - self._seen) > limit
@@ -216,11 +224,12 @@ class Glance:
                 self._fetch_started = now
         overdue = (
             self._fetch_started is not None
-            and not self._gave_up
             and now - self._fetch_started > WATCHDOG_INTERVALS * self._interval
         )
         if overdue:
-            self._gave_up = True
+            self._fetch_started = None
+            if not jumped:
+                self._next_fetch = now + self._interval
             self._error = (
                 f"no answer from Nightscout within "
                 f"{int((WATCHDOG_INTERVALS * self._interval).total_seconds())} seconds"
@@ -240,7 +249,6 @@ class Glance:
     def fetch_started(self, now: datetime) -> None:
         """Note that a fetch started at `now`; the next is due one interval later."""
         self._fetch_started = now
-        self._gave_up = False
         self._next_fetch = now + self._interval
 
     def fetch_finished(self, outcome: list[Any] | Exception, now: datetime) -> None:
@@ -248,7 +256,9 @@ class Glance:
 
         Exactly what the CLI does with a fetch: the newest valid reading
         becomes the last good one, and on an error the last good reading is
-        kept and re-aged, with "Nightscout unreachable" under it.
+        kept and re-aged, with "Nightscout unreachable" under it. Only the
+        answer to the fetch in flight belongs here: one given up on has been
+        let go (`poll`), and its answer is the caller's to drop.
         """
         status, error = current_status(_Answer(outcome), now, self._thresholds, self._last_good)
         if error is None:
@@ -256,4 +266,3 @@ class Glance:
         self._error = error
         self._checked_at = now
         self._fetch_started = None
-        self._gave_up = False

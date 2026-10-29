@@ -10,10 +10,21 @@ on its tint; URGENT LOW and URGENT HIGH an Ink band with a 4 px leading rule in
 the status color; STALE the Ink band with hatching in the strip's margin; NO
 DATA and any other headline a 2 px dashed frame. Below it, the key hints in
 Muted. `t` swaps the pixels for the vector lines as text in TkFixedFont (the
-STALE `last:` line struck through, in Muted), `r` asks for a check, `q` quits.
+STALE `last:` line struck through, in Muted, and the draw's stamp under them,
+so a frozen window shows in the text view too), `r` asks for a check, `q`
+quits.
 
 The panel's own rules (the status word never smaller than the number, STALE
 never the hero) come from `render_bitmap`; nothing here draws a line larger.
+
+The whole window always fits on the screen. The window cannot be resized, and
+the bottom of the panel holds the age, the stamp and "Nightscout unreachable",
+which must never be off screen. So the zoom is the largest whole number, no
+larger than the one asked for, at which the window, its frame and title bar fit
+the screen with room left for a taskbar. A panel that does not fit even at one
+screen pixel a panel pixel is refused. On Windows the window opens centered:
+Windows cascades new windows down the screen, which could push a tall one's
+bottom under the taskbar.
 
 Calm by construction: no bell, no taskbar flash, no notification, no `-alpha`
 change, and nothing moves. A change is one redraw, and the screen on show is
@@ -75,6 +86,15 @@ LEAD = 4  # URGENT's leading rule in the status color
 TEXT_PAD = 12  # the text view's lines from the panel's edge
 TEXT_GAP = 4  # between the text view's lines
 BASE_DPI = 96
+# What the system draws round the window, and keeps for itself at the screen's
+# edge, in 96 dpi pixels at the display's own scale: room the window leaves for
+# them. Windows 11 draws 7 px of frame and a 29 px title bar, and its taskbar is 48.
+FRAME = 8  # each side, and below
+TITLE_BAR = 32
+SCREEN_EDGE = 48  # a taskbar, dock or menu bar
+
+# A virtual event: any thread may queue it with `wake`, and Tk's thread runs its binding.
+WAKE_EVENT = "<<LightkeeperWake>>"
 
 # Colors by tokens.json color id, per theme (tests/test_tk_window.py checks each).
 PALETTES: dict[str, dict[str, str]] = {
@@ -136,6 +156,16 @@ def ui_scale(dpi: float) -> int:
     every size in the window, the panel's pixels among them, stays whole.
     """
     return max(1, int(dpi + BASE_DPI // 2) // BASE_DPI)
+
+
+def chrome(dpi: float) -> tuple[int, int, int]:
+    """Return the room for the frame, the title bar and the screen's edge, in device pixels.
+
+    The system draws these at the display's own scale (150% is 1.5), not at
+    `ui_scale`'s whole number, and never smaller than at 96 dpi.
+    """
+    factor = max(1.0, dpi / BASE_DPI)
+    return round(FRAME * factor), round(TITLE_BAR * factor), round(SCREEN_EDGE * factor)
 
 
 def system_theme(platform: str = sys.platform, registry: Any = None) -> str:
@@ -211,6 +241,7 @@ class GlanceWindow:
         on_refresh: Callable[[], object] = _nothing,
         on_quit: Callable[[], object] | None = None,
         on_error: Callable[[BaseException], object] | None = None,
+        platform: str = sys.platform,
     ) -> None:
         """Open the window for a `width` x `height` panel, each pixel `scale` 96 dpi pixels.
 
@@ -219,7 +250,10 @@ class GlanceWindow:
         callback raises, Ctrl+C among them, instead of Tk printing it and
         carrying on. Raises ValueError for a panel the layout refuses, a scale
         that is not a whole number of 1 or more, or an unknown theme, before
-        any window opens.
+        any window opens; and, closing the window it opened, for a panel the
+        screen cannot hold even at one screen pixel a panel pixel. `zoom` is
+        then the screen pixels a panel pixel, `scale` times `ui_scale` or less
+        when that would not fit.
         """
         check_size(width, height)
         if isinstance(scale, bool) or not isinstance(scale, int) or scale < 1:
@@ -233,15 +267,43 @@ class GlanceWindow:
         self._tint = TINTS[theme]
         self.mode = PIXELS
         self._lines: tuple[str, ...] = ()
+        self._stamp = ""
         self._screen: tuple[tuple[str, ...], str, str] | None = None
         self._photo: Any = None
 
         root = tk.Tk()
         self.root = root
-        self.ui_scale = ui_scale(root.winfo_fpixels("1i"))
-        self.zoom = scale * self.ui_scale
+        density = root.winfo_fpixels("1i")
+        self.ui_scale = ui_scale(density)
         u = self.ui_scale
         background = self._palette["fog"]
+        # Made first, packed last: its size, from the font, is part of what must fit.
+        hints = tk.Label(
+            root,
+            text=KEY_HINTS,
+            foreground=self._palette["muted"],
+            background=background,
+            font=HINT_FONT,
+            anchor="w",
+            borderwidth=0,
+        )
+        frame, title_bar, edge = chrome(density)
+        screen_width, screen_height = root.winfo_screenwidth(), root.winfo_screenheight()
+        room = (screen_width - 2 * frame, screen_height - title_bar - frame - edge)
+        zoom = self._fit(scale * u, hints, room)
+        if zoom is None:
+            root.destroy()
+            raise ValueError(
+                f"a {width}x{height} panel does not fit on this {screen_width}x{screen_height} "
+                "screen even at one screen pixel a panel pixel: choose a smaller panel"
+            )
+        self.zoom = zoom
+        self.size = self._size(zoom, hints)  # the window's own area, frame and title bar aside
+        if platform == "win32":
+            # Windows cascades a new window down the screen, taskbar or not: center it.
+            left = (screen_width - self.size[0] - 2 * frame) // 2
+            top = (screen_height - edge - self.size[1] - title_bar - frame) // 2
+            root.geometry(f"+{left}+{top}")
         root.title(TITLE)
         root.configure(background=background)
         root.resizable(False, False)
@@ -284,16 +346,27 @@ class GlanceWindow:
             borderwidth=0,
         )
         self._panel.pack()
-        hints = tk.Label(
-            root,
-            text=KEY_HINTS,
-            foreground=self._palette["muted"],
-            background=background,
-            font=HINT_FONT,
-            anchor="w",
-            borderwidth=0,
-        )
         hints.pack(side="top", fill="x", padx=MARGIN * u, pady=(CHIP_INSET * u, MARGIN * u))
+
+    def _size(self, zoom: int, hints: Any) -> tuple[int, int]:
+        """Return the window's own width and height at `zoom`: what the packer asks for."""
+        u = self.ui_scale
+        panel_width = self._width * zoom + 2 * BEZEL * u
+        width = max(panel_width, hints.winfo_reqwidth()) + 2 * MARGIN * u
+        height = (
+            (2 * MARGIN + STRIP_HEIGHT + 2 * CHIP_INSET + 2 * BEZEL) * u
+            + self._height * zoom
+            + hints.winfo_reqheight()
+        )
+        return width, height
+
+    def _fit(self, zoom: int, hints: Any, room: tuple[int, int]) -> int | None:
+        """Return the largest whole zoom, `zoom` at most, whose window fits in `room`; or None."""
+        for candidate in range(zoom, 0, -1):
+            width, height = self._size(candidate, hints)
+            if width <= room[0] and height <= room[1]:
+                return candidate
+        return None
 
     def show(self, lines: Sequence[str], title: str, drawn_at: datetime) -> bool:
         """Draw `lines`, stamped with the local HH:MM of `drawn_at`, and set the title.
@@ -311,6 +384,7 @@ class GlanceWindow:
         )
         self._screen = screen
         self._lines = screen[0]
+        self._stamp = stamp
         self._photo = photo  # Tk shows an image only while Python holds on to it
         self.root.title(title)
         self._draw_strip(self._lines[0])
@@ -344,6 +418,16 @@ class GlanceWindow:
                 middle = (top + bottom) // 2
                 canvas.create_line(left, middle, right, middle, fill=fill, width=u)
             y = bottom + TEXT_GAP * u
+        # The draw's stamp, as on the pixels, on a row of its own at the right: a frozen
+        # window shows here too (HAZ-014). Screen chrome, not a vector line, so Muted.
+        canvas.create_text(
+            self._width * self.zoom - TEXT_PAD * u,
+            y,
+            text=self._stamp,
+            anchor="ne",
+            font=TEXT_FONT,
+            fill=self._palette["muted"],
+        )
 
     def _draw_strip(self, headline: str) -> None:
         """Draw the headline in its chip: the word plus its shape, color second."""
@@ -410,6 +494,21 @@ class GlanceWindow:
     def after_cancel(self, job: Any) -> None:
         """Cancel a job `after` returned."""
         self.root.after_cancel(job)
+
+    def bind_wake(self, callback: Callable[[], object]) -> None:
+        """Run `callback` on Tk's thread for every `wake`."""
+        self.root.bind(WAKE_EVENT, lambda _event: callback())
+
+    def wake(self) -> None:
+        """Queue a wake-up for Tk's thread; safe to call from any thread.
+
+        tkinter hands a call from another thread over to Tk's (threaded Tcl,
+        as python.org and the Linux distributions build it), and `tail` queues
+        the event there instead of running its binding in the caller's thread.
+        Raises RuntimeError when Tk's main loop is not running, and TclError
+        once the window is gone.
+        """
+        self.root.event_generate(WAKE_EVENT, when="tail")
 
     def mainloop(self) -> None:
         """Run until `quit`."""

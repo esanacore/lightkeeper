@@ -3,16 +3,18 @@
 These tests run the window against FakeTk, a stand-in for the tkinter module
 that records every call, so they need no display. The window shows exactly
 the pixels render_bitmap draws, stamped, at a whole-number zoom; `t` swaps
-them for the lines as text in TkFixedFont, `r` asks for a check and `q`
-quits; the status strip gives every headline its word plus its shape; and
-nothing rings, flashes or blinks. One optional test opens a real Tk window,
-where a display exists.
+them for the lines as text in TkFixedFont, the stamp still under them; `r`
+asks for a check and `q` quits; the whole window fits the screen at every
+panel size, or the panel is refused; the status strip gives every headline
+its word plus its shape; and nothing rings, flashes or blinks. Two optional
+tests open a real Tk window, where a display exists.
 """
 
 import ctypes
 import json
 import re
 import sys
+import threading
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -21,6 +23,7 @@ import pytest
 from lightkeeper.infrastructure import tk_window as tw
 from lightkeeper.infrastructure.epaper_bitmap import render_bitmap, stamp_text
 from lightkeeper.infrastructure.panel_layout import roles_for, treatment
+from lightkeeper.infrastructure.panel_profiles import PROFILES
 from lightkeeper.infrastructure.ppm import DARK, LIGHT, to_ppm
 from tests.test_brand_tokens import contrast
 from tests.test_vectors import VECTORS
@@ -55,6 +58,16 @@ class FakeWidget:
 
     def pack(self, **options):
         self.packed = options
+
+
+class FakeLabel(FakeWidget):
+    """Asks for its text's size: 7 px a character and 15 px tall, as FakeCanvas measures."""
+
+    def winfo_reqwidth(self):
+        return FakeCanvas.CHAR_WIDTH * len(self.options["text"])
+
+    def winfo_reqheight(self):
+        return FakeCanvas.LINE_HEIGHT
 
 
 class FakeCanvas(FakeWidget):
@@ -129,9 +142,11 @@ class FakeRoot(FakeWidget):
         self.module = module
         self.titles = []
         self.attribute_calls = []
+        self.geometries = []
         self.binds = {}
         self.protocols = {}
         self.timers = []  # (due ms, sequence, job, callback)
+        self.posted = []  # virtual events queued with when="tail", from any thread
         self.now_ms = 0
         self.quits = 0
         self.destroyed = 0
@@ -141,6 +156,19 @@ class FakeRoot(FakeWidget):
 
     def title(self, text):
         self.titles.append(text)
+
+    def geometry(self, spec):
+        self.geometries.append(spec)
+
+    def winfo_screenwidth(self):
+        return self.module.screen[0]
+
+    def winfo_screenheight(self):
+        return self.module.screen[1]
+
+    def event_generate(self, sequence, when=None):
+        assert when == "tail"  # queued for Tk's thread, never run in the caller's
+        self.posted.append(sequence)  # list.append is atomic: any thread may post
 
     def configure(self, **options):
         self.options.update(options)
@@ -207,15 +235,21 @@ class FakeRoot(FakeWidget):
     def press(self, key):
         self.call(self.binds[f"<KeyPress-{key}>"], FakeEvent())
 
+    def deliver(self):
+        """Run the binding of every queued virtual event, oldest first, as Tk's thread does."""
+        while self.posted:
+            self.call(self.binds[self.posted.pop(0)], FakeEvent())
+
 
 class FakeTk:
     """The tkinter module, faked: Tk, Canvas, Frame, Label, PhotoImage and TclError."""
 
     TclError = FakeTclError
 
-    def __init__(self, dpi=96.0, error=None):
+    def __init__(self, dpi=96.0, error=None, screen=(3840, 2160)):
         self.dpi = dpi
         self.error = error
+        self.screen = screen
         self.roots = []
         self.photos = []
         self.canvases = []
@@ -241,7 +275,7 @@ class FakeTk:
         return frame
 
     def Label(self, master=None, **options):  # noqa: N802
-        label = FakeWidget(master, **options)
+        label = FakeLabel(master, **options)
         self.labels.append(label)
         return label
 
@@ -254,6 +288,7 @@ class FakeTk:
 def open_window(tk=None, **options):
     tk = tk or FakeTk()
     options.setdefault("theme", tw.LIGHT_THEME)
+    options.setdefault("platform", "linux")  # the window manager places it
     window = tw.GlanceWindow(tk, options.pop("width", 296), options.pop("height", 128), **options)
     return tk, window
 
@@ -354,7 +389,7 @@ def test_fr018_t_shows_the_vector_lines_as_text_in_tk_fixed_font():
     window.show(FRESH, "title", DRAWN)
     window.root.press("t")
     assert window.mode == tw.TEXT
-    texts = panel(tk).drawn("text")
+    *texts, _stamp = panel(tk).drawn("text")
     assert [options["text"] for _kind, _coords, options in texts] == FRESH
     assert {options["font"] for _kind, _coords, options in texts} == {"TkFixedFont"}
     assert {options["fill"] for _kind, _coords, options in texts} == {LIGHT.ink}
@@ -367,6 +402,28 @@ def test_fr018_t_shows_the_vector_lines_as_text_in_tk_fixed_font():
     assert len(tk.photos) == 1  # a toggle redraws, but draws no new pixels
 
 
+@pytest.mark.parametrize("lines", [FRESH, STALE, NO_DATA], ids=["fresh", "stale", "no-data"])
+def test_fr018_text_view_keeps_the_stamp(lines):
+    """The draw's HH:MM stays in the text view, so a frozen window shows there too (HAZ-014)."""
+    tk, window = open_window()
+    window.show(lines, "title", DRAWN)
+    window.toggle()
+    *texts, (_kind, (x, y), stamp) = panel(tk).drawn("text")
+    assert stamp == {
+        "text": "02:14",
+        "anchor": "ne",
+        "font": "TkFixedFont",
+        "fill": tw.PALETTES[tw.LIGHT_THEME]["muted"],
+    }
+    assert x == 296 * 2 - tw.TEXT_PAD  # right-aligned in the panel
+    last_bottom = texts[-1][1][1] + FakeCanvas.LINE_HEIGHT
+    assert y == last_bottom + tw.TEXT_GAP  # a row of its own, under every line
+    # The next minute's screen, still in text view, carries the new stamp.
+    assert window.show(lines, "title", DRAWN + timedelta(minutes=1)) is True
+    assert panel(tk).drawn("text")[-1][2]["text"] == "02:15"
+    assert window.mode == tw.TEXT
+
+
 def test_fr018_text_view_strikes_the_stale_last_line_in_muted():
     tk, window = open_window()
     window.show(STALE, "title", DRAWN)
@@ -374,7 +431,7 @@ def test_fr018_text_view_strikes_the_stale_last_line_in_muted():
     texts = panel(tk).drawn("text")
     fills = [options["fill"] for _kind, _coords, options in texts]
     muted = tw.PALETTES[tw.LIGHT_THEME]["muted"]
-    assert fills == [LIGHT.ink, muted, LIGHT.ink, LIGHT.ink]
+    assert fills == [LIGHT.ink, muted, LIGHT.ink, LIGHT.ink, muted]  # the stamp last
     [(_kind, (left, y0, right, y1), options)] = panel(tk).drawn("line")
     _kind, (x, top), text = texts[1]
     assert text["text"] == "last: 120 mg/dL ->"
@@ -389,7 +446,7 @@ def test_fr018_toggle_before_the_first_screen_draws_nothing():
     assert window.mode == tw.TEXT
     assert panel(tk).clears == 0
     window.show(NO_DATA, "title", DRAWN)
-    assert [o["text"] for _k, _c, o in panel(tk).drawn("text")] == NO_DATA
+    assert [o["text"] for _k, _c, o in panel(tk).drawn("text")] == [*NO_DATA, "02:14"]
 
 
 def test_fr018_text_view_roles_match_the_panel_layout():
@@ -501,6 +558,127 @@ def test_fr018_timers_and_the_main_loop_pass_through():
     window.destroy()
     assert calls[-1] == "looped"
     assert (window.root.quits, window.root.destroyed) == (1, 1)
+
+
+def test_fr018_wake_queues_the_poll_for_tk_thread():
+    """Any thread may wake the window; the binding runs later, on Tk's thread, not the caller's."""
+    tk, window = open_window()
+    woken = []
+    window.bind_wake(lambda: woken.append(threading.current_thread()))
+    caller = threading.Thread(target=window.wake)
+    caller.start()
+    caller.join()
+    assert woken == [] and window.root.posted == [tw.WAKE_EVENT]
+    window.root.deliver()
+    assert woken == [threading.current_thread()]
+
+
+# --- the window fits the screen -----------------------------------------------------------
+
+
+def on_screen(window, dpi):
+    """Return the window's outer width and height, frame, title bar and screen edge included."""
+    frame, title_bar, edge = tw.chrome(dpi)
+    width, height = window.size
+    return width + 2 * frame, height + title_bar + frame + edge
+
+
+@pytest.mark.parametrize("scale", [2, 3])
+@pytest.mark.parametrize("name", list(PROFILES))
+def test_fr018_window_fits_the_screen_for_every_profile(name, scale):
+    """At 2880x1800 and 200%, as here: every panel, its age, stamp and last line, on screen."""
+    profile = PROFILES[name]
+    tk, window = open_window(
+        FakeTk(dpi=192.0, screen=(2880, 1800)),
+        width=profile.width,
+        height=profile.height,
+        scale=scale,
+    )
+    asked = scale * window.ui_scale
+    assert 1 <= window.zoom <= asked
+    width, height = on_screen(window, 192.0)
+    assert width <= 2880 and height <= 1800
+    if window.zoom < asked:  # the largest whole zoom that fits: one more would not
+        bigger = window._size(window.zoom + 1, tk.labels[0])
+        frame, title_bar, edge = tw.chrome(192.0)
+        assert bigger[0] + 2 * frame > 2880 or bigger[1] + title_bar + frame + edge > 1800
+    # The pixels, the panel and the strip are all at that zoom.
+    window.show(STALE, "title", DRAWN)
+    size = f"{profile.width * window.zoom} {profile.height * window.zoom}"
+    assert tk.photos[0].data.startswith(f"P6\n{size}\n255\n".encode())
+    assert panel(tk).options["width"] == profile.width * window.zoom
+    assert strip(tk).options["width"] == profile.width * window.zoom + 2 * tw.BEZEL * 2
+
+
+@pytest.mark.parametrize(
+    "name,scale,zoom",
+    [
+        ("waveshare_2in9", 2, 4),  # fits as asked
+        ("waveshare_7in5", 2, 3),  # 3240 px wide at 4: wider than the screen
+        ("waveshare_4in2", 3, 5),  # 1911 px tall at 6: taller than the screen
+        ("kindle", 2, 1),  # 1711 px tall at 2
+    ],
+)
+def test_fr018_zoom_is_the_largest_whole_number_that_fits(name, scale, zoom):
+    profile = PROFILES[name]
+    _tk, window = open_window(
+        FakeTk(dpi=192.0, screen=(2880, 1800)),
+        width=profile.width,
+        height=profile.height,
+        scale=scale,
+    )
+    assert window.zoom == zoom
+
+
+def test_fr018_kindle_on_a_1080p_screen_gets_a_zoom_that_fits():
+    tk, window = open_window(FakeTk(screen=(1920, 1080)), width=600, height=800)
+    assert window.zoom == 1
+    assert window.size == (600 + 2 * tw.BEZEL + 2 * tw.MARGIN, 63 + 800)
+    width, height = on_screen(window, 96.0)
+    assert width <= 1920 and height <= 1080
+
+
+def test_fr018_panel_the_screen_cannot_hold_is_refused_and_its_window_closed():
+    tk = FakeTk(screen=(1366, 768))
+    with pytest.raises(
+        ValueError, match="a 600x800 panel does not fit on this 1366x768 screen even at one"
+    ):
+        open_window(tk, width=600, height=800)
+    [root] = tk.roots
+    assert root.destroyed == 1 and root.titles == []
+
+
+def test_fr018_window_chrome_is_at_the_display_own_scale():
+    assert tw.chrome(96.0) == (8, 32, 48)
+    assert tw.chrome(144.0) == (12, 48, 72)  # 150%, where ui_scale rounds up to 2
+    assert tw.chrome(192.0) == (16, 64, 96)
+    assert tw.chrome(72.0) == (8, 32, 48)  # macOS reports 72: never less than at 96
+
+
+@pytest.mark.parametrize("name", list(PROFILES))
+def test_fr018_windows_opens_the_window_centered_clear_of_the_taskbar(name):
+    """Windows would cascade a tall window under the taskbar; it opens centered instead."""
+    profile = PROFILES[name]
+    tk, window = open_window(
+        FakeTk(dpi=192.0, screen=(2880, 1800)),
+        width=profile.width,
+        height=profile.height,
+        platform="win32",
+    )
+    [spec] = window.root.geometries
+    left, top = (int(n) for n in re.fullmatch(r"\+(\d+)\+(\d+)", spec).groups())
+    frame, title_bar, edge = tw.chrome(192.0)
+    outer_width = window.size[0] + 2 * frame
+    outer_height = window.size[1] + title_bar + frame
+    assert left + outer_width <= 2880 and abs(2880 - outer_width - 2 * left) <= 1
+    assert top + outer_height <= 1800 - edge and abs(1800 - edge - outer_height - 2 * top) <= 1
+
+
+def test_fr018_window_manager_places_the_window_off_windows():
+    _tk, window = open_window(platform="linux")
+    assert window.root.geometries == []
+    _tk, window = open_window(platform="darwin")
+    assert window.root.geometries == []
 
 
 # --- the status strip: the word plus its shape --------------------------------------------
@@ -742,20 +920,21 @@ def test_fr018_shcore_is_typed_on_a_private_instance(monkeypatch):
 # --- a real Tk window, where there is a display -------------------------------------------
 
 
-def real_tk():
-    """Return tkinter and an open root, or skip: no tkinter, or no display to open one on."""
+def real_window():
+    """Open a real window on the 2.9" panel, or skip: no tkinter, or no display to open it on.
+
+    One Tk interpreter a test: on some Windows Pythons a later one in the same
+    process now and then cannot find its Tcl library, and that is skipped too.
+    """
     tkinter = pytest.importorskip("tkinter")
     try:
-        probe = tkinter.Tk()
+        return tw.GlanceWindow(tkinter, 296, 128, 2, tw.LIGHT_THEME)
     except tkinter.TclError as error:
         pytest.skip(f"no display: {error}")
-    probe.destroy()
-    return tkinter
 
 
 def test_fr018_real_tk_window_holds_exactly_the_panel_pixels():
-    tkinter = real_tk()
-    window = tw.GlanceWindow(tkinter, 296, 128, 2, tw.LIGHT_THEME)
+    window = real_window()
     try:
         now = datetime.now(UTC)
         assert window.show(STALE, "STALE - DO NOT TRUST - 16 min ago - Lightkeeper", now)
@@ -766,5 +945,27 @@ def test_fr018_real_tk_window_holds_exactly_the_panel_pixels():
         window.toggle()
         window.toggle()
         window.root.update_idletasks()
+        # The size the fit was worked out for is the size Tk's packer asks for.
+        assert (window.root.winfo_reqwidth(), window.root.winfo_reqheight()) == window.size
     finally:
         window.destroy()
+
+
+def test_fr018_real_tk_wake_from_another_thread_runs_on_tk_thread():
+    window = real_window()
+    woken = []
+
+    def on_wake():
+        woken.append(threading.current_thread())
+        window.quit()
+
+    caller = threading.Thread(target=window.wake, daemon=True)
+    try:
+        window.bind_wake(on_wake)
+        window.after(100, caller.start)  # once the main loop is running
+        window.after(5000, window.quit)  # never hang the suite
+        window.mainloop()
+        caller.join(5)
+    finally:
+        window.destroy()
+    assert woken == [threading.current_thread()]

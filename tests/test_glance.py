@@ -8,6 +8,7 @@ STALE, instead of a frozen window. Every line still comes from current_status
 and render_lines, so the vectors hold here too.
 """
 
+import itertools
 import re
 from datetime import UTC, datetime, timedelta
 
@@ -289,6 +290,8 @@ def test_fr018_wake_with_a_fetch_in_flight_gives_up_on_it_at_once():
     view = glance.view(awake)
     assert view.lines[0] == STALE_HEADLINE and view.lines[-1] == UNREACHABLE
     assert glance.checked_at == awake
+    # Let go of, and after a jump the next fetch is due at once, not an interval later.
+    assert not glance.fetching and glance.fetch_due(awake)
 
 
 # --- the fetch watchdog -------------------------------------------------------------------
@@ -317,18 +320,29 @@ def test_fr018_hung_fetch_becomes_unreachable_then_stale():
     assert glance.view(deadline + MS).title == (
         f"IN RANGE - 8 min ago - checked {clock(deadline + MS)} - Lightkeeper"
     )
-    # Still no answer: the re-age timer alone turns it STALE at the first stale millisecond.
+    # Let go of: the next fetch is due an interval later, not held up behind the hung one.
+    assert not glance.fetching
+    assert not glance.fetch_due(deadline + INTERVAL)
+    assert glance.fetch_due(deadline + MS + INTERVAL)
+    # Every fetch from here on hangs too: the re-age timer alone turns it STALE at the
+    # first stale millisecond, and the fetches go on, one at a time.
     first_stale = stamp + Thresholds().stale_after + MS
     moments = walk(glance, deadline + MS, first_stale)
     assert moments[-1] == first_stale
+    started = []
+    for now in moments:
+        glance.poll(now)
+        if glance.fetch_due(now):
+            glance.fetch_started(now)
+            started.append(now)
+    assert started and started[0] >= deadline + MS + INTERVAL
+    assert all(later - earlier > INTERVAL for earlier, later in itertools.pairwise(started))
     assert glance.view(first_stale).lines == (
         STALE_HEADLINE,
         "last: 110 mg/dL ->",
         "15 min ago",
         UNREACHABLE,
     )
-    # No second fetch was started while the first is still in flight.
-    assert glance.fetching and not glance.fetch_due(first_stale)
 
 
 def test_fr018_watchdog_counts_a_hung_fetch_once():
@@ -347,15 +361,22 @@ def test_fr018_watchdog_message_names_the_wait():
     assert glance._error == "no answer from Nightscout within 120 seconds"
 
 
-def test_fr018_late_answer_after_the_watchdog_is_still_used():
+def test_fr018_watchdog_lets_go_of_a_hung_fetch():
+    """Given up on, a fetch is no longer in flight: the next one is due an interval later."""
     glance = answered([entry(minutes_ago=1)])
     glance.fetch_started(NOW)
     late = NOW + 2 * INTERVAL + MS
-    glance.poll(late)
-    glance.fetch_finished([entry(mgdl=99, minutes_ago=0)], late + MS)
-    assert glance.view(late + MS).lines == ("IN RANGE", "99 mg/dL ->", "2 min ago")
+    assert glance.poll(NOW + INTERVAL) is False  # polled on the way: no jump
+    assert glance.poll(late) is True
     assert not glance.fetching
-    assert glance.fetch_due(late + MS)  # it started more than an interval ago
+    assert not glance.fetch_due(late + INTERVAL - MS)
+    assert glance.fetch_due(late + INTERVAL)
+    glance.refresh(late + MS)  # `r` is no longer held up behind it either
+    assert glance.fetch_due(late + MS)
+    glance.fetch_started(late + MS)
+    glance.fetch_finished([entry(mgdl=99, minutes_ago=0)], late + 2 * MS)
+    assert glance.view(late + 2 * MS).lines == ("IN RANGE", "99 mg/dL ->", "2 min ago")
+    assert not glance.fetching
 
 
 # --- fetching -----------------------------------------------------------------------------
