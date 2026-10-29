@@ -15,6 +15,7 @@ import subprocess
 import sys
 import threading
 import time
+import tomllib
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -258,6 +259,13 @@ def test_fr018_no_stdout_or_stderr_is_fine(tk, monkeypatch):
     assert desktop.main(["--demo"]) == 0
     monkeypatch.setitem(sys.modules, "tkinter", None)
     assert desktop.main(["--demo"]) == 2
+
+
+def test_fr018_lightkeeper_window_is_a_gui_script_for_main():
+    """The installed launcher runs with no console (pythonw on Windows), which main() allows."""
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]
+    assert project["gui-scripts"] == {"lightkeeper-window": "lightkeeper.desktop:main"}
+    assert "lightkeeper-window" not in project["scripts"]
 
 
 # --- quitting -----------------------------------------------------------------------------

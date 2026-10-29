@@ -23,6 +23,10 @@ dev = [
 [project.scripts]
 lightkeeper = "lightkeeper.cli:main"
 
+# The desktop window, with no console window on Windows (D12, pending Eric's review).
+[project.gui-scripts]
+lightkeeper-window = "lightkeeper.desktop:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
