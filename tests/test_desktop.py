@@ -27,7 +27,7 @@ from lightkeeper.infrastructure import tk_window
 from lightkeeper.infrastructure.epaper_bitmap import render_bitmap, stamp_text
 from lightkeeper.infrastructure.ppm import DARK, LIGHT, to_ppm
 from tests.helpers import NOW, FakeSource, entry
-from tests.test_tk_window import FakeTclError, FakeTk
+from tests.test_tk_window import NO_REAL_TK, FakeTclError, FakeTk, real_tkinter, run_real_tk
 
 ROOT = Path(__file__).resolve().parent.parent
 NO_DATA_TITLE = "NO DATA - Check sensor and phone - checking Nightscout... - Lightkeeper"
@@ -434,6 +434,57 @@ def test_fr018_ticker_wakes_every_period_until_stopped():
     assert set(calls) == {"lightkeeper-tick"}
 
 
+def child_ticker_alone_brings_the_demo_reading_in():
+    """On real Tk, with the after() poll stalled after its first beat, the ticker polls.
+
+    As a clock set back stalls Tk 8.6's after() timers: the fetch goes out at
+    the first poll, and only the ticker thread's wake-ups bring its answer in.
+    """
+    tkinter = real_tkinter()
+    try:
+        tkinter.Tk().destroy()
+    except tkinter.TclError as error:
+        print(f"no display: {error}")
+        sys.exit(NO_REAL_TK)
+    polls = []
+    poll = desktop.Session._poll
+
+    def tick_once(session):
+        poll(session)  # never set again: a stalled after() timer
+
+    def counted(session):
+        polls.append(threading.current_thread())
+        poll(session)
+
+    desktop.Session._tick = tick_once
+    desktop.Session._poll = counted  # what the wake-up binding runs
+    seen = {}
+    mainloop = tk_window.GlanceWindow.mainloop
+
+    def watched(window):
+        started = time.monotonic()
+
+        def look():
+            seen["title"] = window.root.title()
+            if seen["title"].startswith("IN RANGE") or time.monotonic() - started > 5:
+                window.quit()
+            else:
+                window.after(50, look)
+
+        window.after(50, look)
+        mainloop(window)
+
+    tk_window.GlanceWindow.mainloop = watched
+    assert desktop.main(["--demo", "--theme", "light"]) == 0
+    assert seen["title"].startswith("IN RANGE - 3 min ago - checked "), seen
+    assert polls and set(polls) == {threading.main_thread()}  # on Tk's thread, every one
+    print("ok")
+
+
+def test_fr018_real_tk_ticker_alone_keeps_the_window_polling():
+    run_real_tk("tests.test_desktop", "child_ticker_alone_brings_the_demo_reading_in")
+
+
 # --- the session, with a fake window, worker and clock ------------------------------------
 
 
@@ -480,6 +531,7 @@ class FakeWorker:
         self.submitted = []
         self.answers = []
         self.closed = False
+        self.alive = True  # its thread: until the test ends it
 
     def submit(self, fetch):
         self.submitted.append(fetch)
@@ -632,6 +684,44 @@ def test_haz002_hung_fetch_is_retried_on_a_new_worker_one_interval_later():
     assert len(started.workers) == 2
 
 
+def tick_until(session, window, clock, condition, what):
+    """Move the fake clock 30 s a poll (never a jump) until `condition()`."""
+    for _ in range(100):
+        if condition():
+            return
+        clock.now += timedelta(seconds=30)
+        window.fire(session._tick)
+    raise AssertionError(f"never saw {what}")
+
+
+def test_haz002_threads_stuck_on_hung_fetches_are_capped(monkeypatch):
+    """A server that never answers cannot pile up threads; one that ends frees a place."""
+    monkeypatch.setattr(desktop, "HUNG_LIMIT", 2)
+    session, window, first, clock, source, started = session_at()
+    tick_until(session, window, clock, lambda: len(started.workers) == 2, "the first give-up")
+    second = started.workers[1]
+    tick_until(session, window, clock, lambda: second.submitted, "the retry")
+    tick_until(session, window, clock, lambda: len(started.workers) == 3, "the second give-up")
+    third = started.workers[2]
+    # Two threads are stuck: no fetch starts, however long it waits, and the screen ages.
+    for _ in range(20):
+        clock.now += timedelta(seconds=30)
+        window.fire(session._tick)
+    assert third.submitted == [] and len(started.workers) == 3
+    lines = window.shown[-1][0]
+    assert lines[0] == "NO DATA" and lines[-1] == "Nightscout unreachable"
+    session.refresh()  # nor does `r`
+    assert third.submitted == []
+    # The first hung fetch returns at last: its thread ends, and the next poll fetches.
+    first.alive = False
+    clock.now += timedelta(milliseconds=250)
+    window.fire(session._tick)
+    assert third.submitted == [source.fetch_entries]
+    third.answers.append([entry(mgdl=99, minutes_ago=(NOW - clock.now) / timedelta(minutes=1))])
+    window.fire(session._tick)
+    assert window.shown[-1][0][:2] == ("IN RANGE", "99 mg/dL ->")
+
+
 def test_fr018_clock_set_back_is_seen_through_the_ticker_not_tk_timers():
     """Tk 8.6 times after() by the wall clock; the ticker's wake-up polls regardless."""
     tk = FakeTk()
@@ -690,6 +780,18 @@ def test_fr018_worker_answers_with_entries_or_the_error_without_its_traceback():
     assert answers[0] == [1, 2]
     assert isinstance(answers[1], OSError) and answers[1].__traceback__ is None
     assert worker.finished() == []
+
+
+def test_haz002_worker_is_alive_until_closed_and_done():
+    release = threading.Event()
+    worker = desktop.Worker()
+    worker.submit(lambda: [] if release.wait(WAIT_SECONDS) else ["timed out"])
+    worker.close()
+    assert worker.alive  # still running the fetch it had when closed
+    release.set()
+    worker._thread.join(WAIT_SECONDS)
+    assert not worker.alive
+    assert worker.finished() == [[]]
 
 
 # --- tkinter stays out of the CLI and the Pi ----------------------------------------------

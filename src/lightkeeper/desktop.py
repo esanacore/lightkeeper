@@ -14,7 +14,10 @@ reading on its own schedule, so the window goes STALE on time with no fetch at
 all, and a wall-clock jump (sleep and wake, or a clock set forward or back) or
 a hung fetch is caught at the next poll (glance.py says how). A fetch the
 glance gives up on keeps its thread; the next fetch gets a new worker, and the
-old one's answer, if it ever comes, is dropped with it.
+old one's answer, if it ever comes, is dropped with it. While HUNG_LIMIT
+threads are still stuck on fetches given up on, no new fetch starts until one
+of them ends, so a server that never answers cannot pile up threads; the
+screen ages into STALE meanwhile, with "Nightscout unreachable" under it.
 
 Two wake-ups drive the poll: Tk's after(), and a ticker thread that waits on
 the monotonic clock and queues a wake-up event for Tk's thread. Tk 8.6 times
@@ -82,6 +85,7 @@ TK_HINT = (
 )
 INTERVAL_SECONDS = 60  # between fetches, as the CLI's default
 POLL_MS = 250  # how often Tk's thread looks for answers, a jump or a hung fetch
+HUNG_LIMIT = 8  # threads still stuck on fetches given up on, past which none starts
 SCALES = (2, 3)
 THEMES = ("auto", tk_window.LIGHT_THEME, tk_window.DARK_THEME)
 EXIT_INTERRUPTED = 130  # 128 + SIGINT, as shells report Ctrl+C
@@ -134,6 +138,11 @@ class Worker:
     def close(self) -> None:
         """Let the thread end after the fetch it is running, if any; does not wait for it."""
         self._jobs.put(None)
+
+    @property
+    def alive(self) -> bool:
+        """True until the thread has ended: closed, and done with any fetch it was running."""
+        return self._thread.is_alive()
 
     def _run(self) -> None:
         while (fetch := self._jobs.get()) is not None:
@@ -194,6 +203,7 @@ class Session:
         self._window: Any = None
         self._new_worker: Callable[[], Any] = Worker
         self._worker: Any = None
+        self._hung: list[Any] = []  # workers given up on, until their threads end
         self._ticker: Any = None
         self._redraw_job: Any = None
         self.failure: BaseException | None = None  # what a Tk callback raised, if anything
@@ -226,7 +236,7 @@ class Session:
             self._worker.close()
 
     def refresh(self) -> None:
-        """Check Nightscout now (the `r` key), unless a check is running already."""
+        """Check Nightscout now (the `r` key), unless a check is out already or too many hung."""
         now = self._clock()
         self._glance.refresh(now)
         self._fetch_if_due(now)
@@ -256,15 +266,20 @@ class Session:
             # Given up on: its thread may never come back, so the next fetch gets a new
             # one, and the old one's answer, if it ever comes, is dropped with it.
             self._worker.close()
+            self._hung.append(self._worker)
             self._worker = self._new_worker()
         self._fetch_if_due(now)
         if changed:
             self._redraw()
 
     def _fetch_if_due(self, now: datetime) -> None:
-        if self._glance.fetch_due(now):
-            self._glance.fetch_started(now)
-            self._worker.submit(self._source.fetch_entries)
+        if not self._glance.fetch_due(now):
+            return
+        self._hung = [worker for worker in self._hung if worker.alive]
+        if len(self._hung) >= HUNG_LIMIT:
+            return  # wait for a stuck thread to end; the screen goes on aging meanwhile
+        self._glance.fetch_started(now)
+        self._worker.submit(self._source.fetch_entries)
 
     def _redraw(self) -> None:
         """Show the screen for now, and set the re-age timer for the next change."""
@@ -377,7 +392,7 @@ def _start(args: argparse.Namespace) -> int:
     asked = args.scale * window.ui_scale
     if window.zoom < asked:
         _warn(
-            f"lightkeeper: at --scale {args.scale} the {profile.name} panel is larger than "
+            f"lightkeeper: at --scale {args.scale} the {args.panel} panel is larger than "
             f"this screen, so each panel pixel is drawn as {window.zoom}x{window.zoom} screen "
             f"pixels instead of {asked}x{asked}"
         )

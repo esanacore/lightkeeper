@@ -7,14 +7,17 @@ them for the lines as text in TkFixedFont, the stamp still under them; `r`
 asks for a check and `q` quits; the whole window fits the screen at every
 panel size, or the panel is refused; the status strip gives every headline
 its word plus its shape; and nothing rings, flashes or blinks. Two optional
-tests open a real Tk window, where a display exists.
+tests open a real Tk window, each in a fresh Python, where a display exists.
 """
 
 import ctypes
 import json
+import os
 import re
+import subprocess
 import sys
 import threading
+import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -920,21 +923,55 @@ def test_fr018_shcore_is_typed_on_a_private_instance(monkeypatch):
 # --- a real Tk window, where there is a display -------------------------------------------
 
 
-def real_window():
-    """Open a real window on the 2.9" panel, or skip: no tkinter, or no display to open it on.
+NO_REAL_TK = 3  # what a child exits with when it cannot open a window, saying why
 
-    One Tk interpreter a test: on some Windows Pythons a later one in the same
-    process now and then cannot find its Tcl library, and that is skipped too.
+
+def run_real_tk(module, check):
+    """Run `module.check()` in a fresh Python with a real Tk, or skip when none can open.
+
+    In a child process, with one Tk interpreter, as the desktop app runs. Inside
+    pytest, its file-descriptor capture swaps the standard handles under Tcl, and
+    a second Tk interpreter in the same process then now and then cannot read
+    its own library (seen on Windows: "Can't find a usable tk.tcl").
     """
-    tkinter = pytest.importorskip("tkinter")
+    env = dict(os.environ, PYTHONPATH=str(ROOT / "src"))
+    result = subprocess.run(  # noqa: S603 - fixed arguments, this interpreter
+        [sys.executable, "-c", f"import {module}; {module}.{check}()"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        env=env,
+        check=False,
+        timeout=60,
+    )
+    if result.returncode == NO_REAL_TK:
+        pytest.skip(result.stdout.strip())
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert result.stdout.splitlines()[-1] == "ok"
+
+
+def real_tkinter():
+    """In a child: the real tkinter module, or exit NO_REAL_TK when this Python has none."""
+    try:
+        import tkinter
+    except ImportError as error:
+        print(f"no tkinter: {error}")
+        sys.exit(NO_REAL_TK)
+    return tkinter
+
+
+def open_real_window():
+    """In a child: a real window on the 2.9" panel, or exit NO_REAL_TK with no display."""
+    tkinter = real_tkinter()
     try:
         return tw.GlanceWindow(tkinter, 296, 128, 2, tw.LIGHT_THEME)
     except tkinter.TclError as error:
-        pytest.skip(f"no display: {error}")
+        print(f"no display: {error}")
+        sys.exit(NO_REAL_TK)
 
 
-def test_fr018_real_tk_window_holds_exactly_the_panel_pixels():
-    window = real_window()
+def child_window_holds_exactly_the_panel_pixels():
+    window = open_real_window()
     try:
         now = datetime.now(UTC)
         assert window.show(STALE, "STALE - DO NOT TRUST - 16 min ago - Lightkeeper", now)
@@ -947,25 +984,46 @@ def test_fr018_real_tk_window_holds_exactly_the_panel_pixels():
         window.root.update_idletasks()
         # The size the fit was worked out for is the size Tk's packer asks for.
         assert (window.root.winfo_reqwidth(), window.root.winfo_reqheight()) == window.size
+        width, height = window.root.winfo_screenwidth(), window.root.winfo_screenheight()
+        assert window.size[0] <= width and window.size[1] <= height
     finally:
         window.destroy()
+    print("ok")
 
 
-def test_fr018_real_tk_wake_from_another_thread_runs_on_tk_thread():
-    window = real_window()
+def child_wake_from_another_thread_runs_on_tk_thread():
+    """With no after() timer due for 5 s, another thread's wake-up still gets through at once.
+
+    Tk's main loop waits for its next timer; a wake-up queued from another
+    thread ends the wait. This is how the ticker keeps the window polling when
+    a clock set back stalls Tk 8.6's wall-clock timers.
+    """
+    window = open_real_window()
     woken = []
 
     def on_wake():
-        woken.append(threading.current_thread())
+        woken.append((threading.current_thread(), time.monotonic()))
         window.quit()
 
     caller = threading.Thread(target=window.wake, daemon=True)
     try:
         window.bind_wake(on_wake)
         window.after(100, caller.start)  # once the main loop is running
-        window.after(5000, window.quit)  # never hang the suite
+        window.after(5000, window.quit)  # never hang
+        started = time.monotonic()
         window.mainloop()
         caller.join(5)
     finally:
         window.destroy()
-    assert woken == [threading.current_thread()]
+    [(thread, at)] = woken
+    assert thread is threading.current_thread()
+    assert at - started < 2  # well before the 5 s timer
+    print("ok")
+
+
+def test_fr018_real_tk_window_holds_exactly_the_panel_pixels():
+    run_real_tk("tests.test_tk_window", "child_window_holds_exactly_the_panel_pixels")
+
+
+def test_fr018_real_tk_wake_from_another_thread_runs_on_tk_thread():
+    run_real_tk("tests.test_tk_window", "child_wake_from_another_thread_runs_on_tk_thread")
