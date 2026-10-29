@@ -6,7 +6,7 @@ The companion app from ADR-0008. This is the read-only layer (Phase 5a): the sam
 
 - `LightkeeperCore/`: a Swift package with the display rules (parse, classify, render), the spoken form, the glance timeline, the phone's screen hierarchy and the read-only Nightscout client. It builds and tests on macOS, Linux and Windows.
   - `VectorTests` runs every case in `spec/display_vectors.json`, so the Swift rules are held identical to the Python and C++ ones.
-  - `SpokenVectorTests` runs every sentence in `spec/spoken_vectors.json`, so VoiceOver hears exactly what the Python spoken form says (FR-017).
+  - `SpokenVectorTests` runs every sentence in `spec/spoken_vectors.json`, so the VoiceOver label is exactly the Python spoken form (FR-017). Hearing it on a device is still open (GAP-009).
   - `GlanceTimeline.swift` works out every frame a widget will need ahead of time, with STALE among them at the first stale millisecond (FR-019); `GlanceTimelineTests` holds it to those rules.
   - `Presentation.swift` decides how the phone arranges one status (`ScreenPresentation`): the status word and its shape, the hero, the struck `last:` line, the age, the context lines, the text style of each, and the VoiceOver label. `PresentationTests` checks it against every display vector, so the hierarchy is tested without a Mac.
   - `NightscoutClient.swift` also validates a typed address with the reason in plain words, and runs the settings screen's one-GET connection check.
@@ -21,7 +21,7 @@ Top to bottom, in the Keeper's Logbook order (docs/BRAND.md): the status, the nu
 - **STALE - DO NOT TRUST**: a full-width Ink band at `.title`, with a hatch in the margin (a solid rule under Increase Contrast), and the largest text on the screen. There is no big number, no separate arrow and no unit: the `last:` line is shown verbatim at body size, struck through, in Muted (HAZ-001, HAZ-008).
 - **NO DATA**, and any headline nobody planned for: a dashed frame at `.title` and `--` where a number would be.
 - The age line is Ink, semibold, monospaced. Below it, `checked HH:MM` and, during an outage, `Nightscout unreachable since HH:MM`: absolute times, so nothing on screen ticks.
-- VoiceOver reads the glance as one element, in sentences: `spokenText(status:error:)`, for example "In range. 112 milligrams per deciliter, steady. 3 minutes ago."
+- The glance is one accessibility element whose label is the spoken sentence, `spokenText(status:error:)`, for example "In range. 112 milligrams per deciliter, steady. 3 minutes ago." Nobody has heard it through VoiceOver on a device yet (GAP-009).
 - Pull to refresh fetches at once and shows a static `checking Nightscout...` while it runs. Nothing animates, blinks or makes a sound; a change is one redraw.
 - Below the glance, the panel preview draws `renderLines` exactly, on Paper by day and on Night paper in dark mode.
 - Until a usable Nightscout address is saved, the glance is replaced by a setup card ("Add your Nightscout site to start") with a button to Settings. It has no number and no level word, and the app makes no fetch.
