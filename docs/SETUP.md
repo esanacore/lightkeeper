@@ -19,7 +19,7 @@ This project follows Eric's Engineering Constitution. Open the repository in VS 
 
 ### Prerequisites
 
-Python 3.11 or newer, Git, and for the firmware host tests a C++17 compiler and make.
+Python 3.11 or newer, Git, and for the firmware host tests a C++17 compiler and make. Node.js 20 or later runs the demo's panel tests (they skip without it locally), and PlatformIO 6.2.0 is needed only to build the ESP32 device skeleton.
 
 <details>
 <summary>Windows (PowerShell)</summary>
@@ -98,8 +98,10 @@ pre-commit install && pre-commit install --hook-type pre-push
 ```bash
 python -m lightkeeper --demo                 # IN RANGE with canned data
 python -m lightkeeper --demo --demo-minutes-ago 40   # the STALE screen
+python -m lightkeeper --demo --watch         # the logbook frame in a terminal; Ctrl+C to stop
 python -m pytest --cov                       # full suite, 100% coverage
 make -C firmware/xteink test                 # firmware rules under sanitizers
+node --test web/panel/panel.test.mjs         # the demo's panel port (Node 20 or later)
 ```
 
 ### Environment Variables
@@ -220,7 +222,7 @@ Hardware is in `docs/HARDWARE.md`. Each display reads Nightscout with the readab
 
 ### Pocket display (Xteink X4 Pro) and the bench board
 
-The firmware rules are done and tested on a PC (`firmware/xteink`); the device build is the next firmware milestone (FR-010). Until then: install PlatformIO (VS Code extension, works on Windows), buy the bench board from `docs/HARDWARE.md`, and study WaveshareMon for Wi-Fi, TLS, and e-paper refresh patterns. Flashing steps for the Xteink will be written with the device build; read CrossPoint's flashing and recovery guides first and back up the SD card.
+The firmware rules, the JSON parser and the panel rasterizer are done and tested on a PC (`firmware/xteink`), and a build-only skeleton for the bench board (`bench_s3`) and the X4 (`x4`) prints the NO DATA panel over USB serial; Wi-Fi and the panel driver are the next firmware milestone (FR-010). Build it with `cd firmware/xteink && pio run -e bench_s3 -e x4` (PlatformIO 6.2.0; install it with the VS Code extension on Windows or `pip install platformio==6.2.0`). Before the first upload to the bench board, check its flash size and mode: the build assumes 8 MB of qio flash, the board definition's default (`firmware/xteink/README.md`, "Build and flash the device skeleton"). Buy the bench board from `docs/HARDWARE.md` and study WaveshareMon for Wi-Fi, TLS, and e-paper refresh patterns. Flashing steps for the Xteink will be written with the device build; read CrossPoint's flashing and recovery guides first and back up the SD card.
 
 ### Home Assistant
 
@@ -229,7 +231,7 @@ Lightkeeper publishes its status to Home Assistant over MQTT discovery (FR-008, 
 1. Install the Mosquitto broker add-on and enable the MQTT integration in Home Assistant.
 2. Create a broker user for Lightkeeper, and limit it in the broker's ACL to `lightkeeper/#` and `homeassistant/sensor/<node id>/#`.
 3. Give the broker a certificate for TLS (the Mosquitto add-on supports it), or run Lightkeeper on the same machine as the broker and set `LK_MQTT_TLS=false` with `LK_MQTT_HOST=localhost`; plain MQTT to any other host is refused.
-4. Set `LK_MQTT_HOST`, `LK_MQTT_USERNAME`, `LK_MQTT_PASSWORD`, and `LK_MQTT_NODE_ID` (one per display; see `docs/ENV_VARS.md`) and run `python -m lightkeeper --watch`. Three sensors appear under a "Lightkeeper" device: Glucose level, Glucose (mg/dL), and Glucose reading age.
+4. Set `LK_MQTT_HOST`, `LK_MQTT_USERNAME`, `LK_MQTT_PASSWORD`, and `LK_MQTT_NODE_ID` (one per display; see `docs/ENV_VARS.md`) and run `python -m lightkeeper --watch`. Four sensors appear under a device named "Lightkeeper", or "Lightkeeper (<node id>)" when `LK_MQTT_NODE_ID` is not the default: Glucose level (an enum of the seven levels), Glucose (mg/dL), Glucose reading age, and Last reading (when the last reading was taken).
 
 ![How a stopped publisher becomes unavailable in Home Assistant: Last Will on a dropped connection, expire_after when updates stop](../assets/diagrams/ha-availability.svg)
 
@@ -260,7 +262,7 @@ automation:
           message: "Lightkeeper has no current reading. Check the primary CGM app."
 ```
 
-Entity ids depend on the device and sensor names; check them under Settings, Devices. `--json PATH` writes the same status as a file, for dashboards that read files.
+Entity ids depend on the device and sensor names; check them under Settings, Devices. `--json PATH` writes the same status as a file, for dashboards that read files. With a non-default node id, a new install's entity ids include it (for example `sensor.lightkeeper_bedside_glucose_level`). Entities created before this release keep their ids, because the unique ids did not change.
 
 ## Part 4: The iOS companion app
 
@@ -268,7 +270,7 @@ Source is in `apps/ios/` (read `apps/ios/README.md`). The read-only layer builds
 
 1. Development: edit Swift files in any editor; push; `.github/workflows/ios.yml` runs the shared-vector tests and builds the app.
 2. Installing on a phone: TestFlight through the paid Apple Developer account. The signing and upload steps mirror Trio's browser build (App Store Connect API key stored as GitHub secrets); they are added to `ios.yml` when the first TestFlight build is cut, and documented here at that point.
-3. In the app: Settings, enter the Nightscout URL and the **readable** token (it goes to the Keychain), then set the display thresholds. Thresholds change only which word the display shows. They do not affect dosing or the primary app's alarms. Match them to the alert settings already in the primary app.
+3. In the app: on first launch a card says "Add your Nightscout site to start"; open Settings and enter just the site (`https://your-site.example`, nothing after the name: no path, query, fragment or login). The address is checked as you type, and Save stays off until it can be used. Add the **readable** token (it goes to the Keychain), made in Nightscout's Admin Tools, Subjects (Part 2, step 4). Check connection makes one read-only request and says what happened: connected, with how old the newest reading is; Nightscout refused the token; this Nightscout needs a token to be read (the token field is empty); the site could not be reached; or the site answered, but not the way Nightscout does. Thresholds step by 5 (urgent low 40 to 100, low 45 to 150, high 100 to 350, urgent high 105 to 400) with Reset to defaults; Stale after runs from 6 to 60 minutes and shows a caution above 15. Thresholds change only which word the display shows. They do not affect dosing or the primary app's alarms. Match them to the alert settings already in the primary app.
 
 ## Checking the whole stack
 

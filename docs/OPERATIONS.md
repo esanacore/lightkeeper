@@ -11,14 +11,14 @@ Operational procedures for the parts of the stack we run. Health data is involve
 
 ## Monitoring & Observability
 
-- **Logs**: `lightkeeper` prints to stdout; under systemd, `journalctl -u lightkeeper`. Logs never contain the token.
+- **Logs**: `lightkeeper` prints the screen to stdout and, when Nightscout fails, one line to stderr naming the link that failed, once per change (`docs/TROUBLESHOOTING.md` lists them); under systemd, `journalctl -u lightkeeper`. Logs never contain the token.
 - **Liveness**: under `deploy/lightkeeper.service`, each finished refresh pets the systemd watchdog (`WatchdogSec=180`); a hung refresh gets the service restarted, which shows in the journal as a watchdog timeout. `systemctl status lightkeeper` shows the current level in its Status line.
 - **Metrics**: Nightscout's own reports, plus Trio's loop status uploads.
 - **Alerts**: the primary CGM app's alarms are the safety net. Home Assistant alerts (FR-008) are an extra layer, never a replacement.
 
 ## Safe Operations
 
-- **Retention**: Lightkeeper keeps only the newest reading, in memory; the optional `--svg` file holds one screen and is overwritten each refresh (delete the file to remove it). Nightscout's retention period and deletion path are set and recorded here when hosting is chosen in Phase 1. Classification details: `docs/SECURITY_MODEL.md`.
+- **Retention**: Lightkeeper keeps only the newest reading, in memory; the optional `--svg`, `--json`, `--png` and `--bmp` files each hold one screen and are overwritten each refresh (delete a file to remove it). Nightscout's retention period and deletion path are set and recorded here when hosting is chosen in Phase 1. Classification details: `docs/SECURITY_MODEL.md`.
 - **Backup/Restore**: back up the Nightscout database on a schedule and test a restore at least once (ADR-0003 promotion criteria).
 - **Maintenance Mode**: before taking Nightscout down, tell the person with diabetes; displays will show STALE, which is expected.
 - **Stateful Changes**: never edit or delete Nightscout entries by hand; never write treatments from this repo.

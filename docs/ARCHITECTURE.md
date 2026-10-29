@@ -64,22 +64,27 @@ Glucose data is **Restricted** (health data) at every step of this flow, and the
 - **Data hub (external, self-hosted):** Nightscout (Node.js, MongoDB)
 - **This repo:** Python 3.11+, standard library only at runtime; pytest and pytest-cov for tests
 - **Companion app:** Swift 5.9, SwiftUI, iOS 17+, built on GitHub macOS runners via XcodeGen; token in the Keychain
-- **Display targets:** Xteink X4/X3 pocket e-ink (ESP32-C3, C++17, rules done, device build pending), Raspberry Pi with an e-paper HAT, Home Assistant
+- **Display targets:** Xteink X4/X3 pocket e-ink (ESP32-C3, C++17: rules, JSON parser and panel rasterizer done; a build-only PlatformIO skeleton prints the NO DATA panel over USB serial; Wi-Fi and the panel driver pending), Raspberry Pi with an e-paper HAT, Home Assistant
+- **Web demo:** one HTML file with no build step; Node 20 or later only to test its panel port
 
 ## Repository Structure
 
 - `src/lightkeeper/domain/`: pure rules, no I/O, no clock.
-- `src/lightkeeper/application/`: use cases that combine a data source with the domain rules, and the status payload shared by `--json` and Home Assistant.
-- `src/lightkeeper/infrastructure/`: the HTTPS Nightscout client, the publish-only MQTT client and Home Assistant discovery publisher (`mqtt.py`, `home_assistant.py`, ADR-0010), the SVG panel renderer, and the 1-bit e-paper rasterizer (`epaper_bitmap.py` with the project's own 5x8 font, `font5x7.py`), which produces the PNG previews and the Waveshare panel buffer for the Raspberry Pi display (FR-007; the SPI driver waits for hardware).
-- `src/lightkeeper/cli.py`: composition root, wires env config, clock, and client.
+- `src/lightkeeper/application/`: use cases that combine a data source with the domain rules, the status payload shared by `--json` and Home Assistant (version 2), and the spoken form (`spoken.py`, FR-017), a use case that depends only on the domain.
+- `src/lightkeeper/infrastructure/`: the HTTPS Nightscout client (each failure carries a kind and a plain-words hint), the publish-only MQTT client and Home Assistant discovery publisher (`mqtt.py`, `home_assistant.py`, ADR-0010), the SVG panel renderer (`svg_display.py`, the panel's 1-bit shapes in brand colors), the interactive `--watch` logbook frame (`terminal_view.py`: ASCII, SGR codes that mirror `assets/brand/tokens.json` and are held to it by a test, no application imports), and the 1-bit panel rasterizer: `panel_layout.py` (the integer-only layout plan and the status treatment table), `panel_profiles.py` (the six named panel sizes and `resolve()`, which uses `panel_layout.check_size`), and `epaper_bitmap.py` with the project's own 5x8 font (`font5x7.py`, named Keeper 5x8), which writes PNG and 1-bit BMP images with an opt-in `HH:MM` stamp, the packed rows `spec/panel_vectors.json` hashes, and the Waveshare panel buffer for the Raspberry Pi display (FR-007; the SPI driver waits for hardware).
+- `src/lightkeeper/cli.py` and `src/lightkeeper/config.py`: the composition root. `config.py` reads and checks every setting from the environment once and raises `ConfigError` naming the variable and the clash (exit 2); `cli.py` wires the settings, clock and client to the screen (plain lines, or the `--watch` frame on a terminal) and the file outputs.
 - `src/lightkeeper/infrastructure/systemd_notify.py`: sd_notify (ready, watchdog, status) for the systemd service.
 - `hardware/`: the bill of materials (`bom/bom.csv`, rendered to `docs/BOM.md`) and the parametric bedside enclosure (`enclosure/bedside.scad`) with its renders and STLs.
 - `deploy/lightkeeper.service`: the hardened systemd unit for a Pi display, checked against the CLI by `tests/test_deploy.py`.
 - `tests/`: pytest suite, test names carry requirement IDs.
 - `spec/display_vectors.json`: golden display cases every implementation must pass.
 - `spec/response_vectors.json`: raw Nightscout responses and the conclusion every implementation must reach (built by `tools/gen_response_corpus.py`).
-- `firmware/xteink/`: C++17 port of the domain rules for the ESP32-C3 pocket display (`lib/glucose_rules`) and a heap-free Nightscout JSON parser (`lib/nightscout_json`), with host tests.
-- `apps/ios/`: Swift package with the same rules and a read-only Nightscout client, plus the SwiftUI companion app (ADR-0008, read-only layer).
+- `spec/spoken_vectors.json`: the screen-reader sentence for every display vector (built by `tools/gen_spoken_vectors.py`), checked by Python and Swift.
+- `spec/panel_vectors.json` and `spec/font5x8.json`: the 1-bit panel of every display vector at six panel sizes, pinned by CRC-32, and the Keeper 5x8 font (built by `tools/gen_panel_spec.py`), checked by Python, the firmware and the demo.
+- `firmware/xteink/`: C++17 for the ESP32 pocket display. `lib/glucose_rules` (the domain rules), `lib/nightscout_json` (a heap-free Nightscout JSON parser) and `lib/panel_bitmap` (the panel rasterizer) are pure libraries: no Arduino, no heap, integers only, all host-tested. `src/serial_panel.cpp` is plain C++ that the host tests build: `draw_offline_screen` wires nightscout_json -> glucose_rules -> panel_bitmap for the no-network screen, and `print_panel` turns the image into `#`/`.` lines through a callback. `src/main.cpp` is the device composition root and the only code that includes `Arduino.h`; it hands `print_panel` a function that calls `Serial.println`, then deep sleeps. `platformio.ini` builds it for the bench ESP32-S3 (`bench_s3`) and the X4 (`x4`); nothing is drawn on a panel yet.
+- `apps/ios/`: Swift package with the same rules and a read-only Nightscout client, plus the SwiftUI companion app (ADR-0008, read-only layer). `LightkeeperCore` also holds the spoken form, the phone's glance hierarchy (`Presentation.swift`) and the glance timeline a future widget will draw from (`GlanceTimeline.swift`, FR-019).
+- `web/panel/`: the demo's integer-only JavaScript panel port (`panel.js`), copied into `demo.html` by `tools/gen_demo_panel.py`, with its Node tests (`panel.test.mjs`).
+- `assets/brand/tokens.json`: the one machine-readable source for brand colors, held to `docs/BRAND.md` and to every surface by tests (NFR-005).
 - `docs/`: requirements, safety, ADRs, setup.
 - `constitution/`: universal engineering rules (git submodule).
 
@@ -90,5 +95,7 @@ Glucose data is **Restricted** (health data) at every step of this flow, and the
 | domain         | src/lightkeeper/domain          | --            |
 | application    | src/lightkeeper/application     | domain        |
 | infrastructure | src/lightkeeper/infrastructure  | domain        |
+
+`cli.py` and `config.py` are the composition root, outside the layers. On the firmware, `src/main.cpp` is the device's composition root.
 
 The domain layer stays free of I/O so that every safety rule in `docs/SAFETY.md` can be tested with plain data and a fixed clock.

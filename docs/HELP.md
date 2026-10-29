@@ -6,6 +6,7 @@ This file provides help for humans and AI agents working on this project.
 
 - **Primary Maintainers**: Eric (@esanacore), building Lightkeeper with and for Kaitlin.
 - **Getting Started**: Read `README.md` and `docs/SETUP.md`.
+- **The iOS app**: in Settings, enter just your Nightscout site (`https://your-site.example`, nothing after the name) and a readable token made in Nightscout's Admin Tools, Subjects. Check connection says in plain words whether it worked, including "This Nightscout needs a token to be read" when the site requires a token and the field is empty. Details: `docs/SETUP.md`, Part 4.
 - **Asking for Help**: open an issue at https://github.com/esanacore/lightkeeper/issues. For security problems, follow `.github/SECURITY.md` instead. For questions about Trio, Nightscout, or the sensor and pump themselves, the community docs and support channels linked in `docs/SETUP.md` are the right place.
 - **Medical questions**: Lightkeeper is not a medical device and its maintainers can't give medical advice. Talk to your care team.
 

@@ -74,7 +74,7 @@ Five rules keep it calm by construction:
 4. Anything that can outlive its writer says when it was written.
 5. Nothing moves, blinks, ticks every second, or makes a sound. A change is one redraw, the way e-ink swaps an image.
 
-Everything in this section is presentation only. Screen text still comes from `spec/display_vectors.json`, unchanged. The two items under Proposed, not in use are written down for a decision, and no surface uses them.
+Everything in this section is presentation only. Screen text still comes from `spec/display_vectors.json`, unchanged. The two items under Proposed, not in use are written down for a decision, and no surface uses them. The new tokens, the textures, the Keeper 5x8 name, the hard shadow and the pixel icons and marks are in use but await Eric's approval (D1 in `TODO.md`).
 
 ### New tokens
 
@@ -90,7 +90,7 @@ Everything in this section is presentation only. Screen text still comes from `s
 | Night paper | `#1C1E22` | `#1C1E22` | Panel previews in dark mode, so the panel is never the brightest thing at the bedside | Night ink on it 8.30 |
 | Night ink | `#B9B7AE` | `#B9B7AE` | Panel glyphs on Night paper | 8.30 on Night paper |
 
-In dark mode, Beam text is Beam. Band text is Paper's value in light mode and Night's in dark mode, because dark Ink is a light color and dark Paper on it measures only 1.09:1. Night paper and Night ink are the panel preview's colors in dark mode on iOS, the demo and the desktop window; in light mode the preview stays Paper and Ink. Line stays, for decorative dividers only.
+In dark mode, Beam text is Beam. Band text is Paper's value in light mode and Night's in dark mode, because dark Ink is a light color and dark Paper on it measures only 1.09:1. Night paper and Night ink are the panel preview's colors in dark mode on iOS and the demo (and the planned desktop window); in light mode the preview stays Paper and Ink. Line stays, for decorative dividers only.
 
 ### Status color as text
 
@@ -162,9 +162,9 @@ Keeper 5x8 is the name for the project's own pixel font: the glyph table in `src
 
 A stamp is the time an image was drawn, not the time of the reading:
 
-- Bitmap, PNG and BMP: `HH:MM` in local 24-hour time, in Keeper 5x8 at scale 2 or more on the age row. Always on for exported images and the desktop window; opt-in in the reference renderer until Eric decides whether physical panels show it.
+- Bitmap, PNG and BMP: `HH:MM` in local 24-hour time, in Keeper 5x8 at scale 2 or more on the age row. Always on for exported images (and for the planned desktop window); opt-in in the reference renderer until Eric decides whether physical panels show it.
 - SVG: `written HH:MM UTC`, unchanged until that same decision.
-- Terminal: `checked HH:MM:SS`. Desktop: `checked HH:MM` in the window title. iOS: `checked HH:MM` as an absolute time.
+- Terminal: `checked HH:MM:SS`. Desktop (planned): `checked HH:MM` in the window title. iOS: `checked HH:MM` as an absolute time.
 - Widget timelines schedule their own STALE entry.
 - Demo panels carry `SIMULATED`.
 
@@ -198,11 +198,11 @@ The three lamps share one outline and differ only inside the glass: lit, hatched
 
 ### Motion and sound
 
-None. Every change is a single redraw. The one exception is an optional 120 ms `steps(3)` opacity change when someone switches state on the demo, removed under `prefers-reduced-motion`. Never a pulse, blink, spinner, flash, a simulated e-ink flash on an emissive screen, a caption that ticks every second, a bell, a sound, a notification, or a taskbar flash. Loading copy is static: `checking Nightscout...`.
+None. Every change is a single redraw. The one exception is an optional 120 ms `steps(3)` opacity change when someone switches state on the demo, removed under `prefers-reduced-motion`. The demo does not use it: nothing on the page animates. Never a pulse, blink, spinner, flash, a simulated e-ink flash on an emissive screen, a caption that ticks every second, a bell, a sound, a notification, or a taskbar flash. Loading copy is static: `checking Nightscout...`.
 
 ### Terminal
 
-Only an interactive terminal running `--watch` gets the logbook frame: clear and home, then redraw, under the header `o))) lightkeeper   checked HH:MM:SS`, in an ASCII `+ - |` frame with 2-space padding. Piped, systemd and `--json` output stays exactly the vector lines.
+Only an interactive terminal running `--watch` gets the logbook frame, under the header `o))) lightkeeper   checked HH:MM:SS`, in an ASCII `+ - |` frame with 2-space padding. The screen is cleared once, then homed and redrawn in place, so the scrollback never grows. Piped, systemd and `--json` output stays exactly the vector lines.
 
 | Status | SGR with color | With `NO_COLOR` or `--no-color` |
 | --- | --- | --- |
@@ -219,7 +219,7 @@ Only an interactive terminal running `--watch` gets the logbook frame: clear and
 
 ### User themes
 
-Desktop and terminal themes get four slots, and only four. Status colors are never themeable: they always travel with their word. The accent slot may carry small text, so it defaults to Beam text, not Beam. On the default background, in both themes, the default foreground is at least 7:1, the accent at least 4.5:1 and the line at least 3:1; a user theme is held to the same minimums.
+Themes for the terminal and the planned desktop window get four slots, and only four. Status colors are never themeable: they always travel with their word. The accent slot may carry small text, so it defaults to Beam text, not Beam. On the default background, in both themes, the default foreground is at least 7:1, the accent at least 4.5:1 and the line at least 3:1; a user theme is held to the same minimums.
 
 | Slot | Default token |
 | --- | --- |
@@ -227,6 +227,16 @@ Desktop and terminal themes get four slots, and only four. Status colors are nev
 | line | `line-strong` |
 | foreground | `ink` |
 | accent | `beam-text` |
+
+### Platform names
+
+Each surface names the tokens its own way, and every surface's colors are tested against `assets/brand/tokens.json`.
+
+| Surface | Names |
+| --- | --- |
+| iOS (`Palette.swift`) | camelCase token ids: `lineStrong`, `beamText`, `chipInRange`, `chipLow`, `chipHigh`, `chipStale`, `bandText`, `nightPaper`, `nightInk`; status colors as `statusInRange`, `statusLow`, `statusHigh`, `statusStale`. Three pairs take light and dark from two tokens: `panelPaper` (`paper` / `night-paper`), `panelInk` (`ink` / `night-ink`) and `hardShadow` (`beam-soft` / `line`). The accent color is Beam text, and the AppIcon is `assets/brand/png/app-icon.png` scaled to 1024 px. |
+| Demo CSS (`demo.html`) | `--line-strong`, `--beam-text`, `--band-text`, `--chip-inrange`, `--chip-low`, `--chip-high`, `--chip-stale`, `--night-paper` and `--night-ink` map to the same ids; `--dither-12`, `--dither-25`, `--dither-50` and `--hatch` come from the texture cells. |
+| SVG panel (`svg_display.py`) | Paper and Ink, Muted only for its stamp, and Line strong only for its edge (the demo's bezel color). |
 
 ### Proposed, not in use
 

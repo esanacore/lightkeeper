@@ -14,7 +14,7 @@ Checked 2026-10-25: the bare Pi Zero 2 WH was sold out at the main US resellers 
 
 ### Bedside e-ink display: Raspberry Pi Zero 2 WH plus a 2.9 inch e-paper HAT
 
-This runs the Python code as it is, so the whole test suite already covers it. The bitmap the panel will show is already drawn and tested (`epaper_bitmap.py`); only the SPI driver waits for the parts. It is the first display a household can rely on.
+This runs the Python code as it is, so the whole test suite already covers it. The panel's pixels are already drawn by an integer-only layout and pinned by `spec/panel_vectors.json`; only the SPI driver waits for the parts. It is the first display a household can rely on.
 
 | Part | Exact name to search | Approx. price |
 | --- | --- | --- |
@@ -24,7 +24,7 @@ This runs the Python code as it is, so the whole test suite already covers it. T
 | Storage | 32 GB microSD, A1 class (SanDisk or Samsung) | $8 |
 | Case | Optional: a Pi Zero case with a HAT cutout, or a 3D-printed one later | $5 to $10 |
 
-For an across-the-room display, the Waveshare 7.5inch e-Paper HAT, 800x480, black/white (about $65) runs on the same Pi with the same code; it needs a frame or stand. Buy the kit version of the Pi unless you already own a micro-USB supply, a mini-HDMI adapter, and a card reader.
+For an across-the-room display, the Waveshare 7.5inch e-Paper HAT, 800x480, black/white (about $65) runs on the same Pi with the same code; it needs a frame or stand. The layout already draws it (`--panel waveshare_7in5`, alias `trmnl`). Buy the kit version of the Pi unless you already own a micro-USB supply, a mini-HDMI adapter, and a card reader.
 
 ### Pocket display: Xteink X4 Pro
 
@@ -41,6 +41,8 @@ Develop and test firmware here, not on the device the person with diabetes carri
 | Board | Waveshare ESP32-S3-ePaper-1.54 (200x200 black/white, Wi-Fi, BLE, RTC, battery charging). The plain "-1.54" listing includes a battery; avoid the "1.54G" four-colour version. | $15.99 to $22.99 |
 | Battery | 3.7 V LiPo, 500 to 1000 mAh, with an MX1.25 2-pin connector. JST-PH will not fit. | $8 to $12 |
 | Cable | USB-C data cable. Many charge-only cables will not flash. | $6 |
+
+The firmware skeleton builds for this board as `bench_s3`; check the flash size before the first upload (8 MB assumed), then expect a NO DATA dump over USB serial every minute. See [[Firmware]].
 
 ## Tier 2: after the first displays work
 
@@ -64,7 +66,7 @@ Not needed: a Mac (Trio builds in the browser, the iOS app on GitHub's macOS run
 ## Wiring and setup notes
 
 - The 2.9 inch and 7.5 inch HATs plug straight onto the Pi's 40-pin header; there is no wiring. Enable SPI with `sudo raspi-config`, Interface Options, SPI, then reboot.
-- On the Pi, Lightkeeper runs as the hardened systemd service in `deploy/lightkeeper.service` (its own user, sandboxed, with a watchdog that restarts a hung refresh) with `--watch --interval 60 --svg /run/lightkeeper/screen.svg` and the token in a root-only `/etc/lightkeeper.env`. Until the e-paper adapter (FR-007) lands, the SVG plus any image viewer works for testing; its "written" stamp shows whether the service is alive. The service file is in `docs/SETUP.md`.
+- On the Pi, Lightkeeper runs as the hardened systemd service in `deploy/lightkeeper.service` (its own user, sandboxed, with a watchdog that restarts a hung refresh) with `--watch --interval 60 --svg /run/lightkeeper/screen.svg` and the token in a root-only `/etc/lightkeeper.env`. Until the e-paper adapter (FR-007) lands, the SVG plus any image viewer works for testing; its "written" stamp, or the local `HH:MM` stamp on a `--png` image of the exact panel pixels, shows whether the service is alive. The service file is in `docs/SETUP.md`.
 - The ESP32-S3 bench board flashes over USB-C; hold BOOT while powering on to enter download mode.
 - Once a device is in service, record it with dates in `docs/OTS_SOFTWARE.md`, so hardware is tracked like software.
 

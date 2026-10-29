@@ -24,7 +24,7 @@ Runs the Python code as it is, so the whole Python suite already covers it. This
 | Storage | 32 GB microSD, A1 class (SanDisk or Samsung) | $8 | [Amazon search](https://www.amazon.com/s?k=32GB+microSD+A1+SanDisk) |
 | Case | Optional: a Pi Zero case with a HAT cutout, or a 3D-printed one later | $5 to $10 | [Amazon search](https://www.amazon.com/s?k=Raspberry+Pi+Zero+2+W+case+HAT) |
 
-Alternative if you want it readable across the room: **Waveshare 7.5inch e-Paper HAT, 800x480, black/white** (about $65, [Amazon search](https://www.amazon.com/s?k=Waveshare+7.5inch+e-Paper+HAT+800x480)) on the same Pi Zero 2 WH. Same code, bigger panel, needs a frame or stand.
+Alternative if you want it readable across the room: **Waveshare 7.5inch e-Paper HAT, 800x480, black/white** (about $65, [Amazon search](https://www.amazon.com/s?k=Waveshare+7.5inch+e-Paper+HAT+800x480)) on the same Pi Zero 2 WH. Same code, bigger panel, needs a frame or stand. The panel layout already draws this size (`--panel waveshare_7in5`, alias `trmnl`).
 
 Buy the kit version of the Pi unless you already own a micro-USB supply, a mini-HDMI adapter, and a card reader.
 
@@ -38,6 +38,8 @@ The ESP32-C3 pocket e-ink reader the firmware targets (ADR-0006). Choose the Pro
 
 Before flashing anything: back up the SD card, read the CrossPoint flashing guide and the firmware recovery page, and confirm the firmware file matches the model. Do not use an X4 Classic image on a Pro. [CrossPoint](https://www.readme.club/firmware/crosspoint), [PocketInk flash guide](https://pocketink.io/blog/xteink-x4-buy-setup-flash-guide)
 
+The firmware skeleton also builds for the X4 (PlatformIO environment `x4`, ESP32-C3), assuming 4 MB of flash and an 800x480 panel read in landscape; confirm the panel size, orientation, controller and flash on the bench before flashing anything.
+
 ### 3. Firmware bench board: Waveshare ESP32-S3-ePaper-1.54
 
 Develop and test firmware here, not on the device the person with diabetes carries. Same ESP32 family as the Xteink, and the exact board WaveshareMon uses, so there is working prior art for Wi-Fi, TLS, deep sleep, and e-paper refresh.
@@ -49,6 +51,8 @@ Develop and test firmware here, not on the device the person with diabetes carri
 | Cable | USB-C data cable (many charge-only cables won't flash) | $6 | any |
 
 [Waveshare wiki](https://docs.waveshare.com/ESP32-S3-ePaper-1.54), [WaveshareMon](https://github.com/psonnera/WaveshareMon)
+
+The firmware skeleton builds for this board as PlatformIO environment `bench_s3`. The build assumes 8 MB of qio flash (the ESP32-S3-DevKitC-1 defaults, marked VERIFY); check the board before the first upload (`firmware/xteink/README.md`, "Build and flash the device skeleton"). Then `pio run -e bench_s3 -t upload` and `pio device monitor -e bench_s3` should show the NO DATA panel as `#`/`.` rows with CRC-32 3339447321 and ink 2,386, every minute. Nothing is drawn on the panel yet.
 
 ## Tier 2: after the first displays work
 
@@ -76,7 +80,7 @@ Develop and test firmware here, not on the device the person with diabetes carri
 ## Wiring and setup notes
 
 - The 2.9" and 7.5" HATs plug straight onto the Pi's 40-pin header; no wiring. Enable SPI in `raspi-config`. The pins the 2.9" Touch HAT uses are drawn in `docs/img/pinout-2.9-touch-hat.svg`.
-- On the Pi, Lightkeeper runs as the hardened systemd service in `deploy/lightkeeper.service` with `--watch` and the e-paper adapter (FR-007, in progress); until then `--svg` plus any image viewer works for testing.
+- On the Pi, Lightkeeper runs as the hardened systemd service in `deploy/lightkeeper.service` with `--watch` and the e-paper adapter (FR-007, in progress); until then `--png` (the exact panel pixels, stamped with the local time they were drawn) or `--svg`, plus any image viewer, works for testing.
 - The ESP32-S3 board flashes over USB-C; hold BOOT while powering on to enter download mode.
 - Keep a written list of what you bought, with dates, in `docs/OTS_SOFTWARE.md`'s system-level table once a device is in service, so hardware is tracked like software.
 
