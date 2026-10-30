@@ -6,7 +6,7 @@ Lightkeeper is a secondary display and not a medical device. Always confirm on t
 
 ## Requirements
 
-Python 3.11 or newer and Git. The firmware host tests additionally need a C++17 compiler and `make`, but nothing on this page requires them. Supported platforms are Windows 11 with PowerShell 7, macOS 14 or newer, Ubuntu 22.04 or newer, and Raspberry Pi OS Bookworm. `lightkeeper` has no runtime dependencies; everything in the data path is the Python standard library (ADR-0005 in [[Architecture Decisions]]).
+Python 3.11 or newer and Git. The firmware host tests additionally need a C++17 compiler and `make`, but nothing on this page requires them. Supported platforms are Windows 11 with PowerShell 7, macOS 14 or newer, Ubuntu 22.04 or newer, and Raspberry Pi OS Bookworm. `lightkeeper` has no runtime dependencies; everything in the data path is the Python standard library (ADR-0005 in [[Architecture Decisions]]). The desktop window also needs Tk, the windowing toolkit behind the standard library's `tkinter`: the python.org installers for Windows and macOS include it; on Debian, Ubuntu and Raspberry Pi OS install `python3-tk` (`sudo apt install python3-tk`); with Homebrew's `python@3.12`, install `python-tk@3.12`. The command-line tool never loads it.
 
 ## Install
 
@@ -80,6 +80,37 @@ Useful options:
 - `--json PATH` writes the same status as JSON (level, glucose, trend, age, the screen's lines, any error), replaced atomically the same way. The glucose field is empty whenever the level is STALE or NO DATA. The payload is version 2 (still waiting for Eric's sign-off): the age is never negative, and `reading_at` gives the reading's time. Home Assistant publishing is set up separately; see `docs/SETUP.md`.
 - `--png PATH` and `--bmp PATH` write the exact 1-bit panel pixels, replaced atomically and stamped with the local `HH:MM` they were drawn at; `--panel` picks the panel (`waveshare_2in9` by default, `trmnl`, `kindle`, or a size such as `800x480`).
 - `--version` prints the package version.
+
+## The desktop window
+
+`python -m lightkeeper.desktop` shows the glance on a computer monitor as the real e-paper panel: the same 1-bit pixels the Pi panel would draw, enlarged by a whole number, stamped with the local `HH:MM` of each redraw, under a status strip with the headline's shape. It reads the same environment variables as the command-line tool (below), fetches every 60 seconds, and re-ages the last good reading on its own clock, so it turns STALE on time even when no fetch answers. It never rings, flashes or pops up a notification, and writes no files.
+
+```bash
+python -m lightkeeper.desktop --demo                         # canned reading, no network
+python -m lightkeeper.desktop --scale 3 --on-top
+python -m lightkeeper.desktop --panel 800x480 --theme dark
+```
+
+Keys: `r` checks Nightscout now, `t` switches between the panel's pixels and its lines as text, and `q` quits, as the close box does. The title carries the headline, the age line and `checked HH:MM`, so a screen reader or the taskbar shows them too.
+
+- `--scale 2` (the default) or `3` counts 96 dpi pixels: on a display scaled to 200%, each panel pixel is twice as many device pixels again. The whole window always fits the screen; when it would not, the panel is drawn at the largest whole zoom that fits, with one line on stderr saying so. Counting 96 dpi pixels here is a default pending Eric's decision.
+- `--panel` takes the same profiles as the command-line tool (`waveshare_2in9` by default, `trmnl`, `kindle`, or a size such as `800x480`).
+- `--theme auto` (the default) follows the Windows app theme, read once at startup; on macOS and Linux it is light. `--theme dark` draws the panel in Night paper and Night ink, so the window is not the brightest thing at the bedside.
+- `--on-top` keeps the window above other windows.
+
+Installed with `pip install -e .`, the same window is also the `lightkeeper-window` launcher (D12, pending Eric's review). On Windows that launcher has no console, so a configuration error, such as `NIGHTSCOUT_URL` unset, exits 2 with no message; run `python -m lightkeeper.desktop` in a terminal to see it.
+
+| Code | Meaning |
+| --- | --- |
+| `0` | The window was closed, with `q` or the close box. |
+| `2` | A setting or option that cannot be used, a panel too large for the screen even at one screen pixel a panel pixel, no tkinter, or no display to open a window on. No window is left open. |
+| `130` | Stopped with Ctrl+C in the terminal that started it (`lightkeeper: stopped`). |
+
+The window has been checked by hand on Windows 11 only, not yet on macOS or on Linux with a display.
+
+## The Android app
+
+The read-only Android app is a sideloaded debug APK for Android 8.0 or later; [[Companion App]] describes it, and `apps/android/README.md` in the repository has the build and install steps (JDK 17 or 21 and the Android SDK, then `./gradlew assembleDebug` and `adb install`). On Windows, keep the checkout path to about 60 characters or fewer, such as `C:\src\lightkeeper`: from a longer one the native build fails on the Windows path limit.
 
 ## Environment variables
 

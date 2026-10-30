@@ -1,6 +1,6 @@
 # Companion App
 
-The companion app is the iOS app from ADR-0008, written up here for people rather than for the ADR template. It has two deliberately separate layers: a read-only layer that exists today in `apps/ios/`, and a bolus request layer that does not exist yet and is gated behind promotion criteria. Sources: `docs/adr/0008-companion-app-and-bolus-requests-via-trio.md` and `apps/ios/README.md` in the repository; the ADR is summarized in [[Architecture Decisions]].
+There are two companion apps, written up here for people rather than for the ADR template. The iOS app from ADR-0008 has two deliberately separate layers: a read-only layer that exists today in `apps/ios/`, and a bolus request layer that does not exist yet and is gated behind promotion criteria. The Android app in `apps/android/` is read-only (FR-020) and has no bolus layer. Sources: `docs/adr/0008-companion-app-and-bolus-requests-via-trio.md`, `apps/ios/README.md` and `apps/android/README.md` in the repository; the ADR is summarized in [[Architecture Decisions]].
 
 Lightkeeper is a secondary display and not a medical device. Always confirm on the primary CGM app before acting.
 
@@ -19,6 +19,22 @@ First launch shows "Add your Nightscout site to start" and makes no fetch until 
 The readable token lives in the Keychain, protected until first unlock, and is never written to UserDefaults or logs. There is no Mac in the project: `.github/workflows/ios.yml` runs the package tests (on macOS and Linux), builds the app, and runs its unit tests on an iOS simulator (`apps/ios/Lightkeeper/Tests/`: an invalid stored threshold set resets to the defaults, and returning to the foreground turns an old reading STALE without a fetch); the reworked views and the new app tests have not run there yet (GAP-009). TestFlight distribution will use the same path with signing secrets added.
 
 Still to come in this layer: widgets and a watch complication, background refresh, mmol/L, delta and IOB from Nightscout's device status, and recent treatments. All of that reads and shows data, so ADR-0004 covers it. It is requirement FR-012, verified. The glance timeline those widgets will draw from is in place (`GlanceTimeline.swift`): every frame is scheduled ahead with STALE among them, tested against the shared vectors (FR-019); the widget extension waits on Apple signing and App Groups.
+
+## The Android app (read-only), what exists now
+
+`apps/android/` is a read-only app for Android phones, written in Kotlin with framework Views. No AndroidX, Compose or third-party library is in the APK, only the Kotlin standard library and its annotations. It reads Nightscout and nothing else: no pump or sensor code, no alarm, no widget.
+
+There is no fourth copy of the rules. The app compiles the firmware's `glucose_rules`, `nightscout_json` and `panel_bitmap` in place, by path, and reaches them through one small JNI file, so every line on the glance and every pixel of its panel image come from the code the pocket display runs. A reading coming back from Kotlin is checked again by the firmware's parser, so a bad one can only show NO DATA. The instrumented tests run every case in `spec/display_vectors.json`, `spec/response_vectors.json` and `spec/panel_vectors.json` through that code on the device.
+
+The glance follows the Keeper's Logbook order, and every word on it comes from the vector lines. The status chip comes first, at 20 sp bold. A fresh number is the hero, with its arrow beside it and the unit under it. On STALE there is no big number, separate arrow or unit: the STALE banner is the largest text, and the old value appears only in the struck `last:` line at body size. NO DATA, and any headline nobody planned for, gets a dashed frame and `--` where a number would be. Under the glance sit `checked HH:MM` (`checking Nightscout...` before the first answer) and, during an outage, `Nightscout unreachable since HH:MM`, then the real 1-bit panel image at the 296x128 size, stamped with the local time it was drawn. TalkBack reads the status area as the display lines in order; the spoken sentences of `spec/spoken_vectors.json` are Python and Swift only so far.
+
+The app fetches when its screen opens and every 60 seconds while it is visible. It re-ages the last good reading every 30 seconds and the moment the screen comes back, with no fetch, so it turns STALE on time even when fetches stop. Coming back also fetches, but only when the last fetch began 15 seconds ago or more. One fetch runs at a time, and one with no answer after 20 seconds is cancelled and shown as `Nightscout unreachable`. Nothing runs while the screen is hidden. Until a usable address is saved, the glance is replaced by "Add your Nightscout site to start", with no number and no level word, and the app makes no fetch.
+
+Settings check the address as it is typed, with the iOS app's rule and its reasons word for word: https, and just the site. The thresholds step by 5 over the iOS ranges and Stale after by 1 from 6 to 60, with the iOS caution above 15 minutes. Save is refused for an invalid set, and an invalid set found on disk is reset to the defaults and written back. The readable token is sealed with AES-256-GCM under an Android Keystore key and travels only in the `api-secret` header. The app asks for one permission, `INTERNET`; backup and cleartext traffic are off, and there are no notifications, alarms or widgets. It ships as a sideloaded debug APK, about 1 MB, for Android 8.0 or later, built and installed as `apps/android/README.md` says (on Windows, from a short checkout path).
+
+Thresholds change only which word the display shows. They do not affect dosing or the primary app's alarms. Match them to the alert settings already in the primary app.
+
+82 JVM unit tests and lint pass, and the 39 instrumented tests pass on an API 36.1 emulator. `.github/workflows/android.yml` has not run yet, and nothing has run on a phone (GAP-013); Kotlin coverage is not measured (GAP-014). Not yet: Check connection, TalkBack sentences, a widget (it needs the exact-alarm decision first), and release signing. The shape of this first slice (framework Views, the C++ through JNI, a sideloaded APK, Android 8.0 or later, no widget), the stamp on the panel image and the 15-second rule for fetching on return are defaults pending Eric's decision.
 
 ## The bolus request path (Phase 5b), what is planned
 
@@ -45,6 +61,6 @@ Gate: the person with diabetes decides; Eric runs the hazard review.
 
 ## Status
 
-Read-only layer: builds and tests in CI; the reworked SwiftUI views compile first in CI (`ios.yml`'s app-build job had not run on them as of 2026-10-28); nothing on TestFlight yet. Bolus request layer: no code. The safe fallback, if the hazard review does not close, is no bolus screen at all; the read-only layer ships regardless.
+Read-only layer: builds and tests in CI; the reworked SwiftUI views compile first in CI (`ios.yml`'s app-build job had not run on them as of 2026-10-28); nothing on TestFlight yet. Bolus request layer: no code. The safe fallback, if the hazard review does not close, is no bolus screen at all; the read-only layer ships regardless. Android app: read-only, a sideloaded debug APK whose tests pass on an emulator; its CI workflow has not run yet and it has not been on a phone.
 
 See [[Roadmap]] for where Phase 5 sits, and [[Testing and Quality]] for how the Swift port is held to the shared vectors.
