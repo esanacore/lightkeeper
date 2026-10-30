@@ -527,6 +527,10 @@ def broker_env(monkeypatch, broker):
     monkeypatch.setenv("LK_MQTT_TLS", "false")
 
 
+# One watch cycle stopped by Ctrl+C: CONNECT, the four sensors' discovery configs,
+# online, the state, offline, DISCONNECT. Waiting for fewer can read the tail early.
+WATCH_PACKETS = 9
+
 OFFLINE = {
     "type": "PUBLISH",
     "topic": "lightkeeper/lightkeeper/availability",
@@ -540,7 +544,8 @@ def test_fr006_ctrl_c_watch_exits_0_and_marks_ha_offline(monkeypatch, capsys, br
     broker_env(monkeypatch, broker)
     stop_after(monkeypatch, 1)  # Ctrl+C while it sleeps
     assert cli.main(["--demo", "--watch"]) == 0
-    packets = broker.wait_for(8)
+    packets = broker.wait_for(WATCH_PACKETS)
+    assert len(packets) == WATCH_PACKETS
     assert packets[-2:] == [OFFLINE, {"type": "DISCONNECT"}]
     assert capsys.readouterr().err == ""
 
@@ -564,7 +569,8 @@ def test_fr006_ctrl_c_mid_fetch_in_watch_still_marks_ha_offline(monkeypatch, bro
     source_is(monkeypatch, InterruptOnSecondFetch())
     monkeypatch.setattr(cli, "time", types.SimpleNamespace(sleep=lambda seconds: None))
     assert cli.main(["--watch"]) == 0
-    packets = broker.wait_for(8)
+    packets = broker.wait_for(WATCH_PACKETS)
+    assert len(packets) == WATCH_PACKETS
     assert packets[-2:] == [OFFLINE, {"type": "DISCONNECT"}]
 
 
@@ -587,7 +593,8 @@ def test_fr006_ctrl_c_one_shot_after_a_publish_leaves_ha_available(monkeypatch, 
     broker_env(monkeypatch, broker)
     monkeypatch.setattr(cli, "SystemdNotifier", InterruptedNotifier)
     assert cli.main(["--demo"]) == 130
-    packets = broker.wait_for(7)
+    packets = broker.wait_for(WATCH_PACKETS - 1)  # no offline
+    assert len(packets) == WATCH_PACKETS - 1
     assert packets[-1] == {"type": "DISCONNECT"}  # finish() ran
     assert OFFLINE not in packets
     assert capsys.readouterr().err == "lightkeeper: stopped\n"
