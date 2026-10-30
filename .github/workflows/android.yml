@@ -98,6 +98,9 @@ jobs:
           api-level: 36
           arch: x86_64
           target: google_apis
+          # A real phone's screen. The default AVD is 320 px wide, narrower than
+          # the 296 px panel plus its frame, so the panel would rightly draw nothing.
+          profile: pixel_6
           disable-animations: true
           working-directory: apps/android
           script: ./gradlew --no-daemon connectedDebugAndroidTest
