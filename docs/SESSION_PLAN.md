@@ -6,7 +6,7 @@ This document records the current session's planned work before implementation b
 
 ## Session
 
-- **Date/Time**: 2026-10-27 to 2026-10-28
+- **Date/Time**: 2026-10-27 to 2026-10-29
 - **Agent**: Claude
 - **Previous Session**: 2026-10-23 to 2026-10-27 vectors, portability, v0.2.0, decisions and hardware docs.
 
@@ -16,4 +16,4 @@ Keeper's Logbook batch: sharpen what exists, build out more platforms (desktop w
 
 ## Status
 
-Waves 1 to 3 and the waves 1 and 2 docs are merged and pushed to `main`. Still to merge: the wave 3 docs pass (`docs3/integrated`) and the cross-batch review fixes (`review/<area>`). Outcomes and next steps are in `docs/AGENT_HANDOFF.md`.
+Done. Waves 1 to 3, both docs passes and the cross-batch review fixes are merged and pushed to `main`. Nothing is planned beyond the Next Steps in `docs/AGENT_HANDOFF.md`; the next session overwrites this file.
