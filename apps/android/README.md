@@ -44,7 +44,7 @@ The app fetches when the screen appears and every 60 seconds while it is visible
 
 ## Build and install
 
-Supported platforms: Windows, macOS and Linux, with JDK 17 or 21 and the Android SDK (platform 36, NDK 28.2.13676358, CMake 3.22.1). Point Gradle at the SDK with `ANDROID_HOME` or a `local.properties` file (`sdk.dir=...`, not committed). The Gradle wrapper fetches Gradle 9.5.1 and checks it against the pinned checksum.
+Supported platforms: Windows, macOS and Linux, with JDK 17 or 21 and the Android SDK (platform 36, NDK 28.2.13676358, CMake 3.22.1). Point Gradle at the SDK with `ANDROID_HOME` or a `local.properties` file (`sdk.dir=...`, not committed). The Gradle wrapper fetches Gradle 9.8.2 and checks it against the pinned checksum.
 
 On Windows, keep the checkout path short: about 60 characters or fewer, such as `C:\src\lightkeeper`. The firmware sources sit outside the app's CMake project, so CMake names their object files after the whole checkout path, under a build folder that is itself inside the checkout; from a long checkout path those names pass the Windows path limit and the native build stops with `ninja: error: mkdir(CMakeFiles/lightkeeper.dir/...): No such file or directory`, after a `CMAKE_OBJECT_PATH_MAX` warning. The build is known to work from a 57-character path and to fail from a 120-character one.
 
