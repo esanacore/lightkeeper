@@ -8,7 +8,7 @@ Questions that come up about Lightkeeper, answered from the repository's documen
 No. It is a secondary, read-only display for awareness only, treated internally as the equivalent of IEC 62304 Class A because no software failure alone can cause injury. Always confirm on the primary CGM app before acting. See [[Safety]].
 
 **Can it ever give insulin, or change pump or sensor settings?**
-No. The repository contains no code that commands a pump, calculates a dose, changes therapy settings, or talks to a sensor (ADR-0004). The only planned exception is narrow and gated: the companion app may someday *request* a bolus through Trio's own remote protocol, where Trio decides. See [[Companion App]].
+No. The repository contains no code that commands a pump, calculates a dose, changes therapy settings, or talks to a sensor (ADR-0004). The only planned exception is narrow and gated: the iOS companion app may someday *request* a bolus through Trio's own remote protocol, where Trio decides. See [[Companion App]].
 
 **Why does it say STALE when the number was fine a moment ago?**
 Because the reading is older than 15 minutes (or your `LK_STALE_MINUTES`), or dated more than 2 minutes in the future. An old number is not evidence of a current one, so Lightkeeper stops presenting it as current. The screen keeps the last value visible, labeled "last:", with its age. See [[Troubleshooting]].
@@ -36,6 +36,12 @@ A token for a Nightscout subject with the `readable` role only, created under Ad
 **Can I try it without any of that?**
 Yes. `python -m lightkeeper --demo` serves one made-up reading and never touches the network; `--demo-mgdl` and `--demo-minutes-ago` let you see each state. The [live demo](https://esanacore.github.io/lightkeeper/) (`demo.html` in the repository) shows every screen in a browser, with a button for every vector. `--demo-trend` picks the arrow, and the `--demo-*` options work only with `--demo`. The live demo draws the real panel pixels at six panel sizes. See [[Getting Started]].
 
+**Can I see it on my computer?**
+Yes. `python -m lightkeeper.desktop --demo` opens a window that shows the real e-paper panel's pixels for a made-up reading, with no network; without `--demo` it reads your Nightscout with the same settings as the command-line tool. It needs Tk, which the python.org installers include (`python3-tk` on Debian, Ubuntu and Raspberry Pi OS). It has been checked on Windows 11 only so far. See [[Getting Started]].
+
+**Is there an Android app?**
+Yes, a read-only one. It shows the same status as every other display, with the panel image beneath it, using the firmware's own C++ rules. It is a debug APK you sideload onto Android 8.0 or later; its tests pass on an emulator, and it has not yet run on a phone. See [[Companion App]].
+
 **Does it support mmol/L?**
 Not yet. Thresholds and screens are in mg/dL. mmol/L is reserved requirement FR-013, alongside delta (FR-014) and device status (FR-015). See [[Roadmap]].
 
@@ -43,7 +49,7 @@ Not yet. Thresholds and screens are in mg/dL. mmol/L is reserved requirement FR-
 Yes, with `LK_URGENT_LOW`, `LK_LOW`, `LK_HIGH`, `LK_URGENT_HIGH`, and `LK_STALE_MINUTES`. They must be in order within 40 to 400 or the program refuses to start (HAZ-006). Thresholds change only which word the display shows. They do not affect dosing or the primary app's alarms. Match them to the alert settings already in the primary app.
 
 **What hardware do I need?**
-For a bedside display, a Raspberry Pi Zero 2 WH and a Waveshare 2.9 inch black and white e-paper HAT; the Python code runs on it as is. For a pocket display, the Xteink X4 Pro, once the firmware's device build exists. No Mac is needed anywhere. See [[Hardware]].
+For a bedside display, a Raspberry Pi Zero 2 WH and a Waveshare 2.9 inch black and white e-paper HAT; the Python code runs on it as is. For a pocket display, the Xteink X4 Pro, once the firmware's device build exists. For the desktop window, any computer; for the Android app, an Android 8.0 or later phone. No Mac is needed anywhere. See [[Hardware]].
 
 **Does it work with Home Assistant?**
 Yes, over MQTT discovery (ADR-0010). Set `LK_MQTT_HOST` and the other `LK_MQTT_*` settings and four sensors appear: Glucose level, Glucose, Glucose reading age, and Last reading. They go `unavailable` if the publisher stops, and the glucose number is blank whenever the level is STALE or NO DATA, so an automation cannot act on an old value. Home Assistant shows Last reading as a relative time that keeps growing ("16 minutes ago"), and it goes unavailable with the others; a display with a non-default `LK_MQTT_NODE_ID` appears as `Lightkeeper (<node id>)`. Home Assistant's own Nightscout integration shows the raw number without that protection. Setup and example automations are in `docs/SETUP.md`. The status never carries a negative age.
@@ -51,13 +57,13 @@ Yes, over MQTT discovery (ADR-0010). Set `LK_MQTT_HOST` and the other `LK_MQTT_*
 ## About the project
 
 **Why are the rules written three times?**
-Because a Raspberry Pi runs Python, an ESP32-C3 cannot, and an iPhone wants Swift. Drift is handled by `spec/display_vectors.json`, 39 cases that all three implementations must pass identically, and by the rule that a change touches all of them in one commit. The panel's pixels are held the same way, by `spec/panel_vectors.json`, which the Python reference, the C++ rasterizer and the demo's JavaScript port all match. See [[How It Works]] and [[Testing and Quality]].
+Because a Raspberry Pi runs Python, an ESP32-C3 cannot, and an iPhone wants Swift. Drift is handled by `spec/display_vectors.json`, 39 cases that all three implementations must pass identically, and by the rule that a change touches all of them in one commit. The Android app reuses the C++ through JNI instead of a fourth copy. The panel's pixels are held the same way, by `spec/panel_vectors.json`, which the Python reference, the C++ rasterizer and the demo's JavaScript port all match. See [[How It Works]] and [[Testing and Quality]].
 
 **How tested is it?**
-On the current tree: 1,755 Python tests at 100% line and branch coverage, which is also the floor; firmware host tests under AddressSanitizer and UBSan (294 checks for the rules, 2,970 for the response parser, 2,744 for the panel rasterizer); 75 Swift package tests, which pass on Windows and which CI runs on macOS and Linux; and a traceability matrix in which every declared requirement has a verifying test named with its ID, checked by a guard that fails on a citation to a test that does not exist. See [[Testing and Quality]].
+On the current tree: 2,090 Python tests pass (2 more skip on Windows) at 100% line and branch coverage, which is also the floor; firmware host tests under AddressSanitizer and UBSan (294 checks for the rules, 2,970 for the response parser, 2,744 for the panel rasterizer); 75 Swift package tests, which pass on Windows and which CI runs on macOS and Linux; for the Android app, 82 JVM unit tests and 39 instrumented tests on an emulator, plus 55 checks in `tests/test_android.py`; and a traceability matrix in which every declared requirement has a verifying test named with its ID, checked by a guard that fails on a citation to a test that does not exist. See [[Testing and Quality]].
 
 **Does it work with a screen reader?**
-Yes. Every screen has one plain spoken sentence that says what the screen says and is never more current, for example "In range. 112 milligrams per deciliter, steady. 3 minutes ago." The iOS app uses it as the VoiceOver label, and the demo page announces it through a polite live region. It is never sent to Home Assistant or read aloud on its own. The sentences are pinned in `spec/spoken_vectors.json` (FR-017), and their wording still waits for review.
+Yes. Every screen has one plain spoken sentence that says what the screen says and is never more current, for example "In range. 112 milligrams per deciliter, steady. 3 minutes ago." The iOS app uses it as the VoiceOver label, and the demo page announces it through a polite live region. On Android, TalkBack reads the screen's lines in order; the desktop window's title carries the headline and the age. It is never sent to Home Assistant or read aloud on its own. The sentences are pinned in `spec/spoken_vectors.json` (FR-017), and their wording still waits for review.
 
 **Why Trio and not Loop or AndroidAPS?**
 Trio for its oref algorithm features, active community, and Omnipod 5 support since v1.0.0. Loop remains a fallback; AndroidAPS lacked Omnipod 5 support as of October 2026. See [[Architecture Decisions]].

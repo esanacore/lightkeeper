@@ -83,7 +83,7 @@ Useful options:
 
 ## The desktop window
 
-`python -m lightkeeper.desktop` shows the glance on a computer monitor as the real e-paper panel: the same 1-bit pixels the Pi panel would draw, enlarged by a whole number, stamped with the local `HH:MM` of each redraw, under a status strip with the headline's shape. It reads the same environment variables as the command-line tool (below), fetches every 60 seconds, and re-ages the last good reading on its own clock, so it turns STALE on time even when no fetch answers. It never rings, flashes or pops up a notification, and writes no files.
+`python -m lightkeeper.desktop` shows the glance on a computer monitor as the real e-paper panel: the same 1-bit pixels the Pi panel would draw, enlarged by a whole number, stamped with the local `HH:MM` of each redraw, under a status strip with the headline's shape. It reads the same environment variables as the command-line tool (below), fetches every 60 seconds, and re-ages the last good reading on its own clock, so it turns STALE on time even when no fetch answers; a fetch with no answer after two minutes shows as `Nightscout unreachable`. It never rings, flashes or pops up a notification, does not publish to Home Assistant, and writes no files.
 
 ```bash
 python -m lightkeeper.desktop --demo                         # canned reading, no network
@@ -91,9 +91,9 @@ python -m lightkeeper.desktop --scale 3 --on-top
 python -m lightkeeper.desktop --panel 800x480 --theme dark
 ```
 
-Keys: `r` checks Nightscout now, `t` switches between the panel's pixels and its lines as text, and `q` quits, as the close box does. The title carries the headline, the age line and `checked HH:MM`, so a screen reader or the taskbar shows them too.
+Keys: `r` checks Nightscout now, `t` switches between the panel's pixels and its lines as text, and `q` quits, as the close box does. The title carries the headline, the age line (for NO DATA, the guidance line) and `checked HH:MM`, for example `IN RANGE - 3 min ago - checked 07:42 - Lightkeeper`, so a screen reader or the taskbar shows them too; until Nightscout first answers it says `checking Nightscout...` instead of the time.
 
-- `--scale 2` (the default) or `3` counts 96 dpi pixels: on a display scaled to 200%, each panel pixel is twice as many device pixels again. The whole window always fits the screen; when it would not, the panel is drawn at the largest whole zoom that fits, with one line on stderr saying so. Counting 96 dpi pixels here is a default pending Eric's decision.
+- `--scale 2` (the default) or `3` counts 96 dpi pixels, so the panel keeps its size on a scaled display: at 200%, `--scale 2` draws each panel pixel as 4x4 device pixels. The whole window always fits the screen; when it would not, the panel is drawn at the largest whole zoom that fits, with one line on stderr saying so. Counting 96 dpi pixels here is a default pending Eric's decision.
 - `--panel` takes the same profiles as the command-line tool (`waveshare_2in9` by default, `trmnl`, `kindle`, or a size such as `800x480`).
 - `--theme auto` (the default) follows the Windows app theme, read once at startup; on macOS and Linux it is light. `--theme dark` draws the panel in Night paper and Night ink, so the window is not the brightest thing at the bedside.
 - `--on-top` keeps the window above other windows.
@@ -106,7 +106,7 @@ Installed with `pip install -e .`, the same window is also the `lightkeeper-wind
 | `2` | A setting or option that cannot be used, a panel too large for the screen even at one screen pixel a panel pixel, no tkinter, or no display to open a window on. No window is left open. |
 | `130` | Stopped with Ctrl+C in the terminal that started it (`lightkeeper: stopped`). |
 
-The window has been checked by hand on Windows 11 only, not yet on macOS or on Linux with a display.
+An unexpected error inside the window closes it and Python prints the traceback, so a window that has stopped updating never stays on screen looking alive. The window has been checked by hand on Windows 11 only, not yet on macOS or on Linux with a display.
 
 ## The Android app
 

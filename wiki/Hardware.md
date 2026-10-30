@@ -61,7 +61,7 @@ The firmware skeleton builds for this board as `bench_s3`; check the flash size 
 - A Raspberry Pi 5 for a display: more power and heat than the job needs. A Zero 2 W is plenty.
 - Generic "mini e-book readers" with unknown chips: no way to load firmware.
 
-Not needed: a Mac (Trio builds in the browser, the iOS app on GitHub's macOS runners, the firmware with PlatformIO on Windows) or hardware for Nightscout, which belongs on a VPS or managed host so the phone can reach it from anywhere ([[Nightscout and Trio Setup]]).
+Not needed: a Mac (Trio builds in the browser, the iOS app on GitHub's macOS runners, the firmware with PlatformIO on Windows) or hardware for Nightscout, which belongs on a VPS or managed host so the phone can reach it from anywhere ([[Nightscout and Trio Setup]]). The desktop window and the Android app need no extra hardware either: a computer you already have, and an Android 8.0 or later phone.
 
 ## Wiring and setup notes
 

@@ -76,6 +76,62 @@ The variable is unset. There is no `.env` loader, so set it in the shell or the 
 
 By design (FR-006), so a display never hammers a Nightscout site.
 
+## The desktop window
+
+These are the common cases for `python -m lightkeeper.desktop`, with its exact lines; `docs/TROUBLESHOOTING.md` in the repository is the full reference. The window prints nothing to stdout, and its exit codes are in [[Getting Started]].
+
+### "the window needs Tk"
+
+**What you see:** `lightkeeper: the window needs Tk, which this Python does not have: install python3-tk (for example, sudo apt install python3-tk) or a Python that includes Tk`, and exit code 2.
+
+**What it means:** this Python was installed without `tkinter`, which is common on Debian, Ubuntu, Raspberry Pi OS and Homebrew. The command-line tool never needs it.
+
+**What to do:** `sudo apt install python3-tk` on Debian, Ubuntu and Raspberry Pi OS; `brew install python-tk@3.12` for Homebrew's `python@3.12`. The python.org installers for Windows and macOS already include it.
+
+### "could not open the window"
+
+**What you see:** `lightkeeper: could not open the window:` followed by Tk's own reason, and exit code 2. No window is left open.
+
+**What it means:** there is no display to open a window on, for example over SSH with no X forwarding or on a headless Pi.
+
+**What to do:** run it on a computer with a desktop. On a headless Pi, use the command-line tool or the panel instead.
+
+### The panel is drawn smaller than `--scale` asked
+
+**What you see:** one line such as `lightkeeper: at --scale 2 the trmnl panel is larger than this screen, so each panel pixel is drawn as 3x3 screen pixels instead of 4x4`.
+
+**What it means:** by design. The whole window always fits the screen, so the zoom drops to the largest whole number that fits, and the stamp and the age line are never off screen. A panel that does not fit even at one screen pixel a panel pixel exits 2 with `Configuration error: a <W>x<H> panel does not fit on this <SW>x<SH> screen even at one screen pixel a panel pixel: choose a smaller panel`.
+
+**What to do:** nothing, or choose a smaller `--panel`.
+
+### `lightkeeper-window` opens nothing on Windows
+
+**What it means:** the installed launcher has no console, so a configuration error (for example `NIGHTSCOUT_URL` unset) exits 2 with nowhere to print its message.
+
+**What to do:** run `python -m lightkeeper.desktop` in a terminal to see the `Configuration error:` line, fix the setting it names, and set the variables where the launcher will see them.
+
+## The Android app
+
+### The native build fails on Windows
+
+**What you see:** `ninja: error: mkdir(CMakeFiles/lightkeeper.dir/...): No such file or directory`, after a `CMAKE_OBJECT_PATH_MAX` warning.
+
+**What it means:** the checkout path is too long. The app compiles the firmware's C++ from outside its own folder, so CMake names those object files after the whole checkout path, and on a long path they pass the Windows path limit. A 57-character path builds; a 120-character one fails.
+
+**What to do:** clone the repository to a short path, about 60 characters or fewer, such as `C:\src\lightkeeper`. `apps/android/README.md` has the build steps.
+
+### "Nightscout unreachable" with no reason given
+
+**What it means:** the app cannot say which link failed. It has no Check connection button yet and logs nothing, so a wrong address, a refused token, a redirect (the app follows none), a site that is down, and a fetch with no answer within 20 seconds all show as `Nightscout unreachable`.
+
+**What to do:** check in Settings that the address is just the site over `https://` and that the token has the readable role. To find the failing link, run the command-line tool against the same site on a computer: its `lightkeeper:` line on stderr names it (see above).
+
+### A new debug APK will not install over the old one
+
+**What it means:** a debug APK built on another machine is signed with that machine's debug key, so Android refuses it as an update.
+
+**What to do:** uninstall the app first, then install the new APK. Uninstalling clears the app's settings and its sealed token, so enter them again.
+
 ## Development environment
 
 - `python tools/doctor.py` names the missing piece: Python 3.11+, the `constitution/` submodule (`git submodule update --init --recursive`), pytest, ruff, mypy, or the C++ toolchain (on Windows it looks inside WSL; only the firmware host tests need it).
