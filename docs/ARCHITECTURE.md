@@ -73,7 +73,7 @@ Glucose data is **Restricted** (health data) at every step of this flow, and the
 - **Companion app:** Swift 5.9, SwiftUI, iOS 17+, built on GitHub macOS runners via XcodeGen; token in the Keychain
 - **Display targets:** Xteink X4/X3 pocket e-ink (ESP32-C3, C++17: rules, JSON parser and panel rasterizer done; a build-only PlatformIO skeleton prints the NO DATA panel over USB serial; Wi-Fi and the panel driver pending), Raspberry Pi with an e-paper HAT, Home Assistant
 - **Desktop window:** tkinter from the standard library (Tcl/Tk 8.6, from the Python installation: `python3-tk` on Linux), imported only when the window opens
-- **Android app:** Kotlin with framework Views (no AndroidX, Compose or third-party library in the APK beyond the Kotlin standard library and its annotations), the firmware's C++17 through JNI (NDK 28.2.13676358, CMake 3.22.1, no C++ runtime), AGP 9.1.1 with its built-in Kotlin, Gradle 9.5.1, compileSdk and targetSdk 36, minSdk 26; a sideloaded debug APK of about 1 MB
+- **Android app:** Kotlin with framework Views (no AndroidX, Compose or third-party library in the APK beyond the Kotlin standard library and its annotations), the firmware's C++17 through JNI (NDK 28.2.13676358, CMake 3.22.1, no C++ runtime), AGP 9.1.1 with its built-in Kotlin, Gradle 9.8.2, compileSdk and targetSdk 36, minSdk 26; a sideloaded debug APK of about 1 MB
 - **Web demo:** one HTML file with no build step; Node 20 or later only to test its panel port
 
 ## Repository Structure

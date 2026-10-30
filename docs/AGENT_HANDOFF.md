@@ -8,7 +8,20 @@ Replace the entry below at the end of every push; only the latest handoff is kep
 
 ## Latest Handoff
 
-### Session: 2026-10-27 to 2026-10-29 (Keeper's Logbook batch: UX and more platforms)
+### Session: 2026-10-30 (Constitution Test Runner failure)
+- **Goal**: Fix the failing Test Runner job on the Gradle wrapper update.
+- **Root cause**: `tests/test_android.py` still pinned Gradle 9.5.1 and its checksums while the wrapper had moved to 9.8.2.
+- **Changes**: Updated the test's Gradle URL and integrity pins, and synchronized the Android README, architecture and OTS inventory, plus the Android workflow comment.
+- **Verification**: `python -m pytest tests/test_android.py` (55 passed); Ruff check and format check passed. The full Constitution Test Runner was not run locally because the constitution submodule is uninitialized.
+
+#### Next Steps
+
+1. [ ] **AUTOMATED** — CI runs on the pushed commit.
+   - **Done when:** the Constitution Test Runner and related checks pass.
+2. [ ] **AGENT** — Inspect any failed CI check and address a confirmed regression.
+   - **Done when:** all required checks pass or the remaining failure is reported with its cause.
+
+### Archived Handoff: 2026-10-27 to 2026-10-29 (Keeper's Logbook batch: UX and more platforms)
 - **Goal**: Eric asked to sharpen what exists, build out more platforms, and bring the UI up to what industry leaders do, with a home-grown, lo-fi look that suits an open-source project. The result is "Keeper's Logbook, 1-bit edition", built in three waves of items (LK-01 to LK-11). Each item was built in its own worktree, reviewed by two adversarial lenses, fixed, then merged into `ux/keepers-logbook`, which is pushed to `main` here.
 - **Accomplishments**:
   - Brand tokens in `assets/brand/tokens.json` with measured contrast, pixel icons and the Keeper 5x8 font; every palette (Python, iOS, demo, terminal, Tk, Android) is held to the tokens by drift tests (NFR-005).

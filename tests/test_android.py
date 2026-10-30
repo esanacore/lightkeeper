@@ -9,7 +9,7 @@ so the repository's Full suite checks it on every change, with no Android SDK:
 - the colors mirror assets/brand/tokens.json (NFR-005);
 - the native library compiles the firmware's own C++ in place, so there is no
   fourth implementation of the rules and no copy to drift (FR-009, FR-016);
-- the Gradle wrapper is pinned to 9.5.1 by checksum, and the app ships no
+- the Gradle wrapper is pinned to 9.8.2 by checksum, and the app ships no
   third-party library;
 - the phone's status shapes follow the brand status table.
 
@@ -38,11 +38,10 @@ COLOR = TOKENS["color"]
 NS = "{http://schemas.android.com/apk/res/android}"
 BUILD_DIRS = {"build", ".gradle", ".cxx", ".kotlin", ".idea"}
 
-# The official Gradle 9.5.1 binary distribution and its wrapper JAR. The JAR
-# checksum is the one gradle/actions' wrapper validation lists for 9.5.1.
-GRADLE_URL = "https://services.gradle.org/distributions/gradle-9.5.1-bin.zip"
-GRADLE_SHA256 = "bafc141b619ad6350fd975fc903156dd5c151998cc8b058e8c1044ab5f7b031f"
-WRAPPER_JAR_SHA256 = "497c8c2a7e5031f6aa847f88104aa80a93532ec32ee17bdb8d1d2f67a194a9c7"
+# The official Gradle 9.8.2 binary distribution and its wrapper JAR.
+GRADLE_URL = "https://services.gradle.org/distributions/gradle-9.8.2-bin.zip"
+GRADLE_SHA256 = "21bd5da2de49b642904077f38c0efdc7778e92b3ed0889392dca61b97e389607"
+WRAPPER_JAR_SHA256 = "3b8a25775a69158b5ad2b1d17a80a88dc7b40a352a73eb27d06c612a7ce68e98"
 
 # Colors drawn from two tokens: (light token, dark token).
 PAIRS = {
@@ -269,7 +268,7 @@ def test_fr009_the_bridge_follows_the_firmware_clang_format_style():
 # --- the build: pinned wrapper, pinned toolchain, no shipped library ----------------
 
 
-def test_nfr004_the_wrapper_pins_gradle_9_5_1_by_checksum():
+def test_nfr004_the_wrapper_pins_gradle_9_8_2_by_checksum():
     properties = (ANDROID / "gradle" / "wrapper" / "gradle-wrapper.properties").read_text(
         encoding="utf-8"
     )
