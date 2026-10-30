@@ -44,6 +44,7 @@ Replace the entry below at the end of every push; only the latest handoff is kep
 - **CI so far**:
   - On `main` at `1c0cdb8`, every workflow passed except one Android instrumented test, which the default emulator screen was too narrow for: iOS (the reworked SwiftUI views and app tests on the simulator for the first time), Firmware device build (first run), the Constitution Test Runner and every constitution check, and Demo page.
   - `5113fb5` moved the emulator to a Pixel 6 screen, and `android.yml` went green with all 39 instrumented tests (run 40992168914).
+  - On `main` at `cffa025` (the merged docs pass and review fixes) every workflow passed. The Test Runner ran under `xvfb-run`, Tk 8.6 opened a window, and 2,112 tests passed with none skipped (run 41001677074).
 - **Known Blockers**: Eric's decisions D1 to D17 and the open questions (listed in `TODO.md`); Kaitlin's safety review; no Nightscout instance (GAP-003); no hardware (GAP-001, GAP-005).
 - **Context Hints**:
   - Workflow notes and per-item results live in the session scratchpad and are not in the repo.
@@ -57,10 +58,10 @@ Replace the entry below at the end of every push; only the latest handoff is kep
 
 **Human action required:** steps 4, 5, 6, 7, 8, 9, 10, 11, and 12.
 
-1. [ ] **AUTOMATED** — CI runs on the push to `main`. This is the Test Runner's first run under `xvfb-run`, so the three real-Tk window tests run on Linux for the first time. It is also the first iOS run with the struck panel preview in `ContentView.swift`, and the first firmware and Android runs with the new stamp rule.
-   - **Done when:** every workflow is green on the pushed commit. If the display step fails on a missing Tk library, add `libtcl8.6` to its install line.
-2. [ ] **AGENT** — Record on GAP-015 that the real-Tk tests passed on Linux under a virtual display, once step 1 shows they did. Keep macOS, a real Linux display with several monitors, and a real clock change open.
-   - **Done when:** `docs/TEST_PLAN.md` GAP-015 and the wiki say what CI showed.
+1. [ ] **AUTOMATED** — CI runs on this docs-only push to `main`. Every workflow already passed on `cffa025`, which held all the code: the Test Runner under `xvfb-run` (2,112 tests, none skipped), iOS with the struck panel preview, and Android and the firmware build with the new stamp rule.
+   - **Done when:** every workflow is green on the pushed commit.
+2. [x] **AGENT** — Record on GAP-015 that the real-Tk tests passed on Linux under a virtual display. macOS, a real Linux display with several monitors, and a real clock change stay open.
+   - **Done when:** `docs/TEST_PLAN.md` GAP-015, its coverage row, `TODO.md`, the OTS row and the wiki say what CI showed. Done on 2026-10-29.
 3. [ ] **AGENT** — Propose the session's MEMORY.md learnings to Eric:
    - Tk DPI awareness;
    - Tcl's wall-clock `after()` timers;

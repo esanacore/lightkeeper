@@ -46,7 +46,7 @@ In rough order:
 - mmol/L, delta, device status, IOB and COB greyed at zero, and a night profile.
 - Companion app extras (widgets, watch complication, background refresh), then the bolus request screen once ADR-0008 is accepted; the widget timeline core is done and the extension waits on Apple signing. See [[Companion App]].
 - The Android app on a real phone (API 26 to 36, with TalkBack; GAP-013), then its follow-ups: Check connection, TalkBack's spoken sentences, a widget once the exact-alarm decision is made, and release signing.
-- The desktop window off Windows: on macOS (whether the panel stays sharp on a Retina display), on Linux with a display, and against a system clock set back by hand (GAP-015).
+- The desktop window off Windows: on macOS (whether the panel stays sharp on a Retina display), on a real Linux display (CI already runs its real-window tests on a virtual one), and against a system clock set back by hand (GAP-015).
 - PyPI release (Phase 6); the demo page is already published.
 
 ## Further out: more places to see it
