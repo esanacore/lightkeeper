@@ -99,11 +99,11 @@ Known issues and fixes. If a display ever shows something that disagrees with th
 - **Cause**: By design. The window always fits the screen at the largest whole zoom that does, so the age, the stamp and `Nightscout unreachable` are never off screen. A panel that does not fit even at one screen pixel a panel pixel exits 2 with `Configuration error: a WxH panel does not fit on this WxH screen even at one screen pixel a panel pixel: choose a smaller panel`, with the sizes filled in.
 - **Solution**: Nothing, or choose a smaller `--panel`.
 
-### `lightkeeper-window` opens nothing
+### `lightkeeper-window` shows a Configuration error window
 
-- **Symptom**: On Windows, the installed `lightkeeper-window` launcher starts and no window appears.
-- **Cause**: The launcher has no console, so a configuration error, such as `NIGHTSCOUT_URL` not set, has nowhere to go; it exits 2 without a word.
-- **Solution**: Run `python -m lightkeeper.desktop` in a terminal to read the message, then set the variables for your user (`docs/ENV_VARS.md`).
+- **Symptom**: On Windows, the installed `lightkeeper-window` launcher shows a small plain window with a `Configuration error:` line instead of the panel.
+- **Cause**: The launcher has no console, so a setting it cannot use, such as `NIGHTSCOUT_URL` not set, is shown there instead of on stderr. It exits 2 when you close it (`q`, Escape or the close box).
+- **Solution**: Fix the setting the line names and set the variables for your user (`docs/ENV_VARS.md`). With no display at all nothing is shown; run `python -m lightkeeper.desktop` in a terminal to read the line.
 
 ### The desktop window says Nightscout unreachable and nothing more
 

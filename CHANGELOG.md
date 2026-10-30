@@ -60,6 +60,12 @@ This project follows semantic versioning.
 
 ### Fixed
 
+- The draw-time stamp on PNG, BMP, desktop-window, demo and firmware panel images is now sized as chrome: at the age line's scale (the number's with no age line), never larger than the headline band or the panel's ceiling, and never below 2. It no longer pushes a readable age down to scale 1 on short panels such as 212x104, or grows past the status and the number on tall ones such as 300x1200.
+- Desktop window: `--demo` no longer flips the age line back a minute for a moment every minute. The demo reading now ages like a real one (3 to 8 min ago) and is replaced every five minutes.
+- Desktop window: started as `lightkeeper-window` with no console, a configuration error is shown in one plain, still window instead of exiting with nothing said. `--help` now lists exit 1 and the settings it reads.
+- A `NIGHTSCOUT_URL` that the URL parser itself refuses (an NFKC-folding character, a bracketed host that is not an IP) is now reported with the fixed message that names the setting, never with the address.
+- A failed Nightscout answer (HTTP errors and refused redirects) closes its connection at once instead of when the garbage collector gets to it.
+- The demo's phone mock follows the iOS and Android apps: the fresh number stays the hero under URGENT, the band is at least the number's height, and NO DATA shows `--`.
 - iOS: the panel preview now strikes STALE's `last:` line in Muted, as the bedside panel and the glance do, so the phone never shows the old value plain.
 - iOS: a timer fetch that timed out after a successful pull to refresh no longer marks Nightscout unreachable. Each fetch, and each Check connection, now uses its own URLSession, invalidated when it ends, so the app no longer leaks a client and session per minute.
 

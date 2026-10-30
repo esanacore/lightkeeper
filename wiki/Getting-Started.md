@@ -98,7 +98,7 @@ Keys: `r` checks Nightscout now, `t` switches between the panel's pixels and its
 - `--theme auto` (the default) follows the Windows app theme, read once at startup; on macOS and Linux it is light. `--theme dark` draws the panel in Night paper and Night ink, so the window is not the brightest thing at the bedside.
 - `--on-top` keeps the window above other windows.
 
-Installed with `pip install -e .`, the same window is also the `lightkeeper-window` launcher (D12, pending Eric's review). On Windows that launcher has no console, so a configuration error, such as `NIGHTSCOUT_URL` unset, exits 2 with no message; run `python -m lightkeeper.desktop` in a terminal to see it.
+Installed with `pip install -e .`, the same window is also the `lightkeeper-window` launcher (D12, pending Eric's review). On Windows that launcher has no console, so a configuration error, such as `NIGHTSCOUT_URL` unset, is shown in one small plain window; closing it exits 2.
 
 | Code | Meaning |
 | --- | --- |

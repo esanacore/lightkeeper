@@ -104,11 +104,11 @@ These are the common cases for `python -m lightkeeper.desktop`, with its exact l
 
 **What to do:** nothing, or choose a smaller `--panel`.
 
-### `lightkeeper-window` opens nothing on Windows
+### `lightkeeper-window` shows a Configuration error window on Windows
 
-**What it means:** the installed launcher has no console, so a configuration error (for example `NIGHTSCOUT_URL` unset) exits 2 with nowhere to print its message.
+**What it means:** the installed launcher has no console, so a configuration error (for example `NIGHTSCOUT_URL` unset) is shown in one small plain window instead of on stderr. Closing it (`q`, Escape or the close box) exits 2.
 
-**What to do:** run `python -m lightkeeper.desktop` in a terminal to see the `Configuration error:` line, fix the setting it names, and set the variables where the launcher will see them.
+**What to do:** fix the setting the line names, and set the variables where the launcher will see them. To read the line in a terminal instead, run `python -m lightkeeper.desktop`.
 
 ## The Android app
 
