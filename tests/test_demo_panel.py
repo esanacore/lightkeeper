@@ -380,22 +380,45 @@ def test_nfr005_forced_colors_keep_the_chip_word_and_border():
     assert "Highlight" in forced[: forced.index("\n      }\n")]
 
 
-def test_fr011_phone_mock_banner_outranks_the_number():
+def test_fr011_phone_mock_follows_the_phone_hierarchy():
+    """The mock draws what the iOS and Android apps draw (LK-07's rule, which LK-11 mirrors).
+
+    A fresh number is the hero, URGENT too: the band over it is full width and
+    never shorter than the number's line, and the number never steps down
+    under it. The status chip comes first, never below .title3 semibold. NO
+    DATA shows the phones' placeholder, smaller than its banner.
+    """
     sizes = {
         name: float(value.removesuffix("rem"))
         for name, value in custom_properties(".phone").items()
     }
     assert sizes["phone-chip"] >= 1.25  # never below .title3 semibold
     assert sizes["phone-hero"] > sizes["phone-chip"]  # a fresh number is the hero
-    assert sizes["phone-banner"] > sizes["phone-urgent-hero"]  # URGENT: the banner is largest
-    assert sizes["phone-banner"] >= sizes["phone-chip"]
+    assert sizes["phone-banner"] > sizes["phone-chip"]
+    assert "phone-urgent-hero" not in sizes  # no smaller number under URGENT
     banner = '.phone .chip-frame:not([data-shape="plain"]):not([data-shape="rule"]) .chip'
     assert rule(banner)["font-size"] == "var(--phone-banner)"
     assert rule(".phone .chip")["font-size"] == "var(--phone-chip)"
+    # URGENT: the band is never shorter than the number line, as iOS's
+    # bannerMinimumHeight and Android's band.minHeight are the hero's size.
+    number_line = float(rule(".hero .num")["line-height"])
+    assert sizes["phone-urgent-band"] >= sizes["phone-hero"] * number_line
+    inverse = rule('.phone .chip-frame[data-shape="inverse"] .chip')
+    assert inverse["min-height"] == "var(--phone-urgent-band)"
+    stepped_down = [s for s, _ in rules() if '[data-shape="inverse"] ~ .hero' in s]
+    assert stepped_down == []  # the number never steps down under URGENT
     assert rule(".hero .num")["font-size"] == "var(--phone-hero)"
-    urgent = '.phone .chip-frame[data-shape="inverse"] ~ .hero .num'
-    assert rule(urgent)["font-size"] == rule(".hero .word")["font-size"]
-    assert rule(".hero .word")["font-size"] == "var(--phone-urgent-hero)"
+    # A sensor limit in words ("LOW (<40)") stands where the number would.
+    assert rule(".hero .word")["font-size"] == "var(--phone-word)"
+    assert sizes["phone-word"] < sizes["phone-hero"]
+    # NO DATA: the phones' "--" placeholder, never larger than the banner over it.
+    assert sizes["phone-placeholder"] < sizes["phone-banner"]
+    placeholder = rule(".phone .placeholder")
+    assert any(
+        prop in ("font", "font-size") and "var(--phone-placeholder)" in value
+        for prop, value in placeholder.items()
+    ), placeholder
+    assert "card.placeholder !== null" in PAGE_SCRIPT
     # STALE's old value is struck, in Muted, at body size: never a hero.
     struck = rule(".struck")
     assert struck["text-decoration"] == "line-through" and struck["color"] == "var(--muted)"
@@ -645,7 +668,9 @@ def parity_cases():
     """Sizes and lines spec/panel_vectors.json does not pin, accepted and refused."""
     narrow = [(narrowest(h), h) for h in (70, 96, 128, 177, 333)]
     short = [(w, shortest(w)) for w in (296, 1000)]
-    sizes = [*narrow, *short, (333, 177), (480, 272), (1024, 758)]
+    # 212x104 and 300x1200: where a stamp at its own scale once shrank the age
+    # line, and once outranked the headline (HAZ-014).
+    sizes = [*narrow, *short, (333, 177), (480, 272), (1024, 758), (212, 104), (300, 1200)]
     refused = [(w - 1, h) for w, h in narrow] + [(w, h - 1) for w, h in short]
     refused += [(0, 128), (296, 0), (4097, 128), (296, 4097)]
     odd = [

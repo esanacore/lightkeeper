@@ -43,6 +43,8 @@ Sizes, all measured invariants (tests/test_panel_layout.py):
   is never the hero.
 - When the lines do not fit the height, context shrinks first (not below
   scale 2), then the hero (not below the age), and only then the rest.
+- The stamp, when there is one, is chrome: never larger than the age line
+  (or the value line, with no age line) or the band, and never below 2.
 """
 
 from __future__ import annotations
@@ -297,8 +299,13 @@ def plan_panel(lines: list[str], width: int, height: int, stamp: str | None = No
     `stamp`, when given, is an `HH:MM` drawn right-aligned on the age row, or
     in a strip along the bottom of the content box when there is no age line
     or the age row has no room for it. Either way its space is reserved, so
-    it never touches another line. Raises ValueError for a panel `check_size`
-    refuses.
+    it never touches another line. It is chrome: its scale is never above the
+    age line's (or, with no age line, the value line's) or the band's, never
+    above `stamp_scale`, and never below 2. Its scale, its row and its strip
+    follow the lines while they are fitted to the height, so the stamp never
+    costs the age line a scale it would have without one, except on the
+    smallest panels, where a scale-2 stamp still needs its room. Raises
+    ValueError for a panel `check_size` refuses.
     """
     check_size(width, height)
     if not lines:
@@ -309,14 +316,15 @@ def plan_panel(lines: list[str], width: int, height: int, stamp: str | None = No
     edge = margin(height)
     content = Box(edge, edge, width - 2 * edge, height - 2 * edge)
     kind = treatment(lines[0])
-    stamp_size = stamp_scale(width, height)
-    strip = GLYPH_HEIGHT * stamp_size + MIN_GAP if stamp is not None else 0
+    # The largest the stamp may be; the lines below may hold it smaller.
+    stamp_max = stamp_scale(width, height)
+    strip_max = GLYPH_HEIGHT * stamp_max + MIN_GAP if stamp is not None else 0
 
     # The band: one height per panel, sized from IN RANGE. It leaves room for
-    # a four-line screen at scale 1 (and the stamp), so even the smallest
-    # panel check_size accepts never overlaps its lines.
+    # a four-line screen at scale 1 (and the stamp at its largest), so even
+    # the smallest panel check_size accepts never overlaps its lines.
     inner = content.w - 2 * BAND_PAD
-    reserve = _body_reserve(strip)
+    reserve = _body_reserve(strip_max)
     tallest = max(0, content.h - 2 * BAND_PAD - reserve) // GLYPH_HEIGHT
     band_scale = fit_scale([REFERENCE_HEADLINE], inner, max(1, min(headline_cap(height), tallest)))
     band = Box(content.x, content.y, content.w, 2 * BAND_PAD + GLYPH_HEIGHT * band_scale)
@@ -349,20 +357,40 @@ def plan_panel(lines: list[str], width: int, height: int, stamp: str | None = No
         small_cap = min(small_cap, head_scale)
     sizes = _Sizes(value, age, fit_scale(small_lines, content.w, small_cap))
 
-    # The stamp sits at the right of the age row when it fits there beside
-    # the age and a one-character gap; otherwise it gets the bottom strip.
+    # The stamp is chrome, read last: never larger than the age line (or,
+    # with no age line, the value line) or the headline band, and never
+    # below 2. It sits at the right of the age row when it fits there beside
+    # the age and a one-character gap; otherwise it gets a strip along the
+    # bottom. All three follow the lines' current sizes as they shrink, so
+    # the stamp gives way to the age line instead of taking its room.
     stamp_chars = "" if stamp is None else stamp
-    on_age_row = bool(stamp_chars and age_lines) and (
-        text_width(age_lines[0], age) + GLYPH_WIDTH * age + text_width(stamp_chars, stamp_size)
-        <= content.w
-    )
+
+    def stamp_size() -> int:
+        """Return the stamp's scale for the lines' current sizes."""
+        anchor = sizes.age if age_lines else (sizes.value if value_lines else stamp_max)
+        return max(STAMP_MIN_SCALE, min(stamp_max, band_scale, anchor))
+
+    def on_age_row() -> bool:
+        """Report whether the stamp fits on the age row at the current sizes."""
+        return bool(stamp_chars and age_lines) and (
+            text_width(age_lines[0], sizes.age)
+            + GLYPH_WIDTH * sizes.age
+            + text_width(stamp_chars, stamp_size())
+            <= content.w
+        )
+
     top = band.y + band.h
-    bottom = content.y + content.h - (strip if stamp_chars and not on_age_row else 0)
+
+    def bottom() -> int:
+        """Return the bottom of the lines' region: the content box's, less any stamp strip."""
+        strip = GLYPH_HEIGHT * stamp_size() + MIN_GAP if stamp_chars and not on_age_row() else 0
+        return content.y + content.h - strip
 
     def row_scales() -> list[int]:
         """Each line's row height in glyph cells: the age row is as tall as its stamp."""
+        shared, stamp_cells = on_age_row(), stamp_size()
         return [
-            max(sizes.of(role), stamp_size) if role == AGE and on_age_row else sizes.of(role)
+            max(sizes.of(role), stamp_cells) if role == AGE and shared else sizes.of(role)
             for role in roles
         ]
 
@@ -371,7 +399,7 @@ def plan_panel(lines: list[str], width: int, height: int, stamp: str | None = No
     # then the age. check_size leaves room for any four-line screen at
     # scale 1, so only more lines than a screen has can reach the end.
     gaps = len(body) + 1
-    while GLYPH_HEIGHT * sum(row_scales()) + gaps * MIN_GAP > bottom - top:
+    while GLYPH_HEIGHT * sum(row_scales()) + gaps * MIN_GAP > bottom() - top:
         if small_lines and sizes.small > READABLE_SCALE:
             sizes.small -= 1
         elif value_lines and sizes.value > (sizes.age if age_lines else 1):
@@ -384,7 +412,8 @@ def plan_panel(lines: list[str], width: int, height: int, stamp: str | None = No
             break  # still too tall: the lines past the content box are clipped
 
     rows = row_scales()
-    gap = max(0, bottom - top - GLYPH_HEIGHT * sum(rows)) // gaps
+    shared, stamp_cells = on_age_row(), stamp_size()
+    gap = max(0, bottom() - top - GLYPH_HEIGHT * sum(rows)) // gaps
     placed = []
     stamp_line = None
     y = top + gap
@@ -392,13 +421,13 @@ def plan_panel(lines: list[str], width: int, height: int, stamp: str | None = No
         scale = sizes.of(role)
         # Text sharing a row shares its baseline.
         placed.append(_place(text, role, content.x, y + CAP_ROWS * (row - scale), scale))
-        if role == AGE and on_age_row:
-            stamp_y = y + CAP_ROWS * (row - stamp_size)
-            stamp_line = _place_right(stamp_chars, content.x + content.w, stamp_y, stamp_size)
+        if role == AGE and shared:
+            stamp_y = y + CAP_ROWS * (row - stamp_cells)
+            stamp_line = _place_right(stamp_chars, content.x + content.w, stamp_y, stamp_cells)
         y += GLYPH_HEIGHT * row + gap
-    if stamp_chars and not on_age_row:
-        stamp_y = content.y + content.h - GLYPH_HEIGHT * stamp_size
-        stamp_line = _place_right(stamp_chars, content.x + content.w, stamp_y, stamp_size)
+    if stamp_chars and not shared:
+        stamp_y = content.y + content.h - GLYPH_HEIGHT * stamp_cells
+        stamp_line = _place_right(stamp_chars, content.x + content.w, stamp_y, stamp_cells)
 
     return PanelPlan(
         width=width,

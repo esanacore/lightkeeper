@@ -9,12 +9,14 @@ and certificate failures, which need the outside world, go through an
 injected opener in front of the real fetcher.
 """
 
+import gc
 import json
 import socket
 import ssl
 import threading
 import time
 import urllib.error
+import warnings
 from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
@@ -189,6 +191,24 @@ def test_fr005_oversized_response_is_an_error(server):
     FakeNightscout.mode = "huge"
     with pytest.raises(NightscoutError):
         client(server).fetch_entries()
+
+
+@pytest.mark.parametrize(
+    ("mode", "token"),
+    [("broken", TOKEN), ("forbidden", TOKEN), ("redirect", TOKEN), ("ok", "readable-wrong")],
+    ids=["500", "403", "redirect", "401"],
+)
+def test_fr005_a_failed_answer_leaves_no_connection_open(server, mode, token):
+    """An error answer's response is closed at once, not left for the garbage collector."""
+    FakeNightscout.mode = mode
+    with warnings.catch_warnings(record=True) as seen:
+        warnings.simplefilter("always", ResourceWarning)
+        with pytest.raises(NightscoutError) as caught:
+            client(server, token=token).fetch_entries()
+        assert caught.value.__context__ is None  # nothing chained holds the response
+        del caught
+        gc.collect()
+    assert [str(w.message) for w in seen if issubclass(w.category, ResourceWarning)] == []
 
 
 # --- what failed, in plain words, over the socket (FR-006) ---------------------------

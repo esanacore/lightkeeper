@@ -88,7 +88,6 @@ FONT = "IBM Plex Mono, DejaVu Sans Mono, Consolas, monospace"
 # The hatch pattern's id is "<id prefix>-hatch". A prefix is a letter, then
 # letters, digits, "-" or "_", so the id is valid and needs no escaping.
 ID_PREFIX = "lk"
-HATCH_ID = f"{ID_PREFIX}-hatch"
 ID_PREFIX_SHAPE = re.compile(r"[A-Za-z][A-Za-z0-9_-]*")
 
 # Monospace glyphs are about 0.6 of the font size wide (IBM Plex Mono and

@@ -6,8 +6,9 @@ the pixels render_bitmap draws, stamped, at a whole-number zoom; `t` swaps
 them for the lines as text in TkFixedFont, the stamp still under them; `r`
 asks for a check and `q` quits; the whole window fits the screen at every
 panel size, or the panel is refused; the status strip gives every headline
-its word plus its shape; and nothing rings, flashes or blinks. Two optional
-tests open a real Tk window, each in a fresh Python, where a display exists.
+its word plus its shape; and nothing rings, flashes or blinks. Two tests open
+a real Tk window, each in a fresh Python: with no display they skip locally,
+and fail on CI (CI=true), where the Test Runner gives them one.
 """
 
 import ctypes
@@ -927,7 +928,11 @@ NO_REAL_TK = 3  # what a child exits with when it cannot open a window, saying w
 
 
 def run_real_tk(module, check):
-    """Run `module.check()` in a fresh Python with a real Tk, or skip when none can open.
+    """Run `module.check()` in a fresh Python with a real Tk; skip locally when none can open.
+
+    On CI (CI=true) a Tk that cannot open fails instead: the Test Runner gives
+    these tests a display with xvfb-run, so a skip there would hide that the
+    window's pixels and its ticker were never checked (HAZ-002, HAZ-016).
 
     In a child process, with one Tk interpreter, as the desktop app runs. Inside
     pytest, its file-descriptor capture swaps the standard handles under Tcl, and
@@ -945,7 +950,10 @@ def run_real_tk(module, check):
         timeout=60,
     )
     if result.returncode == NO_REAL_TK:
-        pytest.skip(result.stdout.strip())
+        reason = result.stdout.strip()
+        if os.environ.get("CI", "").lower() == "true":
+            pytest.fail(f"real Tk must open on CI (the Test Runner runs under xvfb-run): {reason}")
+        pytest.skip(reason)
     assert result.returncode == 0, result.stdout + result.stderr
     assert result.stdout.splitlines()[-1] == "ok"
 
@@ -1019,6 +1027,19 @@ def child_wake_from_another_thread_runs_on_tk_thread():
     assert thread is threading.current_thread()
     assert at - started < 2  # well before the 5 s timer
     print("ok")
+
+
+def test_fr018_real_tk_unavailable_skips_locally_and_fails_on_ci(monkeypatch):
+    no_display = subprocess.CompletedProcess(
+        [], NO_REAL_TK, stdout="no display: couldn't connect to display\n", stderr=""
+    )
+    monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: no_display)
+    monkeypatch.setenv("CI", "true")
+    with pytest.raises(pytest.fail.Exception, match="on CI"):
+        run_real_tk("tests.test_tk_window", "child_window_holds_exactly_the_panel_pixels")
+    monkeypatch.delenv("CI")
+    with pytest.raises(pytest.skip.Exception, match="no display"):
+        run_real_tk("tests.test_tk_window", "child_window_holds_exactly_the_panel_pixels")
 
 
 def test_fr018_real_tk_window_holds_exactly_the_panel_pixels():

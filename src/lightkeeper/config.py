@@ -54,27 +54,53 @@ class ConfigError(ValueError):
 
 
 class DemoSource:
-    """Canned readings for trying the display with no Nightscout at all."""
+    """Canned readings for trying the display with no Nightscout at all.
+
+    The reading ages like a real one: it keeps its time from one fetch to the
+    next, and is replaced by a new one, `minutes_ago` old again, once it is
+    five minutes older than asked, as a sensor sends one every five minutes.
+    Re-dating it on every fetch would turn the age back at each fetch, and a
+    window that re-ages the screen between fetches would show it flicking
+    forward a minute and back.
+    """
 
     def __init__(
         self,
         mgdl: int = DEMO_MGDL,
         minutes_ago: int = DEMO_MINUTES_AGO,
         direction: str = DEMO_TREND,
+        *,
+        clock: Callable[[], datetime] | None = None,
     ) -> None:
-        """Serve one reading of `mgdl`, `minutes_ago` minutes old, with `direction`."""
+        """Serve one reading of `mgdl`, `minutes_ago` minutes old, with `direction`.
+
+        `clock` gives the time now (UTC); None means the system clock.
+        """
         self._mgdl = mgdl
         self._minutes_ago = minutes_ago
         self._direction = direction
+        self._clock = clock or (lambda: datetime.now(UTC))
+        self._when: datetime | None = None
 
     def fetch_entries(self, count: int = 12) -> list[Any]:
-        """Return a single Nightscout-shaped entry; `count` is ignored."""
-        when = datetime.now(UTC) - timedelta(minutes=self._minutes_ago)
+        """Return a single Nightscout-shaped entry; `count` is ignored.
+
+        The first call dates it `minutes_ago` minutes and 30 seconds ago, so
+        it shows as `minutes_ago` old (ages are whole minutes, rounded down).
+        Later calls return the same reading until it is five minutes older
+        than asked, then a new one dated the same way. The 30 seconds keep
+        each new reading, which comes at a fetch, half a minute away from the
+        minute its age turns over at, so a window never shows the old age for
+        a moment before the new reading.
+        """
+        now = self._clock()
+        if self._when is None or now - self._when >= timedelta(minutes=self._minutes_ago + 5):
+            self._when = now - timedelta(minutes=self._minutes_ago, seconds=30)
         return [
             {
                 "type": "sgv",
                 "sgv": self._mgdl,
-                "date": int(when.timestamp() * 1000),
+                "date": int(self._when.timestamp() * 1000),
                 "direction": self._direction,
             }
         ]

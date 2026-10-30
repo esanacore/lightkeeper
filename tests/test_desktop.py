@@ -9,6 +9,7 @@ panel too large for the screen, or no tkinter, exits 2; `q` exits 0 and Ctrl+C
 130; and the CLI never loads tkinter at all.
 """
 
+import itertools
 import os
 import re
 import subprocess
@@ -21,7 +22,7 @@ from pathlib import Path
 
 import pytest
 
-from lightkeeper import desktop
+from lightkeeper import config, desktop
 from lightkeeper.application.glance import Glance
 from lightkeeper.domain.status import Thresholds
 from lightkeeper.infrastructure import tk_window
@@ -207,7 +208,7 @@ def test_fr018_config_error_exits_2_before_any_window(tk, monkeypatch, capsys):
 def test_fr018_missing_nightscout_url_exits_2(tk, capsys):
     assert desktop.main([]) == 2
     assert "NIGHTSCOUT_URL is not set" in capsys.readouterr().err
-    assert tk.roots == []
+    assert tk.roots == []  # stderr said it: no window opens to say it again
 
 
 def test_fr018_unknown_panel_exits_2(tk, capsys):
@@ -241,24 +242,63 @@ def test_fr018_unusable_options_exit_2(tk, argv, capsys):
     assert tk.roots == []
 
 
-def test_fr018_help_names_the_keys_and_the_exit_codes(capsys):
+def test_fr018_help_names_the_keys_and_the_exit_codes(monkeypatch, capsys):
+    monkeypatch.setenv("COLUMNS", "80")  # argparse wraps the options to the terminal
     with pytest.raises(SystemExit) as exit_info:
         desktop.main(["--help"])
     assert exit_info.value.code == 0
     out = capsys.readouterr().out
-    for text in ("r    check Nightscout now", "130  stopped with Ctrl+C", "not a medical device"):
+    for text in (
+        "r    check Nightscout now",
+        "1    an unexpected error closed the window",
+        "130  stopped with Ctrl+C",
+        "not a medical device",
+        "does not publish to Home Assistant",
+    ):
         assert text in out
+    assert max(len(line) for line in out.splitlines()) <= 79
 
 
 def test_fr018_no_stdout_or_stderr_is_fine(tk, monkeypatch):
     """Under pythonw both are None: nothing may write to them, or fall back to stdout."""
     monkeypatch.setattr(sys, "stdout", None)
     monkeypatch.setattr(sys, "stderr", None)
-    assert desktop.main([]) == 2  # NIGHTSCOUT_URL missing, said nowhere
     tk.driver = lambda root: root.press("q")
+    assert desktop.main([]) == 2  # NIGHTSCOUT_URL missing: said in a plain window instead
+    [root] = tk.roots
+    [label] = tk.labels
+    assert label.master is root and root.titles == ["Lightkeeper"]
+    assert label.options["text"].startswith("Configuration error: NIGHTSCOUT_URL is not set")
+    assert root.destroyed == 1  # `q` closed it
     assert desktop.main(["--demo"]) == 0
+    assert all(root.bells == 0 for root in tk.roots)
     monkeypatch.setitem(sys.modules, "tkinter", None)
     assert desktop.main(["--demo"]) == 2
+    assert desktop.main([]) == 2  # no tkinter: nowhere to say it
+
+
+def test_fr018_startup_error_window_is_still_and_closes_on_escape(tk, monkeypatch):
+    """The panel the screen cannot hold is said too; nothing rings, and Escape closes it."""
+    monkeypatch.setattr(sys, "stderr", None)
+    tk.screen = (1366, 768)
+    tk.driver = lambda root: root.press("Escape")
+    assert desktop.main(["--demo", "--panel", "kindle"]) == 2
+    [window, error] = tk.roots
+    assert window.destroyed == error.destroyed == 1
+    [label] = [label for label in tk.labels if label.master is error]
+    assert label.options["text"] == (
+        "Configuration error: a 600x800 panel does not fit on this 1366x768 screen even at "
+        "one screen pixel a panel pixel: choose a smaller panel"
+    )
+    assert (label.options["justify"], label.options["wraplength"]) == ("left", 480)
+    assert error.timers == [] and error.bells == 0  # nothing animates, repeats or rings
+
+
+def test_fr018_startup_error_with_no_display_says_nothing_and_exits_2(tk, monkeypatch):
+    monkeypatch.setattr(sys, "stderr", None)
+    tk.error = FakeTclError("no display name and no $DISPLAY environment variable")
+    assert desktop.main([]) == 2
+    assert tk.roots == []
 
 
 def test_fr018_lightkeeper_window_is_a_gui_script_for_main():
@@ -728,6 +768,59 @@ def test_haz002_threads_stuck_on_hung_fetches_are_capped(monkeypatch):
     third.answers.append([entry(mgdl=99, minutes_ago=(NOW - clock.now) / timedelta(minutes=1))])
     window.fire(session._tick)
     assert window.shown[-1][0][:2] == ("IN RANGE", "99 mg/dL ->")
+
+
+class TimedWindow(FakeWindow):
+    """A FakeWindow whose after() timers come due on the fake clock, fired in time order."""
+
+    def __init__(self, clock):
+        super().__init__()
+        self.clock = clock
+
+    def after(self, delay_ms, callback):
+        job = super().after(delay_ms, callback)
+        self.timers[job] = (self.clock.now + timedelta(milliseconds=delay_ms), callback)
+        return job
+
+    def run_next(self):
+        job = min(self.timers, key=lambda j: (self.timers[j][0], j))
+        due, callback = self.timers.pop(job)
+        self.clock.now = due
+        callback()
+
+
+class AnsweringWorker(FakeWorker):
+    """Runs the fetch as it is submitted, as a quick thread would; the answer comes next poll."""
+
+    def submit(self, fetch):
+        super().submit(fetch)
+        self.answers.append(fetch())
+
+
+def test_fr018_demo_window_changes_once_per_change():
+    """--demo's reading ages like a real one: each change is one redraw, never a flick back."""
+    t0 = datetime(2026, 10, 29, 12, 0, 20, tzinfo=UTC)
+    clock = Clock(t0)
+    session = desktop.Session(
+        Glance(Thresholds(), timedelta(seconds=60), t0), config.DemoSource(clock=clock), clock
+    )
+    window = TimedWindow(clock)
+    session.start(window, AnsweringWorker, FakeTicker)
+    while clock.now < t0 + timedelta(minutes=12):
+        window.run_next()
+    screens = []  # (when, lines) for each screen that differs from the one before
+    for lines, _title, drawn_at in window.shown:
+        if not screens or screens[-1][1] != lines:
+            screens.append((drawn_at, lines))
+    assert screens[0][1] == tuple(NO_DATA)
+    fresh = screens[1:]
+    assert {lines[:2] for _at, lines in fresh} == {("IN RANGE", "112 mg/dL ->")}
+    for (before, _), (after, _) in itertools.pairwise(fresh):
+        assert after - before >= timedelta(seconds=25), (before, after)
+    ages = [int(re.fullmatch(r"(\d+) min ago", lines[2])[1]) for _at, lines in fresh]
+    assert ages[:8] == [3, 4, 5, 6, 7, 8, 3, 4]
+    for older, newer in itertools.pairwise(ages):
+        assert newer == older + 1 or (older, newer) == (8, 3), ages
 
 
 def test_fr018_clock_set_back_is_seen_through_the_ticker_not_tk_timers():
