@@ -16,9 +16,12 @@ Replace the entry below at the end of every push; only the latest handoff is kep
 
 #### Next Steps
 
-1. [ ] **AUTOMATED** — CI runs on the pushed commit.
-   - **Done when:** the Constitution Test Runner and related checks pass.
-2. [ ] **AGENT** — Inspect any failed CI check and address a confirmed regression.
+1. [ ] **HUMAN** — Approve the Actions runs for this commit; GitHub marked them `action_required` and created no jobs.
+   - **Why a human:** a repository maintainer must authorize these workflow runs.
+   - **Done when:** the runs are approved and start.
+2. [ ] **AUTOMATED** — CI runs the Constitution Test Runner and related checks.
+   - **Done when:** all required checks pass.
+3. [ ] **AGENT** — Inspect any failed check and address a confirmed regression.
    - **Done when:** all required checks pass or the remaining failure is reported with its cause.
 
 ### Archived Handoff: 2026-10-27 to 2026-10-29 (Keeper's Logbook batch: UX and more platforms)
