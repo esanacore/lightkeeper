@@ -1,6 +1,6 @@
 # Setup
 
-Everything needed to reproduce the Lightkeeper stack from scratch, in the order to do it. Part 1 is the developer workstation. Part 2 is the therapy half (Nightscout, Trio), which belongs to the person with diabetes and their care team; we link to the community docs for those steps because they change often, and note only our own choices. Part 3 is each Lightkeeper display. Part 4 is the iOS app.
+Everything needed to reproduce the Lightkeeper stack from scratch, in the order to do it. Part 1 is the developer workstation. Part 2 is the therapy half (Nightscout, Trio), which belongs to the person with diabetes and their care team; we link to the community docs for those steps because they change often, and note only our own choices. Part 3 is each Lightkeeper display, the desktop window among them. Part 4 is the iOS app, and Part 5 the Android app.
 
 Lightkeeper is a secondary display and not a medical device. Always confirm on the primary CGM app.
 
@@ -19,7 +19,7 @@ This project follows Eric's Engineering Constitution. Open the repository in VS 
 
 ### Prerequisites
 
-Python 3.11 or newer, Git, and for the firmware host tests a C++17 compiler and make. Node.js 20 or later runs the demo's panel tests (they skip without it locally), and PlatformIO 6.2.0 is needed only to build the ESP32 device skeleton.
+Python 3.11 or newer, Git, and for the firmware host tests a C++17 compiler and make. Node.js 20 or later runs the demo's panel tests (they skip without it locally), and PlatformIO 6.2.0 is needed only to build the ESP32 device skeleton. The desktop window needs Tk, which the python.org installers for Windows and macOS include; on Debian, Ubuntu and Raspberry Pi OS install `python3-tk`, and Homebrew's `python@3.12` needs `python-tk@3.12`. Building the Android app needs JDK 17 or 21 and the Android SDK (Part 5).
 
 <details>
 <summary>Windows (PowerShell)</summary>
@@ -27,6 +27,7 @@ Python 3.11 or newer, Git, and for the firmware host tests a C++17 compiler and 
 ```powershell
 winget install --id Python.Python.3.12 -e
 winget install --id Git.Git -e
+# The python.org installer includes Tk, for the desktop window.
 # Firmware host tests need g++ and make with AddressSanitizer: use WSL (Ubuntu), since
 # MinGW toolchains (MSYS2, WinLibs, Git Bash) cannot link AddressSanitizer.
 # Run them with: wsl -- make -C firmware/xteink test
@@ -41,6 +42,7 @@ winget install --id MSYS2.MSYS2 -e
 ```bash
 brew install python@3.12 git
 xcode-select --install   # provides clang++ and make
+brew install python-tk@3.12   # only for the desktop window
 ```
 
 </details>
@@ -50,6 +52,7 @@ xcode-select --install   # provides clang++ and make
 
 ```bash
 sudo apt update && sudo apt install -y python3 python3-venv git g++ make clang-format
+sudo apt install -y python3-tk   # only for the desktop window
 ```
 
 </details>
@@ -99,6 +102,7 @@ pre-commit install && pre-commit install --hook-type pre-push
 python -m lightkeeper --demo                 # IN RANGE with canned data
 python -m lightkeeper --demo --demo-minutes-ago 40   # the STALE screen
 python -m lightkeeper --demo --watch         # the logbook frame in a terminal; Ctrl+C to stop
+python -m lightkeeper.desktop --demo         # the panel in a desktop window (needs Tk); q to quit
 python -m pytest --cov                       # full suite, 100% coverage
 make -C firmware/xteink test                 # firmware rules under sanitizers
 node --test web/panel/panel.test.mjs         # the demo's panel port (Node 20 or later)
@@ -264,6 +268,18 @@ automation:
 
 Entity ids depend on the device and sensor names; check them under Settings, Devices. `--json PATH` writes the same status as a file, for dashboards that read files. With a non-default node id, a new install's entity ids include it (for example `sensor.lightkeeper_bedside_glucose_level`). Entities created before this release keep their ids, because the unique ids did not change.
 
+### Desktop window
+
+`python -m lightkeeper.desktop` opens a window that shows the real e-paper panel, the same pixels `--png` writes, on any computer whose Python has Tk (FR-018). It reads the same `NIGHTSCOUT_URL`, `NIGHTSCOUT_TOKEN` and `LK_*` thresholds as the CLI and fetches every 60 seconds.
+
+```bash
+python -m lightkeeper.desktop --demo                        # canned reading, no network
+python -m lightkeeper.desktop --scale 3 --on-top
+python -m lightkeeper.desktop --panel 800x480 --theme dark
+```
+
+`r` checks Nightscout now, `t` switches between the pixels and the lines as text, and `q` (or the close box) quits. `--scale` (2 or 3) counts 96 dpi pixels, so on a display scaled to 200% each panel pixel is drawn as 4x4 device pixels at `--scale 2`; when the window would not fit the screen, the zoom drops to the largest whole number that fits and one line on stderr says so. `--theme auto` follows the Windows app theme, read once at startup, and is light elsewhere; `--theme dark` draws the panel in Night paper and Night ink for the bedside. Installed with `pip install`, `lightkeeper-window` opens the same window with no console window on Windows (D12, pending Eric's review); with no console it cannot print a configuration error, so try `python -m lightkeeper.desktop` in a terminal first. It has been checked by hand on Windows 11 only; macOS and Linux with a display are still to check (GAP-015). Run it beside the primary app before relying on it, as for any display.
+
 ## Part 4: The iOS companion app
 
 Source is in `apps/ios/` (read `apps/ios/README.md`). The read-only layer builds and tests on GitHub's macOS runners on every change, so no Mac is required.
@@ -271,6 +287,37 @@ Source is in `apps/ios/` (read `apps/ios/README.md`). The read-only layer builds
 1. Development: edit Swift files in any editor; push; `.github/workflows/ios.yml` runs the shared-vector tests and builds the app.
 2. Installing on a phone: TestFlight through the paid Apple Developer account. The signing and upload steps mirror Trio's browser build (App Store Connect API key stored as GitHub secrets); they are added to `ios.yml` when the first TestFlight build is cut, and documented here at that point.
 3. In the app: on first launch a card says "Add your Nightscout site to start"; open Settings and enter just the site (`https://your-site.example`, nothing after the name: no path, query, fragment or login). The address is checked as you type, and Save stays off until it can be used. Add the **readable** token (it goes to the Keychain), made in Nightscout's Admin Tools, Subjects (Part 2, step 4). Check connection makes one read-only request and says what happened: connected, with how old the newest reading is; Nightscout refused the token; this Nightscout needs a token to be read (the token field is empty); the site could not be reached; or the site answered, but not the way Nightscout does. Thresholds step by 5 (urgent low 40 to 100, low 45 to 150, high 100 to 350, urgent high 105 to 400) with Reset to defaults; Stale after runs from 6 to 60 minutes and shows a caution above 15. Thresholds change only which word the display shows. They do not affect dosing or the primary app's alarms. Match them to the alert settings already in the primary app.
+
+## Part 5: The Android companion app
+
+Source is in `apps/android/` (read `apps/android/README.md`). It is a read-only app built in Kotlin over the firmware's own C++ rules (FR-020), available for now only as a debug APK you build and sideload.
+
+1. Prerequisites: JDK 17 or 21 and the Android SDK with platform 36, NDK 28.2.13676358 and CMake 3.22.1; point Gradle at the SDK with `ANDROID_HOME` or a `local.properties` file (`sdk.dir=...`, not committed). On Windows keep the checkout path to about 60 characters or fewer, such as `C:\src\lightkeeper`: from a long path the native build fails with `ninja: error: mkdir(...)` (`apps/android/README.md`, Build and install).
+2. Build and test:
+
+   <details>
+   <summary>Windows (PowerShell)</summary>
+
+   ```powershell
+   cd apps\android
+   .\gradlew.bat assembleDebug testDebugUnitTest lint
+   ```
+
+   </details>
+
+   <details>
+   <summary>macOS / Linux (bash or zsh)</summary>
+
+   ```bash
+   cd apps/android
+   ./gradlew assembleDebug testDebugUnitTest lint
+   ```
+
+   </details>
+
+3. Install: turn on USB debugging in Developer options and run `adb install -r app/build/outputs/apk/debug/app-debug.apk`, or copy the APK to the phone and open it (Android asks once to allow installs from that app). The phone needs Android 8.0 (API 26) or later.
+4. In the app: a card says "Add your Nightscout site to start"; in Settings enter just the site (`https://your-site.example`) and a **readable** token, which is sealed with a key in the Android Keystore. The thresholds step by 5 and Stale after runs from 6 to 60 minutes with a caution above 15, as on iOS. There is no Check connection yet: a failed fetch shows as `Nightscout unreachable`. Thresholds change only which word the display shows. They do not affect dosing or the primary app's alarms. Match them to the alert settings already in the primary app.
+5. Not a release: there is no store listing or release signing, and the app has run only on emulators, never on a phone. In CI, `.github/workflows/android.yml` builds it, and its unit tests, lint and all 39 instrumented tests pass on an emulator with a Pixel 6 screen (the first run failed one of them on the default emulator screen, too narrow for the panel). No phone has run it yet (GAP-013). Validate it beside the primary app before relying on it.
 
 ## Checking the whole stack
 

@@ -76,4 +76,4 @@ No stock photos of people or of medical devices we did not photograph. When imag
 
 ![Social preview](https://raw.githubusercontent.com/esanacore/lightkeeper/main/assets/brand/png/social-preview.png)
 
-The iOS app in [[Companion App]] uses the app icon source, and the Xteink firmware in [[Firmware]] will use the mono mark in ink on its e-paper panel.
+The iOS app in [[Companion App]] uses the app icon source, and the Android app's launcher icon is built from `assets/brand/png/app-icon.png`, with the mono mark as its monochrome layer. The Xteink firmware in [[Firmware]] will use the mono mark in ink on its e-paper panel.

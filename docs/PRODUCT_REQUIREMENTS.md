@@ -109,6 +109,16 @@ An open source stack for managing one person's type 1 diabetes (built first for 
   - `FR-017-AC-2`: The age is always spoken; STALE leads with "Stale, do not trust." and says no trend word; NO DATA speaks no number.
   - `FR-017-AC-3`: The spoken form is used only through polite or passive accessibility channels (the iOS accessibility label, the demo's polite live region) and is never published to Home Assistant or any text-to-speech path.
 
+**FR-018** `SHOULD` Show the glance on a desktop monitor as the real e-paper panel (`python -m lightkeeper.desktop`).
+
+- Level: `SHOULD`
+- Acceptance criteria:
+  - `FR-018-AC-1`: The window shows `render_bitmap`'s pixels for the current vector lines, stamped with the local `HH:MM` of the draw, at a whole-number zoom, in Paper and Ink, or in Night paper and Night ink with `--theme dark` (and with `--theme auto` when Windows asks apps for a dark theme). `t` swaps the pixels for the vector lines as text in TkFixedFont, with the STALE `last:` line struck through in Muted and the stamp kept on a row of its own, and a status strip above the panel shows the headline in its chip with its shape: a status border round the tinted chip for IN RANGE, LOW and HIGH, an Ink band with a 4 px leading status rule for URGENT LOW and URGENT HIGH, an Ink band with hatching in the margin only for STALE, and a dashed frame for NO DATA and any unknown headline.
+  - `FR-018-AC-2`: The window re-ages with no fetch and shows STALE at the first stale millisecond, in one redraw, looking again at least every 30 seconds. A wall-clock jump of more than two fetch intervals (120 seconds at the fixed 60-second interval), in either direction, re-classifies at once and makes a fetch due; a ticker thread on the monotonic clock keeps the window polling when a clock set back stalls Tk 8.6's wall-clock `after()` timers. A fetch with no answer after two intervals counts as Nightscout unreachable and is retried on a new worker one interval later; its late answer is dropped. While 8 such threads are still stuck, no fetch starts and the screen goes on aging.
+  - `FR-018-AC-3`: The CLI and the Pi never import tkinter. A setting that cannot be used, an unusable option, missing tkinter (a one-line hint to install `python3-tk`) or no display exits 2 with no window left open; `q` and the close box exit 0; Ctrl+C exits 130 with `lightkeeper: stopped`; an unexpected error in a Tk callback closes the window and is raised again. Nothing is written to stdout, and stderr only when the process has one: under `pythonw` or the `lightkeeper-window` gui script on Windows there is none, so nothing is printed.
+  - `FR-018-AC-4`: The window never rings the bell, flashes the taskbar, changes `-alpha` or posts a notification, and `--on-top` is set once. Its title is `<headline> - <age line, or for NO DATA and any unknown headline the guidance line> - checked HH:MM - Lightkeeper`, every part but the clock verbatim from the lines, with `checking Nightscout...` in place of `checked HH:MM` until Nightscout first answers.
+  - `FR-018-AC-5`: The whole window always fits the screen, at the largest whole zoom not above the one asked for (`--scale` times the display's whole-number scale), with one stderr line when it is drawn smaller; a panel that does not fit even at one screen pixel a panel pixel exits 2.
+
 **FR-012** `SHOULD` Provide a read-only iOS companion app that shows the same status as every other display, using the same rules.
 
 - Level: `SHOULD`
@@ -127,6 +137,18 @@ An open source stack for managing one person's type 1 diabetes (built first for 
   - `FR-019-AC-2`: STALE continues once a minute until the reading is maxMinutes old (default 120), the schedule always reaches the first STALE millisecond, and the last frame is STALE or NO DATA; no reading gives one NO DATA frame.
   - `FR-019-AC-3`: A fetch error adds "Nightscout unreachable" to every frame exactly as `renderLines` does; frames carry no new screen text, and the extension never uses `Text(date, style: .relative)`.
   - `FR-019-AC-4`: `reloadAfterMs(for:)` asks for a reload at most one reading interval (5 minutes) after now, and no later than the instant the timeline turns from fresh to STALE; it never asks at every frame boundary (once a minute), which would spend WidgetKit's daily reload budget in about an hour.
+
+**FR-020** `SHOULD` Provide a read-only Android companion app that shows the same status as every other display, from the firmware's own C++ rules (`apps/android`).
+
+- Level: `SHOULD`
+- Acceptance criteria:
+  - `FR-020-AC-1`: Every case in `spec/display_vectors.json` gives exactly its lines, and every case in `spec/response_vectors.json` its reading, through JNI from the firmware's `glucose_rules` and `nightscout_json`, compiled in place by path with no copy under `apps/android`; a reading coming back from Kotlin is checked again by the firmware's parser, so a bad one shows NO DATA.
+  - `FR-020-AC-2`: Every case in `spec/panel_vectors.json` (all six profiles, among them the 296x128 one the app shows, and the stamped cases) matches its CRC-32 and ink count through the firmware's `render_panel`; the image is drawn at a whole-number scale with filtering off, a refused image shows nothing (never the previous one), and a view too narrow for the image shows nothing rather than a crop.
+  - `FR-020-AC-3`: The glance follows the shared hierarchy, built from the vector lines in `Presentation.kt`: on STALE no large number, separate arrow or unit, the STALE banner is the largest text and the old value appears only in the struck `last:` line at body size in Muted; NO DATA and any unknown headline show `--` and no number; the URGENT band is never shorter than the number; the status chip comes first in reading order at 20 sp bold or more; the headline is never under a system bar; and TalkBack reads the status area as the display lines in order.
+  - `FR-020-AC-4`: The app fetches when its screen starts and every 60 seconds while it is visible, and re-ages the last good reading every 30 seconds and the moment the screen returns, with no fetch; returning also fetches when the last fetch began 15 seconds ago or more. One fetch runs at a time; one still running after 20 seconds is cancelled and shown as Nightscout unreachable; hiding the screen stops both timers, cancels a running fetch and drops its answer. With no usable address saved, the app shows "Add your Nightscout site to start" with no number and no level word, and makes no fetch.
+  - `FR-020-AC-5`: Settings check the address as it is typed, with the iOS app's rule and reasons word for word (https, just the site), step the thresholds by 5 over the iOS ranges and Stale after by 1 from 6 to 60 with the iOS caution above 15; Save is refused for an invalid set, and an invalid set found on disk is reset to the defaults and written back.
+  - `FR-020-AC-6`: The readable token is sealed with AES-256-GCM under an Android Keystore key and sent only in the `api-secret` header, over HTTPS with only the system's certificate authorities trusted, with no redirect followed (any redirect is a failed fetch); Save never rewrites or deletes a token field nobody touched, and the sealed token is deleted only on proof of damage, never because the Keystore could not be reached or a read ran alongside a write.
+  - `FR-020-AC-7`: The manifest asks for `android.permission.INTERNET` only, with no service, receiver, provider, widget, notification, alarm or exact alarm; cleartext traffic, backup and device transfer are off; only the launcher activity is exported; no app source logs; and the APK ships no library but the Kotlin standard library (with its annotations).
 
 **FR-008** `SHOULD` Publish the display status to Home Assistant (ADR-0010).
 
@@ -190,7 +212,7 @@ These IDs are reserved for work that hasn't started. They are listed here, not d
 
 - Level: `SHOULD`
 - Acceptance criteria:
-  - `NFR-005-AC-1`: `assets/brand/tokens.json` and `docs/BRAND.md` list the same tokens, values and quoted contrast ratios, and every surface's colors (iOS `Palette.swift`, the demo's CSS, the SVG panel, the terminal codes) equal `tokens.json`.
+  - `NFR-005-AC-1`: `assets/brand/tokens.json` and `docs/BRAND.md` list the same tokens, values and quoted contrast ratios, and every surface's colors (iOS `Palette.swift`, the Android `colors.xml`, the demo's CSS, the SVG panel, the terminal codes, and the desktop window's palette and panel tints) equal `tokens.json`.
   - `NFR-005-AC-2`: Text, chip and control pairings meet their WCAG 2.2 minimums: 4.5:1 for text, 3:1 for large text, control borders and focus rings, and 7:1 for Ink on light chips and Paper on Ink.
   - `NFR-005-AC-3`: Every status has its headline word and a 1-bit shape cue; an unknown headline gets the NO DATA treatment; status colors are never themeable; terminal codes keep a non-color cue for every level but IN RANGE.
 

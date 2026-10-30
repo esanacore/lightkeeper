@@ -2,12 +2,12 @@
 
 A read-only companion app for Android phones: the same status every Lightkeeper display shows, in the Keeper's Logbook glance, with the bedside panel's own pixels beneath it. It reads Nightscout and nothing else. There is no pump or sensor code here, no alarm, and no widget yet.
 
-There is no fourth copy of the rules. The app compiles the firmware's C++ (`firmware/xteink/lib`: `glucose_rules`, `nightscout_json`, `panel_bitmap`) in place, and reaches it through one small JNI file. Every line on the glance and every pixel of the panel image comes from the same code the bedside device runs, and the instrumented tests run every shared vector through it on the phone.
+There is no fourth copy of the rules. The app compiles the firmware's C++ (`firmware/xteink/lib`: `glucose_rules`, `nightscout_json`, `panel_bitmap`) in place, and reaches it through one small JNI file. Every line on the glance and every pixel of the panel image comes from the firmware's own C++, and the instrumented tests run every shared vector through it on a phone or emulator.
 
 ## Layout
 
 - `app/src/main/cpp/`: `CMakeLists.txt` builds the three firmware libraries by relative path, with the firmware's warning set (`-Wall -Wextra -Werror -Wconversion -Wshadow`), no C++ runtime, and `-Os`. `jni_bridge.cpp` is the only C++ the app owns: it reads a raw Nightscout body (`lk::newest_reading_from_json`), classifies and renders a reading at a given time (`lk::classify`, `lk::render`), and draws the panel image (`lk::render_panel`). A reading coming back from Kotlin is checked again by `lk::parse_entry` before it is classified.
-- `app/src/main/java/com/esanacore/lightkeeper/`: framework Views in Kotlin. No AndroidX, no Compose, no third-party library.
+- `app/src/main/java/com/esanacore/lightkeeper/`: framework Views in Kotlin. No AndroidX, no Compose, no third-party library: only the Kotlin standard library and its annotations ship in the APK.
   - `NativeRules.kt` is the JNI side; `GlanceModel.kt` keeps the last good reading and re-ages it; `GlanceController.kt` runs the fetch and re-age timers while the screen is visible.
   - `Presentation.kt` arranges one screen of lines (a port of the iOS `ScreenPresentation`); `GlanceView.kt` and `PanelView.kt` draw it.
   - `SiteAddress.kt`, `Settings.kt`, `NightscoutClient.kt` and `TokenStore.kt` are the address check, the thresholds, the one GET, and the sealed token.
@@ -24,7 +24,7 @@ Top to bottom, in the Keeper's Logbook order (docs/BRAND.md): the status, the nu
 - **NO DATA**, and any headline nobody planned for: a dashed frame at 28 sp bold and `--` where a number would be.
 - The age line is Ink, bold, monospaced. Below the glance, `checked HH:MM` (or `checking Nightscout...` before the first answer) and, during an outage, `Nightscout unreachable since HH:MM`: absolute local times, so nothing on screen ticks.
 - Below that, the real 1-bit panel image for the same lines at the waveshare_2in9 size (296x128), stamped with the local time it was drawn, scaled by a whole number with filtering off. Paper and Ink by day, Night paper and Night ink in dark mode. If the rasterizer refuses, no image is shown, never the previous one.
-- For TalkBack the status area is one element, read as the display lines in order. (The spoken sentences of `spec/spoken_vectors.json` are Python and Swift only so far.)
+- For TalkBack the status area is one element, read as the display lines in order. (The spoken sentences of `spec/spoken_vectors.json`, which the iOS app uses, are not on Android yet.)
 - Until a usable address is saved, the glance is replaced by a card, "Add your Nightscout site to start", with no number and no level word, and the app makes no fetch.
 
 The app fetches when the screen appears and every 60 seconds while it is visible, and re-ages the last good reading every 30 seconds and the moment the screen comes back, with no fetch, so the screen turns STALE on time even when fetches stop or the phone has slept. Coming back to the front also fetches when the last fetch began 15 seconds ago or more (after a dialog or the notification shade, where the screen never stopped); a quicker return only re-ages. One fetch runs at a time: one that falls due meanwhile starts when the running one answers. A fetch that has not answered after 20 seconds is cancelled and shown at once as `Nightscout unreachable`, so a hung request never leaves `checked HH:MM` frozen. Nothing runs while the screen is hidden: hiding it stops both timers and cancels a fetch still running, and its answer is dropped.
@@ -72,13 +72,13 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 </details>
 
-The debug APK is about 1 MB. To sideload it onto a phone, turn on USB debugging in Developer options and install it with `adb` as above, or copy the APK to the phone and open it (Android asks once to allow installs from that app). `connectedDebugAndroidTest` needs a phone or an emulator attached.
+The debug APK is about 1 MB. To sideload it onto a phone, turn on USB debugging in Developer options and install it with `adb` as above, or copy the APK to the phone and open it (Android asks once to allow installs from that app). `connectedDebugAndroidTest` needs a phone or an emulator attached, with a phone-sized screen: on a screen narrower than the panel and its frame (the 320 px default emulator, for one) the panel rightly draws nothing and `testThePanelIsDrawnAtAWholeNumberScale` fails (`docs/TROUBLESHOOTING.md`).
 
-Lint runs with every check on and fails on any error; the checks turned off in `app/lint.xml` each say why. `.github/workflows/android.yml` builds the APK, runs the unit tests and lint, then the instrumented tests on an API 36 emulator, whenever the app, the firmware libraries, the spec vectors, the brand tokens or the two brand PNGs the launcher icon is built from change.
+Lint runs with every check on and fails on any error; the checks turned off in `app/lint.xml` each say why. `.github/workflows/android.yml` builds the APK, runs the unit tests and lint, then the instrumented tests on an API 36 emulator with a Pixel 6 screen, whenever the app, the firmware libraries, the spec vectors, the brand tokens or the two brand PNGs the launcher icon is built from change.
 
 ## What it does not do
 
-- No widget, no complication, no background refresh: the screen is current only while it is open. A widget needs the exact-alarm decision first (L-07).
+- No widget, no complication, no background refresh: the screen is current only while it is open. A widget needs the exact-alarm decision first (D9 in `TODO.md`).
 - No connection check button in Settings yet; a failed fetch shows as `Nightscout unreachable` on the glance and the panel.
 - No spoken sentences for TalkBack yet, no mmol/L, no delta.
 - No release signing or store listing: this slice ships as a sideloaded debug APK.

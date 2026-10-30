@@ -44,6 +44,7 @@ Implementation (2026-10-25, Python and Swift; the firmware has no HTTP layer yet
 - Tests assert that the token appears in no request URL and that the header is present. The existing redaction tests (NFR-001) keep covering error messages.
 - The same-scheme, same-host redirect rule matters more now that a header carries the credential, and it already exists in all clients.
 - Update the residual-risk line in `docs/SECURITY_MODEL.md`, the token note in `docs/ENV_VARS.md`, and `docs/SETUP.md` step 6.
+- Amended 2026-10-28: the desktop window uses the Python client. The Android app's `NightscoutClient.kt` sends the token only in the `api-secret` header and follows no redirect at all (any 3xx is a failed fetch), stricter than the same-site rule.
 
 ## Consequences
 

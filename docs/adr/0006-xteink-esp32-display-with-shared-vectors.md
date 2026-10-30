@@ -28,6 +28,7 @@ Eric and Kaitlin want a small dedicated e-ink display. Xteink X4/X3 readers use 
 - Port the domain rules to dependency-free C++17 (`firmware/xteink/lib/glucose_rules`) and test them on a PC with sanitizers.
 - Keep one source of truth for behavior: `spec/display_vectors.json`. Both the Python suite and the C++ host tests must pass every vector. Any rule change adds or updates a vector in the same commit.
 - Amended 2026-10-28: the pixels are shared too. `spec/panel_vectors.json` pins every display vector's 1-bit panel at six sizes, and `lib/panel_bitmap` (integer-only, heap-free) draws every case pixel for pixel (FR-016, HAZ-016). A build-only PlatformIO skeleton for the bench ESP32-S3 and the X4 prints the NO DATA panel over USB serial; no promotion criterion is met yet.
+- Amended 2026-10-28: the Android companion app (`apps/android`, FR-020) compiles `lib/glucose_rules`, `lib/nightscout_json` and `lib/panel_bitmap` in place by path and reaches them through JNI; its instrumented tests run every display, response and panel vector through them on an emulator. No promotion criterion is met yet.
 
 ## Consequences
 
