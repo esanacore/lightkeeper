@@ -23,7 +23,7 @@ Top to bottom, in the Keeper's Logbook order (docs/BRAND.md): the status, the nu
 - The age line is Ink, semibold, monospaced. Below it, `checked HH:MM` and, during an outage, `Nightscout unreachable since HH:MM`: absolute times, so nothing on screen ticks.
 - The glance is one accessibility element whose label is the spoken sentence, `spokenText(status:error:)`, for example "In range. 112 milligrams per deciliter, steady. 3 minutes ago." Nobody has heard it through VoiceOver on a device yet (GAP-009).
 - Pull to refresh fetches at once and shows a static `checking Nightscout...` while it runs. Nothing animates, blinks or makes a sound; a change is one redraw.
-- Below the glance, the panel preview draws `renderLines` exactly, on Paper by day and on Night paper in dark mode.
+- Below the glance, the panel preview draws `renderLines` exactly, with STALE's `last:` line struck through in Muted as on the panel, on Paper by day and on Night paper in dark mode.
 - Until a usable Nightscout address is saved, the glance is replaced by a setup card ("Add your Nightscout site to start") with a button to Settings. It has no number and no level word, and the app makes no fetch.
 
 The app re-ages the last reading against the clock the moment it returns to the foreground, before any fetch (`testReclassifyTurnsAnOldReadingStaleWithoutFetching`).

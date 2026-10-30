@@ -96,7 +96,7 @@ In dark mode, Beam text is Beam. Band text is Paper's value in light mode and Ni
 
 A status color is used as text only at large sizes: 24 px regular, or 18.66 px bold, and up. As small text, High (3.45:1) and Stale (4.23:1) fall short on Fog, so below that size the word is Ink on its chip.
 
-A chip is the status word in Ink, on its chip tint, with a 2 px border in the status color and a 2 px radius. The word is never smaller than the number beside it.
+A chip is the status word in Ink, on its chip tint, with a 2 px border in the status color and a 2 px radius. On a panel the status word is never smaller than the number (see Panel invariants). On a phone screen the chip comes first in reading order and is never smaller than `.title3` semibold (Android 20 sp bold); the fresh number is the hero; the URGENT band is full width and never shorter than the number; and the STALE and NO DATA banners are the largest text on screen.
 
 ### Shape grammar
 
