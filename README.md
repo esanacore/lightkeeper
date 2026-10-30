@@ -24,11 +24,13 @@ The bedside display, rendered from its enclosure's CAD model; the screen is draw
 - `--demo` mode runs with canned data and no network at all; the `--demo-*` options work only with `--demo`.
 - `--watch` in an interactive terminal redraws one screen in place inside a plain ASCII logbook frame, with reverse video, underline and strike so the status reads without color (`--no-color`, `NO_COLOR`); piped or under systemd it prints exactly the screen lines.
 - `--svg screen.svg` saves each screen as an image of the e-paper panel in the brand's colors with each status's 1-bit shape, and `--png` or `--bmp` write the exact 1-bit panel pixels for the panel `--panel` names, stamped with the local time they were drawn. Every possible screen is pictured in [`docs/DISPLAY_STATES.md`](docs/DISPLAY_STATES.md).
+- A desktop glance window (`python -m lightkeeper.desktop`, or `lightkeeper-window` once installed): the real 1-bit panel pixels on a computer monitor at a whole-number zoom, stamped with the local time of each redraw, with a status strip, a pixels/text toggle and a dark panel for the bedside (`--theme dark`). It turns STALE on its own clock with no fetch, never rings or flashes, and always fits the screen; the CLI and the Pi never load tkinter (Linux needs `python3-tk`). Checked by hand on Windows 11 so far.
 - Raspberry Pi bedside display groundwork: an integer-only 1-bit panel layout that gives every status a shape as well as its word and draws at six panel sizes, pinned pixel for pixel by `spec/panel_vectors.json`; a hardened systemd service with a watchdog; and a printable enclosure with renders, STLs, and a bill of materials ([`docs/BOM.md`](docs/BOM.md)). The panel driver waits for the hardware.
 - Firmware groundwork for an Xteink X4/X3 pocket e-ink display: the same safety rules in C++, proven identical to the Python version by shared test vectors, plus a heap-free, fuzzed parser for Nightscout's responses. The ESP32 firmware rasterizer (`firmware/xteink/lib/panel_bitmap`) draws the same 1-bit panel pixels as the Python reference at all six profiles, and a build-only device skeleton for the bench ESP32-S3 and the Xteink X4 prints the NO DATA panel over USB serial (host-tested; not yet run on a board); nothing is drawn on a panel yet.
 - An iOS companion app (read-only layer): the same rules in Swift, verified against the same vectors on GitHub's macOS and Linux runners, with the Nightscout token kept in the Keychain. On STALE it shows no big number: the banner is the largest text and the old value appears only struck through. It starts from a setup card, checks the connection in plain words, and labels the glance for VoiceOver with the same sentence as the spoken vectors (the reworked views compile first in `ios.yml` and have not run on a device yet). The glance timeline a future widget will draw from, with STALE scheduled ahead, is in place.
+- An Android companion app (read-only, `apps/android`): the same glance as the iOS app with the real panel image beneath it, and every line and pixel from the firmware's own C++ through JNI, so there is no fourth copy of the rules. The token is sealed with an Android Keystore key, `INTERNET` is the only permission, and it never alarms. It is a sideloaded debug APK of about 1 MB for Android 8.0 and later, tested on an emulator and not yet on a phone; its CI workflow has not run yet.
 - One spoken sentence per screen for screen readers (`spec/spoken_vectors.json`), the same in Python and Swift, never more current than the screen and never sent to Home Assistant; its wording still waits for review.
-- Brand tokens in one machine-readable file (`assets/brand/tokens.json`) that the iOS app, the demo, the SVG panel and the terminal frame are tested against, with measured contrast for every color; the new Keeper's Logbook tokens await Eric's approval.
+- Brand tokens in one machine-readable file (`assets/brand/tokens.json`) that the iOS app, the Android app, the demo, the SVG panel, the terminal frame and the desktop window are tested against, with measured contrast for every color; the new Keeper's Logbook tokens await Eric's approval.
 
 ## How It Fits Together
 
@@ -123,7 +125,7 @@ python -m lightkeeper            # print once, exit 0 or 1
 python -m lightkeeper --watch    # refresh every 60 seconds until Ctrl+C
 ```
 
-In a terminal, `--watch` redraws one framed screen in place; `--no-color` (or `NO_COLOR`) keeps its shapes without color. `--png panel.png --panel 800x480` writes the exact panel pixels with a local `HH:MM` stamp. Exit codes are `0` (fresh and in range), `1` (someone should look), `2` (a setting or option that cannot be used, named in the message, or a file a one-shot run could not write) and `130` (a one-shot run stopped with Ctrl+C). The `--demo-*` options need `--demo`. Every option is in [`docs/COMMAND_REFERENCE.md`](docs/COMMAND_REFERENCE.md).
+In a terminal, `--watch` redraws one framed screen in place; `--no-color` (or `NO_COLOR`) keeps its shapes without color. `--png panel.png --panel 800x480` writes the exact panel pixels with a local `HH:MM` stamp. Exit codes are `0` (fresh and in range), `1` (someone should look), `2` (a setting or option that cannot be used, named in the message, or a file a one-shot run could not write) and `130` (a one-shot run stopped with Ctrl+C). The `--demo-*` options need `--demo`. Every option is in [`docs/COMMAND_REFERENCE.md`](docs/COMMAND_REFERENCE.md). `python -m lightkeeper.desktop --demo` opens the same panel in a desktop window (`q` quits).
 
 Use a Nightscout token with the **readable** role only, never your API_SECRET.
 
@@ -138,7 +140,7 @@ make -C firmware/xteink test   # needs g++ and make (Linux, macOS, or WSL on Win
 node --test web/panel/panel.test.mjs  # the demo's panel port (Node 20 or later)
 ```
 
-The Python suite enforces a 100% line and branch coverage floor. The Python suite and the firmware host tests run every case in `spec/display_vectors.json` and `spec/response_vectors.json`, and with the demo's JavaScript port they hold the panel pixels to `spec/panel_vectors.json`. The full suite, including ruff, strict mypy, and clang-format, is listed in [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md). Test names carry the requirement IDs they verify, for example `test_fr003_staleness_beats_urgent_low`.
+The Python suite enforces a 100% line and branch coverage floor. The Python suite and the firmware host tests run every case in `spec/display_vectors.json` and `spec/response_vectors.json`, and with the demo's JavaScript port they hold the panel pixels to `spec/panel_vectors.json`. The full suite, including ruff, strict mypy, and clang-format, is listed in [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md). Test names carry the requirement IDs they verify, for example `test_fr003_staleness_beats_urgent_low`. The Android app builds and tests with Gradle (`apps/android/README.md`, Build and install).
 
 ## Demo
 
@@ -153,14 +155,16 @@ See every display state with simulated data, no install needed: [live demo](http
 lightkeeper/
 ├── src/lightkeeper/
 │   ├── domain/          ← Pure rules: parsing, thresholds, staleness (no I/O)
-│   ├── application/     ← Fetch, classify, render for a display
-│   ├── infrastructure/  ← Read-only HTTPS Nightscout client, MQTT, SVG and panel renderers, terminal frame
+│   ├── application/     ← Fetch, classify, render for a display; the desktop window's glance
+│   ├── infrastructure/  ← Read-only HTTPS Nightscout client, MQTT, SVG and panel renderers, terminal frame, Tk window
 │   ├── cli.py           ← Command-line entry point
-│   └── config.py        ← Settings, checked once at startup
+│   ├── config.py        ← Settings, checked once at startup
+│   └── desktop.py       ← Desktop glance window (tkinter, loaded only when it opens)
 ├── tests/               ← Pytest suite, named by requirement ID
 ├── spec/                ← Shared display, response, spoken and panel-pixel vectors; the Keeper 5x8 font
 ├── firmware/xteink/     ← ESP32 pocket e-ink display (C++): rules, parser, panel rasterizer, device skeleton
 ├── apps/ios/            ← Swift core package and SwiftUI companion app
+├── apps/android/        ← Android companion app: Kotlin views, the firmware's C++ through JNI, JVM and device tests
 ├── tools/               ← Prerequisite check; gallery, BOM, pinout, corpus, panel, spoken, demo and brand-pixel generators; render tools
 ├── docs/                ← Requirements, architecture, safety, security, ADRs, setup, hardware, brand, display gallery
 ├── assets/brand/        ← Mark, app icon, palette, social preview, tokens, pixel icons
@@ -182,6 +186,7 @@ lightkeeper/
 - Every display state, pictured: `docs/DISPLAY_STATES.md`
 - What the community says about displays and alerts, and what we take from it: `docs/COMMUNITY_RESEARCH.md`
 - Setup for Nightscout, Trio, and this repo: `docs/SETUP.md`
+- The companion apps: `apps/ios/README.md` (iOS) and `apps/android/README.md` (Android)
 - What hardware to buy for the displays: `docs/HARDWARE.md`; bill of materials: `docs/BOM.md`; printing and assembly with CAD renders: `docs/ASSEMBLY.md`, `hardware/`
 - Brand guide, mark, palette, type, and the Keeper's Logbook tokens: `docs/BRAND.md`, `assets/brand/tokens.json`
 - Roadmap and how the project grows: `docs/ROADMAP.md`, `docs/MVP_BACKLOG.md`, `TODO.md`
