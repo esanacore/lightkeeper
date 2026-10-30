@@ -59,6 +59,29 @@ jobs:
         shell: bash
         run: python -m pip install -e ".[dev]"
 
+      # Three tests open a real Tk window: two in tests/test_tk_window.py (the
+      # window holds exactly the panel pixels; a wake from another thread gets
+      # through) and one in tests/test_desktop.py (the ticker alone keeps the
+      # window polling). docs/SAFETY.md cites them for HAZ-016 and HAZ-002
+      # (the window freezes silently). They skip locally with no display and
+      # fail on CI with none, so the suite runs under xvfb-run. The runner image
+      # ships Xvfb and Tk; this installs them only when it does not, and then
+      # opens one window, so a missing display or Tk fails here, by name.
+      - name: Make sure a virtual display is available
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=""
+          { command -v xvfb-run && command -v xauth; } >/dev/null || missing="xvfb xauth"
+          python -c "import tkinter" 2>/dev/null || missing="$missing libtk8.6"
+          if [ -n "$missing" ]; then
+            sudo apt-get update
+            # shellcheck disable=SC2086 # a space-separated list of package names
+            sudo apt-get install -y --no-install-recommends $missing
+          fi
+          xvfb-run -a --server-args='-screen 0 1280x1024x24' \
+            python -c "import tkinter; tkinter.Tk().destroy(); print('Tk', tkinter.TkVersion, 'opened a window')"
+
       - name: Run declared test command
         shell: bash
-        run: bash constitution/scripts/run_declared_tests.sh --strict .
+        run: xvfb-run -a --server-args='-screen 0 1280x1024x24' bash constitution/scripts/run_declared_tests.sh --strict .

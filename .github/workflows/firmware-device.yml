@@ -21,6 +21,9 @@ jobs:
   build:
     name: PlatformIO build (bench_s3, x4)
     runs-on: ubuntu-24.04
+    # A cache miss downloads the ESP32 platform and toolchains (about a minute
+    # when healthy): fail fast on a stalled download, not after the 6-hour default.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
