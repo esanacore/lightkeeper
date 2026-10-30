@@ -212,9 +212,11 @@ void plan_panel(const char* const* lines, const int* lengths, int count, int wid
   const int edge = margin(height);
   const Box content{edge, edge, width - 2 * edge, height - 2 * edge};
   const Treatment kind = treatment(lines[0]);
-  const int stamp_size = stamp_scale(width, height);
+  // The stamp's ceiling. The band reserves a strip this tall, as check_size
+  // does, but the stamp is drawn no larger than the lines it sits under.
+  const int stamp_max = stamp_scale(width, height);
   const bool stamped = stamp != nullptr;
-  const int strip = stamped ? kGlyphHeight * stamp_size + kMinGap : 0;
+  const int strip = stamped ? kGlyphHeight * stamp_max + kMinGap : 0;
 
   // The band: one height per panel, sized from IN RANGE. It leaves room for
   // a four-line screen at scale 1 (and the stamp), so even the smallest
@@ -258,22 +260,37 @@ void plan_panel(const char* const* lines, const int* lengths, int count, int wid
   if (kind == Treatment::Stale) small_cap = min_of(small_cap, head_scale);
   Sizes sizes{value, age, fit_scale(small_lines, smalls, content.w, small_cap)};
 
-  // The stamp sits at the right of the age row when it fits there beside
-  // the age and a one-character gap; otherwise it gets the bottom strip.
-  const int stamp_width = text_width(kStampChars, stamp_size);
-  const bool on_age_row =
-      stamped && ages > 0 &&
-      text_width(age_lines[0], age) + kGlyphWidth * age + stamp_width <= content.w;
+  // The stamp is chrome, so it never outranks what it sits under: no larger
+  // than the age (or, with no age line, the hero), the headline band or its
+  // ceiling, and never below kStampMinScale. It sits at the right of the age
+  // row when it fits there beside the age and a one-character gap; otherwise
+  // it gets the bottom strip. All three follow the current sizes, so the
+  // stamp shrinks with the lines and never forces the age below what it
+  // would be unstamped.
+  auto stamp_size = [&]() {
+    const int anchor = ages > 0 ? sizes.age : values > 0 ? sizes.value : stamp_max;
+    return max_of(kStampMinScale, min_of(min_of(stamp_max, band_scale), anchor));
+  };
+  auto on_age_row = [&]() {
+    return stamped && ages > 0 &&
+           text_width(age_lines[0], sizes.age) + kGlyphWidth * sizes.age +
+                   text_width(kStampChars, stamp_size()) <=
+               content.w;
+  };
   const int top = band.y + band.h;
-  const int bottom = content.y + content.h - (stamped && !on_age_row ? strip : 0);
+  auto bottom = [&]() {
+    const bool in_strip = stamped && !on_age_row();
+    return content.y + content.h - (in_strip ? kGlyphHeight * stamp_size() + kMinGap : 0);
+  };
 
   // Each line's row height in glyph cells: the age row is as tall as its stamp.
   int rows[kMaxBodyLines];
   auto row_total = [&]() {
+    const bool shared = on_age_row();
     int sum = 0;
     for (int i = 0; i < body; i++) {
       int row = sizes.of(roles[i]);
-      if (roles[i] == Role::Age && on_age_row) row = max_of(row, stamp_size);
+      if (roles[i] == Role::Age && shared) row = max_of(row, stamp_size());
       rows[i] = row;
       sum += row;
     }
@@ -285,7 +302,7 @@ void plan_panel(const char* const* lines, const int* lengths, int count, int wid
   // then the age. check_size leaves room for any four-line screen at scale
   // 1, so only more lines than a screen has can reach the end.
   const int gaps = body + 1;
-  while (kGlyphHeight * row_total() + gaps * kMinGap > bottom - top) {
+  while (kGlyphHeight * row_total() + gaps * kMinGap > bottom() - top) {
     if (smalls > 0 && sizes.small > kReadableScale) {
       sizes.small--;
     } else if (values > 0 && sizes.value > (ages > 0 ? sizes.age : 1)) {
@@ -300,24 +317,26 @@ void plan_panel(const char* const* lines, const int* lengths, int count, int wid
   }
 
   const int total = row_total();
-  const int gap = max_of(0, bottom - top - kGlyphHeight * total) / gaps;
+  const int final_stamp = stamp_size();
+  const bool final_on_age_row = on_age_row();
+  const int gap = max_of(0, bottom() - top - kGlyphHeight * total) / gaps;
   int y = top + gap;
   for (int i = 0; i < body; i++) {
     const int scale = sizes.of(roles[i]);
     // Text sharing a row shares its baseline.
     plan->lines[i] = place(lines[i + 1], lengths[i + 1], roles[i], content.x,
                            y + kCapRows * (rows[i] - scale), scale);
-    if (roles[i] == Role::Age && on_age_row) {
-      const int stamp_y = y + kCapRows * (rows[i] - stamp_size);
-      plan->stamp = place_right(stamp, content.x + content.w, stamp_y, stamp_size);
+    if (roles[i] == Role::Age && final_on_age_row) {
+      const int stamp_y = y + kCapRows * (rows[i] - final_stamp);
+      plan->stamp = place_right(stamp, content.x + content.w, stamp_y, final_stamp);
       plan->has_stamp = true;
     }
     y += kGlyphHeight * rows[i] + gap;
   }
   plan->line_count = body;
-  if (stamped && !on_age_row) {
-    const int stamp_y = content.y + content.h - kGlyphHeight * stamp_size;
-    plan->stamp = place_right(stamp, content.x + content.w, stamp_y, stamp_size);
+  if (stamped && !final_on_age_row) {
+    const int stamp_y = content.y + content.h - kGlyphHeight * final_stamp;
+    plan->stamp = place_right(stamp, content.x + content.w, stamp_y, final_stamp);
     plan->has_stamp = true;
   }
 

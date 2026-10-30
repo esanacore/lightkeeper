@@ -21,15 +21,22 @@ copied into the page by a generator and tested with Node.
     and `chooseState` (a deep link opens only a vector that exists, never an
     invented state), `haGlucose` (the Home Assistant tile's number, by the
     `status_payload` rule: none for STALE, NO DATA or a sensor limit, HAZ-013)
-    and `glance` (the phone card mock, where STALE and NO DATA have no hero
-    number).
+    and `glance` (the phone card mock, laid out as the iOS and Android apps
+    lay out the glance: STALE and NO DATA have no hero number, and NO DATA,
+    like an unknown headline, shows the phones' `--` placeholder where the
+    number would be, with no digit and smaller than its banner).
+  - The draw-time stamp is chrome, as in the Python plan: never below scale
+    2, and above that no larger than the age line (the hero with no age
+    line), the band or the panel's stamp ceiling, so it does not push a
+    readable age down or outgrow the status on a tall panel.
   - Integers only, as in the Python layout: no floats and no rounding. Every
     division goes through `idiv`, which refuses a negative dividend, so no
     rounding rule can differ from Python's `//`.
 - `panel/panel.test.mjs` runs every case in `spec/panel_vectors.json` (39
   vectors at six profiles, plus three stamped cases) for its CRC-32 and ink
-  count, the CRC-32 check value, what the port refuses, the deep-link parser,
-  and the Home Assistant number rule for every vector.
+  count, the CRC-32 check value, what the port refuses, the stamp's scale and
+  row on a short and a tall panel, the deep-link parser, the Home Assistant
+  number rule for every vector, and the phone card's glance model.
 
 ## How it reaches the page
 

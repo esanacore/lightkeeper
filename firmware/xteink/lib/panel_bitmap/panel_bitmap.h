@@ -127,7 +127,9 @@ bool check_stamp(const char* stamp);
 // This is the layout spec/panel_vectors.json hashes; packed_size() gives the
 // byte count. `stamp` is nullptr or an "HH:MM" drawn at the right of the age
 // row (or in a strip at the bottom): the time the image was drawn, not the
-// time of the reading (proposed HAZ-014).
+// time of the reading (proposed HAZ-014). It is chrome: never below
+// kStampMinScale, and above that no larger than the age line (the hero with
+// no age line), the band, or the panel's stamp ceiling.
 //
 // Returns false, writing nothing, for a refused size, no lines, too many or
 // too long lines, a bad stamp, or a buffer smaller than packed_size(). Bytes
