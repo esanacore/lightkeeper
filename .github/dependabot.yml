@@ -49,6 +49,18 @@ updates:
     labels:
       - "dependencies"
 
+  # apps/android: the Android Gradle Plugin, JUnit, the AndroidX test runner
+  # and the Gradle wrapper. tests/test_android.py pins these versions, so each
+  # update PR must also move those pins.
+  - package-ecosystem: "gradle"
+    directory: "/apps/android"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "deps"
+    labels:
+      - "dependencies"
+
   # Example for a manifest below the root (a package.json in web/):
   # - package-ecosystem: "npm"
   #   directory: "/web"
