@@ -18,6 +18,8 @@ The first things we want to build are e-ink and bedside displays and Home Assist
 
 Build the display layer as a Python 3.11+ package (`lightkeeper`) with three layers: a pure domain layer with all safety rules, an application layer, and an infrastructure layer with a read-only HTTPS Nightscout client. Use only the standard library at runtime; test dependencies are pytest and pytest-cov.
 
+Amended 2026-10-28: the desktop window (`python -m lightkeeper.desktop`, FR-018) uses tkinter, part of the standard library, imported only when the window opens, so the CLI and the Pi never load it. Its Tcl/Tk comes with the Python installation (`python3-tk` on Linux) and is not shipped or pinned by this repository (OTS-129).
+
 ## Consequences
 
 - No third-party code in the data path, so the OTS inventory and supply-chain risk stay small.

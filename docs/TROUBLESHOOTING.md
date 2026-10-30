@@ -81,6 +81,60 @@ Known issues and fixes. If a display ever shows something that disagrees with th
 - **Cause**: `node` is missing (Node 20 or later is needed), or `demo.html` was edited after its generated block was written; the page counts its own size.
 - **Solution**: Install Node 20 or later. After any edit to `demo.html` (including a states block rewritten by `gen_display_gallery.py`), run `python tools/gen_demo_panel.py`.
 
+### The desktop window says it needs Tk
+
+- **Symptom**: `python -m lightkeeper.desktop` exits 2 with `lightkeeper: the window needs Tk, which this Python does not have: install python3-tk (for example, sudo apt install python3-tk) or a Python that includes Tk`.
+- **Cause**: This Python has no tkinter. The python.org installers for Windows and macOS include it; Debian, Ubuntu and Raspberry Pi OS ship it separately, and Homebrew's `python@3.12` needs `python-tk@3.12`.
+- **Solution**: `sudo apt install python3-tk`, `brew install python-tk@3.12`, or reinstall from python.org with Tcl/Tk ticked. The CLI never needs Tk.
+
+### The desktop window says it could not open the window
+
+- **Symptom**: Exit 2 with `lightkeeper: could not open the window: ...` and Tk's reason.
+- **Cause**: There is no display to open a window on: an SSH session, a headless Pi, or a service.
+- **Solution**: Run it in a desktop session. On a headless device, use the CLI's `--png` or `--svg` instead.
+
+### The desktop window is smaller than --scale asked for
+
+- **Symptom**: One line on stderr such as `lightkeeper: at --scale 2 the trmnl panel is larger than this screen, so each panel pixel is drawn as 3x3 screen pixels instead of 4x4` (the numbers vary).
+- **Cause**: By design. The window always fits the screen at the largest whole zoom that does, so the age, the stamp and `Nightscout unreachable` are never off screen. A panel that does not fit even at one screen pixel a panel pixel exits 2 with `Configuration error: a WxH panel does not fit on this WxH screen even at one screen pixel a panel pixel: choose a smaller panel`, with the sizes filled in.
+- **Solution**: Nothing, or choose a smaller `--panel`.
+
+### `lightkeeper-window` opens nothing
+
+- **Symptom**: On Windows, the installed `lightkeeper-window` launcher starts and no window appears.
+- **Cause**: The launcher has no console, so a configuration error, such as `NIGHTSCOUT_URL` not set, has nowhere to go; it exits 2 without a word.
+- **Solution**: Run `python -m lightkeeper.desktop` in a terminal to read the message, then set the variables for your user (`docs/ENV_VARS.md`).
+
+### The desktop window says Nightscout unreachable and nothing more
+
+- **Symptom**: The window shows `Nightscout unreachable` and stderr says nothing about why.
+- **Cause**: The window does not print the CLI's diagnostic lines.
+- **Solution**: Run `python -m lightkeeper` once in the same environment and read its `lightkeeper:` line (the table above).
+
+### The Android native build fails on Windows with `ninja: error: mkdir(...)`
+
+- **Symptom**: `gradlew.bat assembleDebug` stops in the native build with `ninja: error: mkdir(CMakeFiles/lightkeeper.dir/...): No such file or directory`, after a `CMAKE_OBJECT_PATH_MAX` warning.
+- **Cause**: The checkout path is too long: CMake names the firmware sources' object files after the whole path, and they pass the Windows path limit.
+- **Solution**: Keep the checkout path to about 60 characters or fewer, such as `C:\src\lightkeeper`. A 57-character path builds; a 120-character one fails (`apps/android/README.md`, Build and install).
+
+### `connectedDebugAndroidTest` cannot run offline
+
+- **Symptom**: `./gradlew --offline connectedDebugAndroidTest` cannot resolve its test platform.
+- **Cause**: AGP's test platform artifacts (`com.android.tools.utp` 32.1.1) are not in the offline Gradle cache.
+- **Solution**: Run it online. Offline, build `assembleDebug assembleDebugAndroidTest`, then `adb install -r` both `app/build/outputs/apk/debug/app-debug.apk` and `app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk`, and run `adb shell am instrument -w -r com.esanacore.lightkeeper.test/androidx.test.runner.AndroidJUnitRunner`.
+
+### `testThePanelIsDrawnAtAWholeNumberScale` fails on an emulator
+
+- **Symptom**: One instrumented test fails, with the panel drawn at scale 0; the other 38 pass.
+- **Cause**: The emulator's screen is narrower than the 296 px panel plus its frame and the glance's margins, so the panel rightly draws nothing rather than a crop. The default emulator is 320 px wide.
+- **Solution**: Use a phone-sized emulator profile, as `android.yml` does with `profile: pixel_6`.
+
+### The Android app shows Nightscout unreachable and says nothing more
+
+- **Symptom**: The glance shows `Nightscout unreachable` with no reason.
+- **Cause**: There is no Check connection yet. A refused token, a site that needs a token, a wrong address and no network all show as unreachable.
+- **Solution**: Open the site in a browser on the phone, and check the token with the CLI on a computer (`python -m lightkeeper` prints the `lightkeeper:` line above).
+
 ## Environment Reset
 
 ```bash

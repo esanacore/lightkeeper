@@ -34,6 +34,8 @@ Build a Lightkeeper companion iOS app in two layers:
 
 ADR-0004's rule becomes, precisely: *no code in this repository commands a pump, talks to a sensor, or calculates a dose; dosing requests may only be expressed through an established community controller's own remote protocol, which applies that controller's safety limits.*
 
+Amended 2026-10-28: a read-only Android companion app (`apps/android`, FR-020) now exists beside the iOS read-only layer, built on the firmware's C++ rules through JNI and shipped only as a sideloaded debug APK. It has no bolus layer.
+
 ## Consequences
 
 - Kaitlin gets the app she asked for, and dosing safety still rests on Trio's reviewed code and limits, not ours.

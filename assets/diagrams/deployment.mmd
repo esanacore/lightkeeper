@@ -7,12 +7,16 @@ flowchart TD
         Pi[Pi Zero 2 W<br/>systemd service + e-paper]
         X4[Xteink X4 Pro<br/>firmware]
         App[iOS companion app]
+        Droid[Android companion app<br/>firmware C++ via JNI]
+        Desk[Desktop window<br/>Python + Tk]
     end
     NS -- "HTTPS, readable token<br/>in a header" --> Pi
     NS -- "HTTPS, readable token" --> X4
     NS -- "HTTPS, token in Keychain" --> App
+    NS -- "HTTPS, token sealed<br/>by the Android Keystore" --> Droid
+    NS -- "HTTPS, readable token<br/>in a header" --> Desk
     Pi -- "MQTT over TLS<br/>publish only" --> MQ[(MQTT broker)]
     MQ --> HA[Home Assistant<br/>sensors + automations]
 
     classDef ours fill:#F1DDB4,stroke:#B8730A,color:#15171C
-    class Pi,X4,App ours
+    class Pi,X4,App,Droid,Desk ours
