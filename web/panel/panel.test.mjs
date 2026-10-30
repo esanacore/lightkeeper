@@ -141,6 +141,35 @@ test("FR-016: refuses what the Python reference refuses", () => {
   assert.throws(() => P.renderPanel(lines, 296, 128, noFallback), TypeError);
 });
 
+test("FR-016: the stamp is chrome: it never pushes the age down or outgrows the status", () => {
+  const stale = ["STALE - DO NOT TRUST", "last: 112 mg/dL ->", "40 min ago", "Confirm on primary device"];
+  const fresh = ["IN RANGE", "112 mg/dL ->", "3 min ago"];
+  const baseline = (line) => line.y + 7 * line.scale; // CAP_ROWS: glyph rows above the baseline
+  const role = (plan, name) => plan.lines.find((line) => line.role === name);
+
+  // A 2.13in panel: unstamped, the age is readable; the stamp shrinks to sit
+  // beside it on its row rather than taking a strip that pushes it to scale 1.
+  const unstamped = role(P.planPanel(stale, 212, 104), "age");
+  assert.ok(unstamped.scale >= 2, "the age is readable without the stamp");
+  const small = P.planPanel(stale, 212, 104, "23:59");
+  const age = role(small, "age");
+  assert.equal(age.scale, 2, "the age stays at a readable 2");
+  assert.equal(small.stamp.scale, 2);
+  assert.equal(baseline(small.stamp), baseline(age), "the stamp shares the age row's baseline");
+  assert.ok(small.stamp.x >= age.x + age.width + 5 * age.scale, "a one-character gap beside the age");
+
+  // A tall panel: the stamp's ceiling grows with the height, but the stamp is
+  // held to the lines it sits under, so it is never taller than the status.
+  for (const lines of [stale, fresh]) {
+    const tall = P.planPanel(lines, 300, 1200, "23:59");
+    assert.equal(tall.stamp.scale, 2, lines[0]);
+    assert.ok(tall.stamp.height <= tall.headline.height, lines[0]);
+    for (const line of tall.lines.filter((l) => l.role === "value" || l.role === "age")) {
+      assert.ok(tall.stamp.scale <= Math.max(2, line.scale), `${lines[0]}: ${line.role}`);
+    }
+  }
+});
+
 test("FR-016: a character outside the font draws as the fallback", () => {
   const odd = render(["IN RANGE", "112 mg/dL →", "3 min ago"], 296, 128);
   const fallback = render(["IN RANGE", `112 mg/dL ${FONT.fallback}`, "3 min ago"], 296, 128);
@@ -239,7 +268,7 @@ test("HAZ-013: the tile rule is cautious with anything it cannot place", () => {
   assert.equal(P.haGlucose("IN RANGE", "IN RANGE"), null);
 });
 
-test("glance: the phone card is the vector lines, and STALE has no hero", () => {
+test("glance: the phone card is the vector lines, STALE has no hero, NO DATA shows '--'", () => {
   for (const c of DISPLAY) {
     const g = P.glance(c.lines);
     const hero = g.hero === null ? [] : [g.hero.word ?? `${g.hero.digits} ${g.hero.unit} ${g.hero.arrow}`];
@@ -258,13 +287,26 @@ test("glance: the phone card is the vector lines, and STALE has no hero", () => 
     if (number !== null) {
       assert.equal(g.hero.digits, String(number), c.name);
     }
+    // NO DATA shows the phones' "--" where the number would be, and only NO
+    // DATA (the dashed shape): it is not a vector line and has no digit.
+    assert.equal(g.placeholder, g.treatment === "dashed" ? "--" : null, c.name);
+    if (c.level === "NO DATA") {
+      assert.equal(g.placeholder, "--", c.name);
+    }
   }
-  assert.deepEqual(P.glance(["MYSTERY", "112 mg/dL ->", "3 min ago"]).hero, null);
+  const mystery = P.glance(["MYSTERY", "112 mg/dL ->", "3 min ago"]);
+  assert.equal(mystery.hero, null);
+  assert.equal(mystery.placeholder, "--", "an unknown headline is shown like NO DATA");
+  assert.ok(!/[0-9]/.test(mystery.placeholder), "the placeholder has no digit");
+  for (const lines of [["URGENT LOW", "55 mg/dL vv", "1 min ago"], ["STALE - DO NOT TRUST"], ["LOW"]]) {
+    assert.equal(P.glance(lines).placeholder, null, lines[0]);
+  }
   assert.deepEqual(P.glance(["URGENT LOW", "LOW (<40)", "just now"]).hero, { word: "LOW (<40)" });
   assert.deepEqual(P.glance(["IN RANGE"]), {
     treatment: "plain",
     status: "IN RANGE",
     hero: null,
+    placeholder: null,
     struck: null,
     age: null,
     context: [],

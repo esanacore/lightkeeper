@@ -267,8 +267,10 @@
     const edge = margin(height);
     const content = box(edge, edge, width - 2 * edge, height - 2 * edge);
     const kind = treatment(lines[0]);
-    const stampSize = stampScale(width, height);
-    const strip = stamped ? GLYPH_HEIGHT * stampSize + MIN_GAP : 0;
+    // The stamp's ceiling. The band reserves a strip this tall, as check_size
+    // does, but the stamp is drawn no larger than the lines it sits under.
+    const stampMax = stampScale(width, height);
+    const strip = stamped ? GLYPH_HEIGHT * stampMax + MIN_GAP : 0;
 
     // The band: one height per panel, sized from IN RANGE.
     const inner = content.w - 2 * BAND_PAD;
@@ -308,25 +310,38 @@
     const sizes = { value, age, small: fitScale(smallLines, content.w, smallCap) };
     const sizeOf = (role) => (role === VALUE ? sizes.value : role === AGE ? sizes.age : sizes.small);
 
-    // The stamp sits at the right of the age row when it fits there beside
-    // the age and a one-character gap; otherwise it gets the bottom strip.
+    // The stamp is chrome, so it never outranks what it sits under: no larger
+    // than the age (or, with no age line, the hero), the headline band or
+    // its ceiling, and never below STAMP_MIN_SCALE. It sits at the right of
+    // the age row when it fits there beside the age and a one-character gap;
+    // otherwise it gets the bottom strip. All three follow the current
+    // sizes, so the stamp shrinks with the lines and never forces the age
+    // below what it would be unstamped.
     const stampChars = stamped ? stamp : "";
-    const onAgeRow =
+    const stampSize = () => {
+      const anchor = ageLines.length ? sizes.age : valueLines.length ? sizes.value : stampMax;
+      return Math.max(STAMP_MIN_SCALE, Math.min(stampMax, bandScale, anchor));
+    };
+    const onAgeRow = () =>
       stampChars !== "" &&
       ageLines.length > 0 &&
-      textWidth(ageLines[0], age) + GLYPH_WIDTH * age + textWidth(stampChars, stampSize) <= content.w;
+      textWidth(ageLines[0], sizes.age) + GLYPH_WIDTH * sizes.age + textWidth(stampChars, stampSize()) <=
+        content.w;
     const top = band.y + band.h;
-    const bottom = content.y + content.h - (stampChars !== "" && !onAgeRow ? strip : 0);
+    const bottom = () =>
+      content.y + content.h - (stampChars !== "" && !onAgeRow() ? GLYPH_HEIGHT * stampSize() + MIN_GAP : 0);
 
     // Each line's row height in glyph cells: the age row is as tall as its stamp.
-    const rowScales = () =>
-      roles.map((role) => (role === AGE && onAgeRow ? Math.max(sizeOf(role), stampSize) : sizeOf(role)));
+    const rowScales = () => {
+      const shared = onAgeRow();
+      return roles.map((role) => (role === AGE && shared ? Math.max(sizeOf(role), stampSize()) : sizeOf(role)));
+    };
 
     // Shrink in glance order until the lines and their gaps fit the height:
     // context to a readable 2, the hero down to the age, then context to 1,
     // then the age.
     const gaps = body.length + 1;
-    while (GLYPH_HEIGHT * sum(rowScales()) + gaps * MIN_GAP > bottom - top) {
+    while (GLYPH_HEIGHT * sum(rowScales()) + gaps * MIN_GAP > bottom() - top) {
       if (smallLines.length && sizes.small > READABLE_SCALE) {
         sizes.small -= 1;
       } else if (valueLines.length && sizes.value > (ageLines.length ? sizes.age : 1)) {
@@ -341,7 +356,9 @@
     }
 
     const rows = rowScales();
-    const gap = idiv(Math.max(0, bottom - top - GLYPH_HEIGHT * sum(rows)), gaps);
+    const finalStamp = stampSize();
+    const finalOnAgeRow = onAgeRow();
+    const gap = idiv(Math.max(0, bottom() - top - GLYPH_HEIGHT * sum(rows)), gaps);
     const placed = [];
     let stampLine = null;
     let y = top + gap;
@@ -351,15 +368,15 @@
       const scale = sizeOf(role);
       // Text sharing a row shares its baseline.
       placed.push(place(text, role, content.x, y + CAP_ROWS * (row - scale), scale));
-      if (role === AGE && onAgeRow) {
-        const stampY = y + CAP_ROWS * (row - stampSize);
-        stampLine = placeRight(stampChars, content.x + content.w, stampY, stampSize);
+      if (role === AGE && finalOnAgeRow) {
+        const stampY = y + CAP_ROWS * (row - finalStamp);
+        stampLine = placeRight(stampChars, content.x + content.w, stampY, finalStamp);
       }
       y += GLYPH_HEIGHT * row + gap;
     });
-    if (stampChars !== "" && !onAgeRow) {
-      const stampY = content.y + content.h - GLYPH_HEIGHT * stampSize;
-      stampLine = placeRight(stampChars, content.x + content.w, stampY, stampSize);
+    if (stampChars !== "" && !finalOnAgeRow) {
+      const stampY = content.y + content.h - GLYPH_HEIGHT * finalStamp;
+      stampLine = placeRight(stampChars, content.x + content.w, stampY, finalStamp);
     }
 
     return {
@@ -625,14 +642,24 @@
 
   const VALUE_PARTS = /^([0-9]+) (mg\/dL) (.+)$/;
 
-  // What a phone card shows, made only of the vector lines, in glance order:
-  // the status, then the hero (a number with its unit and arrow, or the
-  // sentinel words), the struck 'last:' line on STALE, the age, and the
-  // context. STALE and NO DATA (and any unknown headline) have no hero, so an
-  // old value is never the largest thing on the card.
+  // What a phone card shows, made of the vector lines, in glance order: the
+  // status, then the hero (a number with its unit and arrow, or the sentinel
+  // words), the struck 'last:' line on STALE, the age, and the context.
+  // STALE and NO DATA (and any unknown headline) have no hero, so an old
+  // value is never the largest thing on the card. NO DATA and an unknown
+  // headline get the phones' PLACEHOLDER, "--", where the number would be:
+  // it has no digit and is not a vector line.
   function glance(lines) {
     const kind = treatment(lines[0]);
-    const model = { treatment: kind, status: lines[0], hero: null, struck: null, age: null, context: [] };
+    const model = {
+      treatment: kind,
+      status: lines[0],
+      hero: null,
+      placeholder: null,
+      struck: null,
+      age: null,
+      context: [],
+    };
     if (FRESH.includes(kind)) {
       if (lines.length > 1) {
         const parts = VALUE_PARTS.exec(lines[1]);
@@ -645,6 +672,7 @@
       model.age = lines.length > 2 ? lines[2] : null;
       model.context = lines.slice(3);
     } else {
+      model.placeholder = "--";
       model.context = lines.slice(1);
     }
     return model;

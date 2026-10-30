@@ -112,6 +112,12 @@ STAMPED_VECTORS = [
 ]
 
 STALE = ["STALE - DO NOT TRUST", "last: 120 mg/dL ->", "16 min ago", "Confirm on primary device"]
+STALE_40 = [
+    "STALE - DO NOT TRUST",
+    "last: 112 mg/dL ->",
+    "40 min ago",
+    "Confirm on primary device",
+]
 NO_DATA = ["NO DATA", "Check sensor and phone", "Confirm on primary device"]
 FRESH = ["IN RANGE", "112 mg/dL ->", "3 min ago"]
 
@@ -158,6 +164,12 @@ EXTRA = [
     ("tall_portrait", STALE, 700, 2400, "06:45"),
     ("wide_strip", ["URGENT HIGH", "250 mg/dL ^^", "2 min ago"], 4096, 200, None),
     ("largest_panel", STALE, 4096, 4096, "00:01"),
+    # The stamp is chrome: it shrinks with the age instead of pushing a
+    # readable age down (a 2.13in panel), and on a tall panel it is held to
+    # the lines under the band rather than growing with the height.
+    ("stamp_keeps_age_readable_212x104", STALE_40, 212, 104, "23:59"),
+    ("stamp_capped_tall_stale", STALE_40, 300, 1200, "23:59"),
+    ("stamp_capped_tall_fresh", FRESH, 300, 1200, "23:59"),
 ]
 
 # Panel profiles whose portrait buffers are checked against Bitmap.to_epd_buffer.
