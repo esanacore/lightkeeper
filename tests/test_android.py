@@ -381,5 +381,7 @@ def test_nfr004_the_android_workflow_pins_its_actions_and_watches_the_right_path
         assert workflow.count(f'"{path}"') == 2, f"{path} in both push and pull_request filters"
     for task in ("assembleDebug", "testDebugUnitTest", "lint", "connectedDebugAndroidTest"):
         assert task in workflow, task
+    # The emulator has a real phone's screen, wide enough for the panel at scale 1 or more.
+    assert "profile: pixel_6" in workflow
     assert "ndk;28.2.13676358" in workflow and "cmake;3.22.1" in workflow
     assert "permissions:\n  contents: read" in workflow
