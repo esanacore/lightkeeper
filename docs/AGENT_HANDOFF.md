@@ -34,6 +34,7 @@ Replace the entry below at the end of every push; only the latest handoff is kep
     - the Ctrl+C Home Assistant tests no longer race the fourth sensor's packet.
 - **Verification Run** (on the merged branch, 2026-10-29): 
   - Python: 2,110 passed and 2 skipped, both named (the POSIX-only time-zone test and the Unix datagram test). Line and branch coverage is 100.00% (2,191 statements, 568 branches). ruff, ruff format and strict mypy are clean.
+  - Python again on CPython 3.15.2 with Tk 9.0.4, after the developer machine lost CPython 3.14 (pytest 9.2, ruff 0.17.3, mypy 2.4.1): the same 2,110 pass, the three real-Tk tests included, at 100.00% line and branch, and ruff and mypy are clean. The desktop window now has passing tests on Tk 8.6 (Windows, and Linux under Xvfb in CI) and on Tk 9.0 (Windows).
   - Constitution checks: 0 layer violations; 20 requirements traced, 20 covered; the demo page, README, wiki links, environment variables, OTS inventory, secrets and Next Steps checks pass.
   - Firmware in WSL, under ASan and UBSan: 294, 2,970 and 2,753 checks, with 17,600 fuzzed bodies.
   - Swift package: 76 tests.
