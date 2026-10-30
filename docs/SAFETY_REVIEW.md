@@ -6,7 +6,7 @@ Fill it in on paper, or edit this file, and give it back to Eric. Nothing change
 
 ## What Lightkeeper is, and is not
 
-- It **shows** the glucose number already in Nightscout on extra screens: an e-ink display, a pocket reader, an iPhone app.
+- It **shows** the glucose number already in Nightscout on extra screens: an e-ink display, a pocket reader, an iPhone app, an Android phone app, a window on a computer.
 - It **never** talks to the pump or the sensor, never doses, and never changes Trio settings.
 - It **never** alarms. The Dexcom and Trio alerts on the phone stay the only alarms.
 - When it is unsure (data too old, a clock wrong, Nightscout down), it says **STALE - DO NOT TRUST** or **NO DATA** instead of showing a number.
@@ -32,7 +32,7 @@ The four numbers must go up in order, and stay between 40 and 400. A display ref
 
 ## 2. When a number stops being trusted
 
-A reading older than this is shown as **STALE - DO NOT TRUST**, crossed out on the phone app, even if the number itself looks fine. A new reading normally arrives every 5 minutes, so 15 minutes means about two missed readings.
+A reading older than this is shown as **STALE - DO NOT TRUST**, crossed out on the phone apps, even if the number itself looks fine. A new reading normally arrives every 5 minutes, so 15 minutes means about two missed readings.
 
 | Setting | Default | Keep it? | Or change to |
 | --- | --- | --- | --- |
@@ -45,6 +45,7 @@ A shorter limit flags trouble sooner but shows STALE more often during normal Bl
 - [ ] No Wi-Fi or no Nightscout means no new numbers. The screen ages into STALE rather than freezing.
 - [ ] Even a fresh screen can be a few minutes behind the sensor (sensor, phone, upload, then display).
 - [ ] A screen or an image file keeps its last picture if the display stops updating. Exported images show the time they were drawn (`HH:MM`), not the time of the reading; check the age line, and the phone when in doubt.
+- [ ] The Android app is current only while it is open: it has no widget, and it re-ages the last reading the moment it comes back. The computer window ages on its own and stamps its picture with the time it was drawn, like an exported image.
 - [ ] mg/dL only for now.
 - [ ] The bedside screen is for a glance. Anyone who sees LOW or URGENT LOW, or STALE at night, checks the phone.
 
@@ -76,7 +77,7 @@ Three small wording changes. Each one says less than today about old or missing 
 
 ## What happens next (for Eric or an agent)
 
-- Kept the defaults: mark step 6 done in `docs/AGENT_HANDOFF.md`, tick the TODO item, and record the date in `docs/MEMORY.md`.
-- Changed a default: update `docs/ENV_VARS.md`, the defaults in all three implementations (Python `Thresholds`, firmware `lk::Thresholds`, Swift `Thresholds`), and the shared vectors. Changing an existing vector bumps `spec_version` and its three assertions. Then regenerate the gallery with `python tools/gen_display_gallery.py`, the panel vectors with `python tools/gen_panel_spec.py`, the spoken vectors with `python tools/gen_spoken_vectors.py`, and the demo's panel block with `python tools/gen_demo_panel.py`. The iOS steppers move in steps of 5, so a new default must sit on that grid or the ranges in `GlucoseModel.swift` move too.
+- Kept the defaults: mark Kaitlin's review step done in `docs/AGENT_HANDOFF.md`'s Next Steps, tick the TODO item, and record the date in `docs/MEMORY.md`.
+- Changed a default: update `docs/ENV_VARS.md`, the defaults in all three implementations (Python `Thresholds`, firmware `lk::Thresholds`, Swift `Thresholds`) and in the Android app's settings (`apps/android/app/src/main/java/com/esanacore/lightkeeper/Settings.kt`), and the shared vectors. Changing an existing vector bumps `spec_version` and its four assertions (Python, firmware, Swift, and the Android app's instrumented `testTheVectorsAreTheVersionThisSuiteWasWrittenFor`). Then regenerate the gallery with `python tools/gen_display_gallery.py`, the panel vectors with `python tools/gen_panel_spec.py`, the spoken vectors with `python tools/gen_spoken_vectors.py`, and the demo's panel block with `python tools/gen_demo_panel.py`. The iOS and Android steppers move in steps of 5, so a new default must sit on that grid or the ranges in `GlucoseModel.swift` and `Settings.kt` move too.
 - New concern: add it to the hazard log in `SAFETY.md` with a new HAZ ID before any code changes.
 - Signed section 5: ADR-0011 is implemented in one pull request at `spec_version` 2 (its promotion criteria), then marked Accepted in `docs/adr/README.md`.
