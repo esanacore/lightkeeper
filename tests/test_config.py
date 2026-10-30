@@ -7,7 +7,7 @@ value, and what it clashes with; the CLI turns that into exit 2.
 
 import argparse
 import itertools
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -294,6 +294,33 @@ def test_fr006_demo_source_takes_its_values_from_the_arguments():
     assert (entry["type"], entry["sgv"], entry["direction"]) == ("sgv", 62, "SingleDown")
 
 
+def test_fr006_demo_reading_keeps_its_time_and_is_replaced_every_five_minutes():
+    """Like a sensor's: it ages between fetches, and a new one comes five minutes on."""
+    t0 = datetime(2026, 10, 29, 12, 0, 20, tzinfo=UTC)
+    clock = {"now": t0}
+    source = config.DemoSource(clock=lambda: clock["now"])
+
+    def dated_at(offset):
+        clock["now"] = t0 + offset
+        (entry,) = source.fetch_entries()
+        return datetime.fromtimestamp(entry["date"] / 1000, UTC)
+
+    first = t0 - timedelta(minutes=3, seconds=30)
+    assert dated_at(timedelta(0)) == first  # shows as 3 min ago (ages are floored)
+    assert dated_at(timedelta(minutes=1)) == first
+    assert dated_at(timedelta(minutes=4)) == first
+    assert dated_at(timedelta(minutes=5)) == t0 + timedelta(minutes=5) - timedelta(
+        minutes=3, seconds=30
+    )
+
+
+def test_fr006_demo_reading_uses_the_system_clock_by_default():
+    before = datetime.now(UTC)
+    (entry,) = config.DemoSource(minutes_ago=0).fetch_entries()
+    dated = datetime.fromtimestamp(entry["date"] / 1000, UTC)
+    assert before - timedelta(seconds=31) <= dated <= datetime.now(UTC) - timedelta(seconds=29)
+
+
 def test_fr006_demo_values_without_demo_never_make_a_demo_source(monkeypatch):
     monkeypatch.setenv("NIGHTSCOUT_URL", "https://ns.example.com")
     args = argparse.Namespace(demo=False, demo_mgdl=62, demo_minutes_ago=0, demo_trend="Flat")
@@ -339,6 +366,10 @@ def test_nfr001_empty_token_means_none(monkeypatch):
         "https://ns.example.com/?token=s3cret-in-url",
         "https://user:s3cret-in-url@ns.example.com",
         "https://ns.example.com:s3cret",
+        # urlsplit's own errors quote the netloc, token and all: never passed on.
+        "https://readable-s3cret@my\N{FULLWIDTH SOLIDUS}site.example",  # changes under NFKC
+        "https://[s3cret.example]",  # bracketed, but not an IP address
+        "https://[::1",  # an unbalanced bracket
     ],
 )
 def test_nfr001_unusable_url_is_named_never_echoed(monkeypatch, url):

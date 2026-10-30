@@ -90,6 +90,7 @@ class _SameSchemeRedirects(urllib.request.HTTPRedirectHandler):
         if new.scheme != old.scheme or new.netloc != old.netloc:
             # Named without any user:password the Location may carry.
             where = new.netloc.rpartition("@")[2]
+            fp.close()  # urllib closes the redirect's response only when it follows it
             raise _RedirectRefused(
                 f"refused redirect to a different scheme or host ({new.scheme}://{where})"
             )
@@ -135,7 +136,15 @@ class NightscoutClient:
         """
         self._url_name = setting_name
         self._token_name = token_setting_name
-        parsed = urllib.parse.urlparse(base_url)
+        try:
+            parsed = urllib.parse.urlparse(base_url)
+        except ValueError:
+            # urlsplit refuses a host that changes under NFKC normalization or is
+            # bracketed but not an IP address, quoting the whole netloc (and any
+            # token pasted into it): never let that message through.
+            raise ValueError(
+                f"{setting_name} must be a full address like https://my-nightscout.example"
+            ) from None
         if parsed.scheme not in ("https", "http") or not parsed.hostname:
             raise ValueError(
                 f"{setting_name} must be a full address like https://my-nightscout.example"
@@ -194,13 +203,20 @@ class NightscoutClient:
         if not 1 <= count <= 288:
             raise ValueError("count must be between 1 and 288 (24 hours of 5-minute readings)")
         url = self._entries_url(count)
+        failure: NightscoutError | None = None
         try:
             body = self._fetcher(url, self._auth_headers(), self._timeout)
         # urllib raises URLError (HTTPError among them), OSError (timeouts and
         # TLS among them) and ValueError (a header or URL it refuses); a body
         # cut off mid-read is an HTTPException.
         except (urllib.error.URLError, OSError, http.client.HTTPException, ValueError) as exc:
-            raise self._failure(exc) from None
+            failure = self._failure(exc)
+            if isinstance(exc, urllib.error.HTTPError):
+                exc.close()  # it holds the open response
+        # Raised here, outside the handler, so the error carries no chained one
+        # (and with it a frame cycle that keeps the response open until a GC).
+        if failure is not None:
+            raise failure
 
         try:
             data = json.loads(body)

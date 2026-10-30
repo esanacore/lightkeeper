@@ -334,8 +334,47 @@ def test_haz014_stamp_scale_never_outgrows_a_narrow_content_box():
     assert pl.text_width(pl.STAMP_SAMPLE, 2000 // 240) > content
     assert pl.stamp_scale(394, 2000) == 5
     assert pl.text_width(pl.STAMP_SAMPLE, 5) <= content < pl.text_width(pl.STAMP_SAMPLE, 6)
-    stamp = pl.plan_panel(["NO DATA", "Check sensor and phone"], 394, 2000, "23:59").stamp
-    assert stamp.x >= pl.margin(2000) and stamp.scale == 5
+    plan = pl.plan_panel(["NO DATA", "Check sensor and phone"], 394, 2000, "23:59")
+    # Held to the band below that ceiling: chrome never outranks the status word.
+    assert plan.stamp.x >= pl.margin(2000) and plan.stamp.scale == plan.band_scale == 3
+
+
+FRESH_3 = ["IN RANGE", "112 mg/dL ->", "3 min ago"]
+STALE_40 = [
+    "STALE - DO NOT TRUST",
+    "last: 112 mg/dL ->",
+    "40 min ago",
+    "Confirm on primary device",
+]
+
+
+def test_haz014_stamp_never_costs_the_age_its_readable_scale():
+    """The stamp is read last: it never pushes the age line below a readable 2.
+
+    On a 2.13" 212x104 panel a stamp at its own scale once took the bottom
+    strip and shrank '40 min ago' to an unreadable 8 px, under a larger clock.
+    """
+    plan = pl.plan_panel(STALE_40, 212, 104, "23:59")
+    [age] = by_role(plan, pl.AGE)
+    assert age.scale == 2 and plan.stamp.scale == 2
+    assert age.y <= plan.stamp.y and plan.stamp.y + plan.stamp.height <= age.y + age.height
+    for width, height in [*((p.width, p.height) for p in PROFILES.values()), (212, 104)]:
+        for case in VECTORS:
+            unstamped = pl.plan_panel(case["lines"], width, height)
+            stamped = pl.plan_panel(case["lines"], width, height, "23:59")
+            for plain, with_stamp in zip(
+                by_role(unstamped, pl.AGE), by_role(stamped, pl.AGE), strict=True
+            ):
+                least = min(plain.scale, pl.READABLE_SCALE)
+                assert with_stamp.scale >= least, (width, height, case["name"])
+
+
+@pytest.mark.parametrize("lines", [FRESH_3, STALE_40], ids=["in-range", "stale"])
+def test_haz014_stamp_never_outranks_the_lines(lines):
+    # 300x1200 allows a scale-5 stamp; the headline band there is 24 px tall.
+    plan = pl.plan_panel(lines, 300, 1200, "23:59")
+    assert pl.stamp_scale(300, 1200) == 5
+    assert plan.stamp.scale == 2 and plan.stamp.height <= plan.headline.height
 
 
 # --- Fitting the height on panels far smaller than the profiles ---------------
@@ -558,3 +597,9 @@ def test_fr007_every_accepted_size_keeps_every_line_inside_the_content_box(heigh
                 if stamp:
                     assert plan.stamp.scale >= pl.STAMP_MIN_SCALE, where
                     assert all(apart(plan.stamp.box, box) for box in boxes), where
+                    # Chrome: never above the band, the value or the age line.
+                    floor = pl.STAMP_MIN_SCALE
+                    assert plan.stamp.scale <= max(floor, plan.band_scale), where
+                    anchors = [ln.scale for ln in plan.lines if ln.role in (pl.VALUE, pl.AGE)]
+                    if anchors:
+                        assert plan.stamp.scale <= max(floor, min(anchors)), where

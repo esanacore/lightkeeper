@@ -322,12 +322,22 @@ def test_fr006_redirect_handler_never_names_a_login_in_the_location():
     class Request:
         full_url = "https://ns.example.com/api/v1/entries/sgv.json"
 
+    class Response:
+        closed = False
+
+        def close(self):
+            self.closed = True
+
     handler = nightscout._SameSchemeRedirects()
+    response = Response()
     with pytest.raises(nightscout._RedirectRefused) as caught:
-        handler.redirect_request(Request(), None, 302, "Found", {}, "http://u:pw@evil.example/x")
+        handler.redirect_request(
+            Request(), response, 302, "Found", {}, "http://u:pw@evil.example/x"
+        )
     assert str(caught.value.reason) == (
         "refused redirect to a different scheme or host (http://evil.example)"
     )
+    assert response.closed  # the refused redirect's own response is not left open
 
 
 def test_fr006_every_kind_is_listed_once():

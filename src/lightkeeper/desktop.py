@@ -32,7 +32,9 @@ setting that cannot be used prints the plain message; both exit 2 before any
 window opens. `q` and the close box exit 0, and Ctrl+C in the terminal that
 started the window exits 130, as a stopped one-shot run of the CLI does.
 Nothing here writes to stdout, and stderr is used only when there is one: a
-window is exactly what gets started with pythonw, where both are None.
+window is exactly what gets started with pythonw, where both are None. With
+no stderr, a setting that cannot be used is shown in one plain, still window
+instead, so the gui script never fails without a word.
 """
 
 from __future__ import annotations
@@ -72,12 +74,15 @@ examples:
 
 exit codes:
   0    the window was closed
-  2    a setting that cannot be used, a panel too large for the screen, no tkinter,
-       or no display to open a window on
+  1    an unexpected error closed the window (a bug; the traceback says where)
+  2    a setting that cannot be used, a panel too large for the screen,
+       no tkinter, or no display to open a window on
   130  stopped with Ctrl+C in the terminal that started it
 
-settings come from the same environment variables as the CLI (NIGHTSCOUT_URL,
-NIGHTSCOUT_TOKEN, LK_*); see docs/ENV_VARS.md.
+settings: NIGHTSCOUT_URL, NIGHTSCOUT_TOKEN and the LK_* thresholds
+(LK_URGENT_LOW, LK_LOW, LK_HIGH, LK_URGENT_HIGH, LK_STALE_MINUTES), as for the
+CLI; see docs/ENV_VARS.md. The window does not publish to Home Assistant
+(LK_MQTT_* is not read).
 """
 TK_HINT = (
     "lightkeeper: the window needs Tk, which this Python does not have: install "
@@ -107,12 +112,41 @@ def _warn(text: str) -> None:
         print(text, file=sys.stderr, flush=True)
 
 
+def _show_startup_error(message: str) -> None:
+    """With no stderr at all, show `message` in one plain, still window; else do nothing.
+
+    Started as the lightkeeper-window gui script (pythonw) there is no stderr,
+    so a setting that cannot be used would otherwise stop the window from
+    opening with nothing said. The window is static: no bell, no animation,
+    nothing repeated. It is not tkinter.messagebox, which on Windows is the
+    native message box and plays the system sound. `q`, Escape and the close
+    box close it. With no tkinter or no display, there is nowhere to say it.
+    """
+    if sys.stderr is not None:
+        return  # _warn has said it
+    try:
+        import tkinter
+    except ImportError:
+        return
+    try:
+        root = tkinter.Tk()
+    except tkinter.TclError:  # no display
+        return
+    root.title("Lightkeeper")
+    tkinter.Label(root, text=message, justify="left", wraplength=480).pack(padx=16, pady=16)
+    for key in ("q", "Escape"):
+        root.bind(f"<KeyPress-{key}>", lambda _event: root.destroy())
+    root.mainloop()
+
+
 class Worker:
     """One daemon thread that runs fetches off Tk's thread and queues what they returned.
 
     Daemon, so a fetch that hangs never keeps the process alive after the
     window closes. An exception a fetch raises is queued as its answer, with
-    its traceback dropped; Tk's thread keeps only its message (current_status).
+    its own traceback dropped; a NightscoutError carries no chained error, so
+    nothing it holds keeps a failed response open. Tk's thread keeps only its
+    message (current_status).
     """
 
     def __init__(self) -> None:
@@ -340,8 +374,9 @@ def main(argv: list[str] | None = None) -> int:
 
     0 when closed with `q` or the close box, 2 for a setting that cannot be
     used or no way to open a window, and 130 for Ctrl+C. An unexpected error
-    in the window closes it and is raised again: a window that has stopped
-    updating must not stay on screen looking alive.
+    in the window closes it and is raised again, so Python exits 1 with its
+    traceback: a window that has stopped updating must not stay on screen
+    looking alive.
     """
     try:
         return _start(build_parser().parse_args(argv))
@@ -359,6 +394,7 @@ def _start(args: argparse.Namespace) -> int:
         source = source_from_env(args, client_factory=NightscoutClient)
     except ValueError as exc:  # ConfigError, naming the setting, or the panel's own check
         _warn(f"Configuration error: {exc}")
+        _show_startup_error(f"Configuration error: {exc}")
         return 2
     try:
         import tkinter
@@ -388,6 +424,7 @@ def _start(args: argparse.Namespace) -> int:
         return 2
     except ValueError as exc:  # a panel this screen cannot hold; the window is closed already
         _warn(f"Configuration error: {exc}")
+        _show_startup_error(f"Configuration error: {exc}")
         return 2
     asked = args.scale * window.ui_scale
     if window.zoom < asked:

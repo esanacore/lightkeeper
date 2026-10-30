@@ -267,11 +267,13 @@ def render_bitmap(
 ) -> Bitmap:
     """Return a bitmap showing `lines` the way the panel should.
 
-    `stamp` is opt-in: an `HH:MM` (see `stamp_text`) drawn small at the right
-    of the age row, or in a reserved strip at the bottom of the content box
-    when there is no age line or no room on that row, so a panel or exported
-    image that stopped updating shows when it was drawn. Raises ValueError
-    for a panel too small to draw every screen on (`panel_layout.check_size`).
+    `stamp` is opt-in: an `HH:MM` (see `stamp_text`) drawn at the right of the
+    age row, or in a reserved strip at the bottom of the content box when
+    there is no age line or no room on that row, so a panel or exported image
+    that stopped updating shows when it was drawn. It is never larger than the
+    age (or value) line or the headline band, and never below scale 2. Raises
+    ValueError for a panel too small to draw every screen on
+    (`panel_layout.check_size`).
     """
     return draw_plan(plan_panel(lines, width, height, stamp))
 

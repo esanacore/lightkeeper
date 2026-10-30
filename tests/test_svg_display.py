@@ -39,7 +39,7 @@ SWEEP_SIZES = sorted(
 ALL_SIZES = [*PROFILE_SIZES, *SWEEP_SIZES]
 STALE_LINES = VECTORS[VECTOR_IDS.index("stale_at_16_minutes")]["lines"]
 WRITTEN = datetime(2026, 10, 18, 23, 59, tzinfo=UTC)
-HATCH = f"url(#{sd.HATCH_ID})"
+HATCH = f"url(#{sd.ID_PREFIX}-hatch)"
 STRETCH = re.compile(r"matrix\(1 0 0 ([0-9.]+) 0 (-?[0-9.]+)\)")
 
 

@@ -22,6 +22,8 @@ from pathlib import Path
 
 import pytest
 
+from tests.test_brand_tokens import contrast
+
 ROOT = Path(__file__).resolve().parent.parent
 APP = ROOT / "apps" / "ios" / "Lightkeeper"
 SOURCES = APP / "Sources"
@@ -152,6 +154,31 @@ def test_nfr005_panel_preview_uses_night_paper_in_dark_mode():
     assert palette()["panelPaper"][1] == COLOR["night-paper"]["dark"]
     assert palette()["panelInk"][1] == COLOR["night-ink"]["dark"]
     assert palette()["panelPaper"][0] == COLOR["paper"]["light"]
+
+
+def swift_struct(source, name):
+    """Return the text of `struct name` up to the next top-level struct (or the end)."""
+    start = source.index(f"\nstruct {name}")
+    end = source.find("\nstruct ", start + 1)
+    return source[start : None if end == -1 else end]
+
+
+def test_haz008_panel_preview_strikes_the_stale_last_line():
+    """The preview says what the bedside panel says: STALE's old value struck, in Muted.
+
+    The panel (and the glance above the preview) strike the `last:` line, so
+    a preview drawing it plainly in Ink would tell a second story (HAZ-008).
+    """
+    preview = swift_struct(
+        (SOURCES / "ContentView.swift").read_text(encoding="utf-8"), "PanelPreview"
+    )
+    assert "panelLines" in preview  # the lines with which of them is struck, not bare strings
+    assert ".strikethrough(" in preview
+    assert "Palette.muted" in preview
+    # Muted is readable small on the preview's paper, by day and in dark mode.
+    colors = palette()
+    for theme in (0, 1):
+        assert contrast(colors["muted"][theme], colors["panelPaper"][theme]) >= 4.5, theme
 
 
 def test_nfr005_token_ids_map_to_palette_names():

@@ -84,15 +84,15 @@ RULES = [
     "fit_scale(lines, width, cap) is the largest s from cap down to 2 at which every line "
     "fits width, else 1. Characters outside the font draw as '?'.",
     "m = max(4, (h*6+50)//100). Content box (m, m, cw, ch) with cw = w-2m, ch = h-2m. "
-    "inner = cw - 2*band_pad. stamp_scale = fit_scale(['00:00'], cw, max(2, h//240)) "
-    "(every stamp is five characters wide).",
+    "inner = cw - 2*band_pad. stamp_max = fit_scale(['00:00'], cw, max(2, h//240)) "
+    "(every stamp is five characters wide): the largest the stamp may ever be.",
     "A size is drawable when 1 <= w <= max_side and 1 <= h <= max_side (checked first, so "
     "no // ever divides a negative number), cw >= max(text_width(widest_line, 1), "
     "2*band_pad + text_width(the longest headline in treatments, 1)), which is 149, and "
-    "ch >= 2*band_pad + 8 + 3*8 + 4*min_gap + 8*stamp_scale + min_gap (62 below h = 480). "
+    "ch >= 2*band_pad + 8 + 3*8 + 4*min_gap + 8*stamp_max + min_gap (62 below h = 480). "
     "Any other size is refused, never clipped: every display line then fits the content "
     "box at scale 1, and a four-line screen with its stamp fits under the band.",
-    "reserve = 3*8 + 4*min_gap, plus 8*stamp_scale + min_gap when a stamp is given. "
+    "reserve = 3*8 + 4*min_gap, plus 8*stamp_max + min_gap when a stamp is given. "
     "tallest = max(0, ch - 2*band_pad - reserve)//8. "
     "band_scale = fit_scale(['IN RANGE'], inner, max(1, min(max(4, h//32), tallest))). "
     "The band is (m, m, cw, 2*band_pad + 8*band_scale) for every level.",
@@ -106,11 +106,14 @@ RULES = [
     "else cap). small (last and context lines) = fit_scale(small lines, cw, c) with "
     "c = min(cap, age) if there is an age line else cap, and on stale also at most "
     "head_scale.",
-    "With a stamp and an age line, the stamp goes on the age row when "
-    "text_width(age line, age) + 5*age + text_width(stamp, stamp_scale) <= cw, using age "
-    "as computed above (before the height fitting below); otherwise, and always without an "
-    "age line, a bottom strip of 8*stamp_scale + min_gap comes off the body "
-    "region.",
+    "The stamp is chrome, read last, so it follows the lines' current scales: "
+    "stamp_scale = max(stamp_min_scale, min(stamp_max, band_scale, a)), where a is age if "
+    "there is an age line, else value if there is a value line, else stamp_max. With an age "
+    "line, the stamp goes on the age row when text_width(age line, age) + 5*age + "
+    "text_width(stamp, stamp_scale) <= cw; otherwise, and always without an age line, a "
+    "bottom strip of 8*stamp_scale + min_gap comes off the body region. stamp_scale, the "
+    "age-row test and the strip all use the current age and value: they are worked out "
+    "again before every step of the height fitting below, and once more after it.",
     "The body region runs from the band's bottom to the content box's bottom (less the "
     "strip). Each line's row scale is its own scale, except an age row carrying the stamp: "
     "max(age, stamp_scale). While 8*sum(rows) + (n+1)*min_gap is taller than the region "
@@ -118,10 +121,11 @@ RULES = [
     "there is a value line and value > (age if there is an age line else 1), value -= 1; "
     "else if small lines and small > 1, small -= 1; else if an age line and age > 1, "
     "age -= 1; else stop.",
-    "gap = max(0, region - 8*sum(rows))//(n+1). y starts at the band's bottom + gap. Each "
-    "line is drawn at (m, y + 7*(row - scale)); then y += 8*row + gap. A stamp on the age "
-    "row has its right edge at w - m and its top at y + 7*(row - stamp_scale); in the strip "
-    "its right edge is at w - m and its top at h - m - 8*stamp_scale.",
+    "gap = max(0, region - 8*sum(rows))//(n+1), with the region, the rows and stamp_scale "
+    "as the fitting left them. y starts at the band's bottom + gap. Each line is drawn at "
+    "(m, y + 7*(row - scale)); then y += 8*row + gap. A stamp on the age row has its right "
+    "edge at w - m and its top at y + 7*(row - stamp_scale); in the strip its right edge is "
+    "at w - m and its top at h - m - 8*stamp_scale.",
     "rule treatment: ink (m, band bottom - rule_thickness, cw, rule_thickness). inverse "
     "and stale: ink the band and draw the headline in paper on it. stale: strike the first "
     "line under the headline with thickness t = 1 if its scale <= 2 else 2, at "
