@@ -26,7 +26,7 @@ struct ContentView: View {
                     } else {
                         SetupCard(problem: model.settings.urlProblem) { showSettings = true }
                     }
-                    PanelPreview(lines: model.lines)
+                    PanelPreview(presentation: model.presentation)
                     Text(Self.disclaimer)
                         .font(.footnote)
                         .foregroundStyle(Palette.muted)
@@ -329,18 +329,20 @@ struct LogbookButtonStyle: ButtonStyle {
 }
 
 /// The exact lines an e-ink panel would show, so the phone and the bedside
-/// screen are never telling two stories. Paper and Ink by day; Night paper
-/// and Night ink in dark mode, so the panel is never the brightest thing at
-/// the bedside.
+/// screen are never telling two stories. On STALE the `last:` line is struck
+/// through, in Muted, as on the panel, so the old value is never shown plain.
+/// Paper and Ink by day; Night paper and Night ink in dark mode, so the panel
+/// is never the brightest thing at the bedside.
 struct PanelPreview: View {
-    let lines: [String]
+    let presentation: ScreenPresentation
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            ForEach(Array(lines.enumerated()), id: \.offset) { index, line in
-                Text(line)
+            ForEach(Array(presentation.panelLines.enumerated()), id: \.offset) { index, line in
+                Text(line.text)
                     .font(.system(index == 0 ? .headline : .subheadline, design: .monospaced))
-                    .foregroundStyle(Palette.panelInk)
+                    .strikethrough(line.struck, color: Palette.muted)
+                    .foregroundStyle(line.struck ? Palette.muted : Palette.panelInk)
             }
         }
         .padding(12)
