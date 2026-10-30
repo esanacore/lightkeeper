@@ -42,7 +42,7 @@ Phases 1 to 3 are mostly about the therapy half and belong to Kaitlin and her ca
 - Xteink device build (FR-010): the panel rasterizer and a build-only skeleton exist; next Wi-Fi, HTTPS, the panel driver (a choice Eric makes between a home-grown SSD16xx driver and GxEPD2) and deep sleep with real data.
 - Optional mmol/L display units, and a delta from the previous reading.
 - Companion app extras (widgets, watch complication, background refresh); the read-only layer (Phase 5a) builds and is tested in CI, and the glance timeline core that widgets will draw from is done (FR-019); the widget extension waits on Apple signing and App Groups. Then the bolus request screen (Phase 5b).
-- The Android app on a real phone and a green `android.yml` emulator run (GAP-013), then Check connection, TalkBack sentences, release signing, and a widget once the exact-alarm decision is made (D9).
+- The Android app on a real phone (GAP-013; `android.yml`, emulator tests included, is green), then Check connection, TalkBack sentences, release signing, and a widget once the exact-alarm decision is made (D9).
 - The desktop window on macOS and Linux with a display (GAP-015).
 - Screen text v2 (ADR-0011), once its hazard review is done and Eric and Kaitlin have signed it off.
 - PyPI release (Phase 6). The demo page is already published at https://esanacore.github.io/lightkeeper/.

@@ -55,7 +55,7 @@ Display behavior is implemented more than once because the targets cannot share 
 3. **Swift**, `apps/ios/LightkeeperCore/`. The same rules and a read-only Nightscout client for the companion app. See [[Companion App]].
 4. **The shared vectors**, `spec/display_vectors.json`. Thirty-nine cases, each one raw Nightscout entry (or none) or a list of entries, each entry with its age in minutes or seconds, optional custom thresholds, an optional fetch error, and the exact expected level and lines. The Python suite, the C++ host tests, and the Swift XCTest target all run every case, must render identical output, and assert the file's `spec_version`.
 
-The Android app adds no fifth: it compiles the C++ rules in place and runs every vector through them on the phone. The desktop window is Python, so it runs the reference rules unchanged.
+The Android app adds no fifth: it compiles the C++ rules in place, and its instrumented tests run every vector through them (so far on emulators only). The desktop window is Python, so it runs the reference rules unchanged.
 
 The panel's pixels have their own shared file. `spec/panel_vectors.json` pins every vector's 1-bit panel at six sizes, and the Python reference (on the Pi and in the desktop window), the C++ rasterizer (the ESP32 and the Android app) and the demo's JavaScript port all draw the same pixels, so STALE is never weaker on one device than another. The spoken sentences follow the vectors in `spec/spoken_vectors.json`.
 

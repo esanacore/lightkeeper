@@ -45,7 +45,7 @@ See `docs/ROADMAP.md` for how phases relate and what gates each one.
 ## Phase 5: Companion App (ADR-0008)
 
 - [~] Read-only iOS app: glance screen, settings, Keychain token, CI build, and (2026-10-28) the STALE-first glance hierarchy, first-run setup, Check connection, the VoiceOver spoken form and the glance timeline core (done); the widget extension (needs D10), IOB, recent treatments, watch complication (next).
-- [~] Read-only Android app (FR-020, 2026-10-28): the glance, settings, the sealed token and the panel image, every line and pixel from the firmware's C++ through JNI, tested on an emulator, as a sideloaded debug APK. Its build, unit tests and lint pass in CI. Next: `android.yml`'s emulator job green (38 of 39 passed on its first run; the rerun is pending) and a real phone (GAP-013), Check connection, TalkBack sentences, release signing, and a widget after the exact-alarm decision (D9).
+- [~] Read-only Android app (FR-020, 2026-10-28): the glance, settings, the sealed token and the panel image, every line and pixel from the firmware's C++ through JNI, tested on an emulator, as a sideloaded debug APK. Its build, unit tests and lint pass in CI, and so do all 39 emulator tests on a Pixel 6 screen. Next: a real phone (GAP-013), Check connection, TalkBack sentences, release signing, and a widget after the exact-alarm decision (D9).
 - [ ] Study LoopFollow's Trio Remote Control implementation; build a fake Trio endpoint for tests.
 - [ ] Hazard analysis for the bolus request screen in `docs/SAFETY.md`.
 - [ ] Bolus request screen, gated behind the promotion criteria in ADR-0008.
