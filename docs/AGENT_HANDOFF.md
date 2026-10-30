@@ -62,14 +62,8 @@ Replace the entry below at the end of every push; only the latest handoff is kep
    - **Done when:** every workflow is green on the pushed commit.
 2. [x] **AGENT** — Record on GAP-015 that the real-Tk tests passed on Linux under a virtual display. macOS, a real Linux display with several monitors, and a real clock change stay open.
    - **Done when:** `docs/TEST_PLAN.md` GAP-015, its coverage row, `TODO.md`, the OTS row and the wiki say what CI showed. Done on 2026-10-29.
-3. [ ] **AGENT** — Propose the session's MEMORY.md learnings to Eric:
-   - Tk DPI awareness;
-   - Tcl's wall-clock `after()` timers;
-   - running real-Tk tests in a child process;
-   - offline Android instrumented tests through adb;
-   - JDK 24 locally against Temurin 21 in CI;
-   - a broker test must wait for every packet a run sends.
-   - **Done when:** Eric has said yes or no to each, and the approved ones are in `docs/MEMORY.md`.
+3. [x] **AGENT** — Propose the session's MEMORY.md learnings to Eric: Tk DPI awareness, Tcl's wall-clock `after()` timers, real-Tk tests in a child process, offline Android instrumented tests through adb, JDK 24 locally against Temurin 21 in CI, and a broker test waiting for every packet
+   - **Done when:** Eric has said yes or no to each, and the approved ones are in `docs/MEMORY.md`. Done on 2026-10-29: Eric approved all six, and they are under Codebase Learnings & Gotchas.
 4. [ ] **HUMAN** — Eric deletes the leftover folders in `C:\Projects\lightkeeper\.claude\worktrees\`: `wf_4bb1f8cd-5c6-3`, `wf_4e278c17-9d7-6` to `-8`, and `wf_2b0dc469-d0f-9`.
    - **Why a human:** the agent's delete was refused, and the Android build paths are too long for `git worktree remove`.
    - **Done when:** the folder is empty.

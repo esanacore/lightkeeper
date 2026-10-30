@@ -27,7 +27,14 @@ This file contains durable memories, codebase learnings, user preferences, and k
   - "Ensure Git CRLF conversion is disabled when modifying binary images."
 -->
 
-- 
+The six below were approved by Eric on 2026-10-29, from the Keeper's Logbook batch.
+
+- Tk on Windows needs DPI awareness. Without `SetProcessDpiAwareness(1)` (system aware, called before the first `Tk()`; `tk_window.py`), Windows stretches the window as a bitmap on a scaled display and the 1-bit panel goes soft. Once aware, `--scale` counts 96 dpi pixels, so at 200% `--scale 2` draws each panel pixel as 4x4 device pixels.
+- Tcl 8.6 times `after()` by the wall clock, so setting the system clock back stalls every `after()` timer for as long as it went back. The desktop window therefore has a second wake-up: the `Ticker` thread in `desktop.py` waits on the monotonic clock and queues `<<LightkeeperWake>>` with `event_generate(..., when="tail")`, which is safe from another thread. Never rely on `after()` alone for anything that must happen on time (HAZ-002).
+- Real-Tk tests run in a child Python (`run_real_tk` in `tests/test_tk_window.py`). Inside pytest, its file-descriptor capture swaps the standard handles under Tcl, and a second Tk interpreter in the same process sometimes cannot read its own library ("Can't find a usable tk.tcl", seen on Windows). Locally they skip with no display. On CI they fail instead, and the Test Runner gives them a display with `xvfb-run`.
+- Android instrumented tests can run offline, without Gradle's `connectedDebugAndroidTest`, which needs test platform artifacts the offline cache lacks. Start the `Medium_Phone_API_36.1` emulator, build `assembleDebugAndroidTest`, `adb install -r` both APKs, then run `adb shell am instrument -w -r com.esanacore.lightkeeper.test/androidx.test.runner.AndroidJUnitRunner` (full steps in `docs/TEST_PLAN.md`). CI's default emulator screen is too narrow for the panel, so `android.yml` uses the `pixel_6` profile.
+- The local Android build runs on JDK 24 (Oracle 24.0.1 on `PATH`, no `JAVA_HOME`), while `android.yml` uses Temurin 21. The app compiles to Java 17 bytecode, so both work. A Gradle failure seen only on one side may come from the JDK.
+- A test against the fake MQTT broker must wait for every packet the run sends, not a few fewer: `wait_for(n)` returns as soon as `n` have arrived, so a count that is too low can read the tail before the last packets land. One watch cycle stopped by Ctrl+C sends 9 (`WATCH_PACKETS` in `tests/test_cli.py`). Update the count whenever a sensor or a message is added.
 
 ## Active Project Decisions
 
