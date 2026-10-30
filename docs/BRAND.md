@@ -90,7 +90,7 @@ Everything in this section is presentation only. Screen text still comes from `s
 | Night paper | `#1C1E22` | `#1C1E22` | Panel previews in dark mode, so the panel is never the brightest thing at the bedside | Night ink on it 8.30 |
 | Night ink | `#B9B7AE` | `#B9B7AE` | Panel glyphs on Night paper | 8.30 on Night paper |
 
-In dark mode, Beam text is Beam. Band text is Paper's value in light mode and Night's in dark mode, because dark Ink is a light color and dark Paper on it measures only 1.09:1. Night paper and Night ink are the panel preview's colors in dark mode on iOS and the demo (and the planned desktop window); in light mode the preview stays Paper and Ink. Line stays, for decorative dividers only.
+In dark mode, Beam text is Beam. Band text is Paper's value in light mode and Night's in dark mode, because dark Ink is a light color and dark Paper on it measures only 1.09:1. Night paper and Night ink are the panel preview's colors in dark mode on iOS, Android, the demo and the desktop window (`--theme dark`, or `auto` where Windows asks for a dark theme); in light mode the preview stays Paper and Ink. Line stays, for decorative dividers only.
 
 ### Status color as text
 
@@ -162,9 +162,9 @@ Keeper 5x8 is the name for the project's own pixel font: the glyph table in `src
 
 A stamp is the time an image was drawn, not the time of the reading:
 
-- Bitmap, PNG and BMP: `HH:MM` in local 24-hour time, in Keeper 5x8 at scale 2 or more on the age row. Always on for exported images (and for the planned desktop window); opt-in in the reference renderer until Eric decides whether physical panels show it.
+- Bitmap, PNG and BMP: `HH:MM` in local 24-hour time, in Keeper 5x8 at scale 2 or more on the age row. Always on for exported images, the desktop window (in its text view too) and the Android app's panel image (pending Eric's decision); opt-in in the reference renderer until Eric decides whether physical panels show it.
 - SVG: `written HH:MM UTC`, unchanged until that same decision.
-- Terminal: `checked HH:MM:SS`. Desktop (planned): `checked HH:MM` in the window title. iOS: `checked HH:MM` as an absolute time.
+- Terminal: `checked HH:MM:SS`. Desktop window: `checked HH:MM` in the window title (`checking Nightscout...` before the first answer). iOS and Android: `checked HH:MM` as an absolute time.
 - Widget timelines schedule their own STALE entry.
 - Demo panels carry `SIMULATED`.
 
@@ -219,7 +219,7 @@ Only an interactive terminal running `--watch` gets the logbook frame, under the
 
 ### User themes
 
-Themes for the terminal and the planned desktop window get four slots, and only four. Status colors are never themeable: they always travel with their word. The accent slot may carry small text, so it defaults to Beam text, not Beam. On the default background, in both themes, the default foreground is at least 7:1, the accent at least 4.5:1 and the line at least 3:1; a user theme is held to the same minimums.
+Themes for the terminal and the desktop window, when either gets them, get four slots, and only four. Status colors are never themeable: they always travel with their word. The accent slot may carry small text, so it defaults to Beam text, not Beam. On the default background, in both themes, the default foreground is at least 7:1, the accent at least 4.5:1 and the line at least 3:1; a user theme is held to the same minimums.
 
 | Slot | Default token |
 | --- | --- |
@@ -237,6 +237,8 @@ Each surface names the tokens its own way, and every surface's colors are tested
 | iOS (`Palette.swift`) | camelCase token ids: `lineStrong`, `beamText`, `chipInRange`, `chipLow`, `chipHigh`, `chipStale`, `bandText`, `nightPaper`, `nightInk`; status colors as `statusInRange`, `statusLow`, `statusHigh`, `statusStale`. Three pairs take light and dark from two tokens: `panelPaper` (`paper` / `night-paper`), `panelInk` (`ink` / `night-ink`) and `hardShadow` (`beam-soft` / `line`). The accent color is Beam text, and the AppIcon is `assets/brand/png/app-icon.png` scaled to 1024 px. |
 | Demo CSS (`demo.html`) | `--line-strong`, `--beam-text`, `--band-text`, `--chip-inrange`, `--chip-low`, `--chip-high`, `--chip-stale`, `--night-paper` and `--night-ink` map to the same ids; `--dither-12`, `--dither-25`, `--dither-50` and `--hatch` come from the texture cells. |
 | SVG panel (`svg_display.py`) | Paper and Ink, Muted only for its stamp, and Line strong only for its edge (the demo's bezel color). |
+| Desktop window (`tk_window.py`, `ppm.py`) | `PALETTES` keyed by token id (`fog`, `ink`, `muted`, `line-strong`, `band-text`, the status colors and the chip tints) for each theme; the panel tint is Paper and Ink, or Night paper and Night ink (`ppm.LIGHT`, `ppm.DARK`). |
+| Android (`res/values/colors.xml`, `res/values-night/colors.xml`) | `lk_` plus the token id in snake case (`lk_line_strong`, `lk_chip_in_range`, `lk_band_text`, ...), with the panel and shadow pairs as on iOS: `lk_panel_paper`, `lk_panel_ink`, `lk_hard_shadow`. The launcher icon is `assets/brand/png/app-icon.png` with the mono mark as its monochrome layer. |
 
 ### Proposed, not in use
 

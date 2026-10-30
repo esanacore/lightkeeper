@@ -6,7 +6,7 @@
       "svg": "classification.svg"
     },
     "deployment": {
-      "source": "48ea81a7bd95d66c5d86ea04db71b2d3feac2eb4cc05856c1a628fb47beb3a7b",
+      "source": "ae91498c6850f76b61ab3807fee1a3c0f71753bd994a0cee9a5bc996e3d6abbe",
       "svg": "deployment.svg"
     },
     "ha-availability": {

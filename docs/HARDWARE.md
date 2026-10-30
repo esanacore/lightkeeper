@@ -76,6 +76,7 @@ The firmware skeleton builds for this board as PlatformIO environment `bench_s3`
 - Home Assistant: runs on whatever hosts it now.
 - Nightscout: a cloud VPS or managed host, not hardware in the apartment, since the phone must reach it from anywhere.
 - A Mac: not needed. Trio builds in the browser; firmware builds with PlatformIO on Windows.
+- A computer for the desktop window (Windows, macOS or Linux, with a Python that includes Tk) and an Android phone for the Android app (Android 8.0, API 26, or later). Neither needs anything bought for it; the Android app is a sideloaded debug APK.
 
 ## Wiring and setup notes
 
