@@ -48,6 +48,7 @@ Two more files follow the same pattern. `spec/panel_vectors.json` pins the 1-bit
 | Firmware `nightscout_json` | Every response case, edge cases, fuzzing | 100% of cases | 2,970 checks pass, 100% of lines |
 | Firmware `glucose_rules` | Every shared vector plus edge cases | 100% of vectors | 294 checks pass; 100% of lines and 113 of 114 branches (gcov) |
 | Firmware `panel_bitmap` | Every panel vector plus extra cases, sizes and stamps | 100% of the 237 panel vectors | 2,744 checks pass; 100% of lines (gcov) |
+| Android app (Kotlin) | Line and branch | Not measured yet (GAP-014) | Every display, response and panel vector through JNI; pure logic in 82 JVM tests, the views in 39 instrumented tests |
 
 Firmware coverage is measured with gcov: `make -C firmware/xteink coverage` reports 100% of lines and 113 of 114 branches in `glucose_rules.cpp`; the one branch left is a defensive guard that the public API cannot reach. It also reports 100% of the lines in `panel_bitmap.cpp` and in the device skeleton's `src/serial_panel.cpp`. The coverage history is a dated table in `docs/TEST_PLAN.md`.
 

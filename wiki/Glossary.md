@@ -8,13 +8,13 @@ Terms used across this wiki and the repository's documentation, in alphabetical 
 
 **API_SECRET.** Nightscout's master credential. It grants write access, including to treatments. Trio needs it to upload. Lightkeeper never receives it; every display uses a readable token instead. See [[Security and Privacy]].
 
-**APK.** An Android app package, the file an Android phone installs. Lightkeeper's Android app ships as a debug APK that you sideload. See [[Companion App]].
+**APK.** An Android app package, the file an Android phone installs. Lightkeeper's Android app is a debug APK you build and sideload. See [[Companion App]].
 
 **CGM (continuous glucose monitor).** A sensor worn on the body that reports interstitial glucose every few minutes. The "primary CGM app" in the disclaimer is the manufacturer's app, or Trio, on the phone; its alarms are the safety net.
 
 **Companion app.** A phone app that shows the same status as the other displays. The iOS app from ADR-0008 is read-only first, with a gated bolus request path later; the Android app (FR-020) is read-only and has no bolus layer. See [[Companion App]].
 
-**Desktop window.** `python -m lightkeeper.desktop`, or the installed `lightkeeper-window`: the real e-paper panel's pixels in a window on a computer, re-aged on its own clock (FR-018). See [[Getting Started]].
+**Desktop window.** `python -m lightkeeper.desktop`, or the installed `lightkeeper-window` (D12, pending Eric's review): the real e-paper panel's pixels in a window on a computer, re-aged on its own clock (FR-018). See [[Getting Started]].
 
 **Dexcom G7.** The CGM in the household setup. On iPhone, Trio reads it through the Dexcom G7 app, which stays installed as the sensor's radio.
 
@@ -70,7 +70,7 @@ Terms used across this wiki and the repository's documentation, in alphabetical 
 
 **STALE.** The level shown when the newest reading is older than the stale limit (15 minutes by default) or more than 2 minutes in the future. Shown as "STALE - DO NOT TRUST" and decided before the value is examined.
 
-**Stamp.** The time an image was drawn, not the time of the reading: local `HH:MM` on exported PNG and BMP panels, `written HH:MM UTC` on the SVG, `checked HH:MM:SS` on the terminal frame, local `HH:MM` on each redraw of the desktop window's panel (with `checked HH:MM`, when Nightscout last answered, in its title), and the local time the Android app's panel image was drawn (HAZ-014).
+**Stamp.** The time an image was drawn, not the time of the reading: local `HH:MM` on exported PNG and BMP panels, `written HH:MM UTC` on the SVG, `checked HH:MM:SS` on the terminal frame, local `HH:MM` on each redraw of the desktop window's panel (with `checked HH:MM`, when Nightscout last answered or was given up on, in its title), and the local time the Android app's panel image was drawn (HAZ-014).
 
 **Thresholds.** The four mg/dL boundaries (`LK_URGENT_LOW`, `LK_LOW`, `LK_HIGH`, `LK_URGENT_HIGH`). They change only which word the display shows. They do not affect dosing or the primary app's alarms. Match them to the alert settings already in the primary app.
 

@@ -290,7 +290,7 @@ Source is in `apps/ios/` (read `apps/ios/README.md`). The read-only layer builds
 
 ## Part 5: The Android companion app
 
-Source is in `apps/android/` (read `apps/android/README.md`). It is a read-only app built in Kotlin over the firmware's own C++ rules (FR-020), shipped for now as a sideloaded debug APK.
+Source is in `apps/android/` (read `apps/android/README.md`). It is a read-only app built in Kotlin over the firmware's own C++ rules (FR-020), available for now only as a debug APK you build and sideload.
 
 1. Prerequisites: JDK 17 or 21 and the Android SDK with platform 36, NDK 28.2.13676358 and CMake 3.22.1; point Gradle at the SDK with `ANDROID_HOME` or a `local.properties` file (`sdk.dir=...`, not committed). On Windows keep the checkout path to about 60 characters or fewer, such as `C:\src\lightkeeper`: from a long path the native build fails with `ninja: error: mkdir(...)` (`apps/android/README.md`, Build and install).
 2. Build and test:

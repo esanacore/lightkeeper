@@ -32,7 +32,7 @@ A change to the panel layout bumps `panel_spec_version`, and the C++ rasterizer 
 
 The Android app needs no change of its own for a rule change (it compiles the C++ in place), but a changed default threshold also moves its `Settings.kt`, and the version assertion in its instrumented `NativeVectorTest` moves with the other three.
 
-The suites enforce this: the three vector tests fail if an implementation disagrees, and `tests/test_gallery.py` fails if the gallery or demo drifts. If you cannot build one of the three locally (no Swift toolchain or the Android SDK, say), say so in the pull request; CI runs the Swift tests on macOS and Linux and the Android tests in `android.yml`, but the code still has to change. The Swift package also builds with the Windows Swift toolchain. [[How It Works]] explains why there are four places; [[Testing and Quality]] describes the parity tests.
+The suites enforce this: the three vector tests fail if an implementation disagrees, and `tests/test_gallery.py` fails if the gallery or demo drifts. If you cannot build one of the three, or the Android app, locally (no Swift toolchain or no Android SDK, say), say so in the pull request; CI runs the Swift tests on macOS and Linux and the Android tests in `android.yml`, but the code still has to change. The Swift package also builds with the Windows Swift toolchain. [[How It Works]] explains why there are four places; [[Testing and Quality]] describes the parity tests.
 
 ## Hazard review
 

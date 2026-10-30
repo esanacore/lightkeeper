@@ -19,7 +19,7 @@ Lightkeeper handles glucose readings, which are personal health data, and a cred
 | --- | --- | --- | --- |
 | Glucose upload | Trio on the primary iPhone | Nightscout | HTTPS; Nightscout authentication (outside this repository) |
 | Glucose fetch | Nightscout | `lightkeeper` (the CLI, the service and the desktop window) | HTTPS only, readable token, GET only, bounded count (1 to 288), 10 second timeout, 1 MB response cap, no redirect that changes scheme or host |
-| Screen output | `lightkeeper` | Panel, terminal, `--svg`, `--json`, `--png` or `--bmp` file | Local only; no network listener; files written atomically into a private runtime directory under systemd |
+| Screen output | `lightkeeper` | Panel, terminal, desktop window, `--svg`, `--json`, `--png` or `--bmp` file | Local only; no network listener; files written atomically into a private runtime directory under systemd; the desktop window draws on screen only and writes no file |
 | Home Assistant publish (ADR-0010) | `lightkeeper` | MQTT broker, then Home Assistant | TLS with certificate checks by default (plain MQTT only to localhost), broker user limited by ACL, publish-only client, state never retained, no glucose number for a reading that is not current (HAZ-013) |
 | Companion app fetch | Nightscout | iOS app | Same rules; a site address only; token in the Keychain, sent in the `api-secret` header; Check connection is one read-only GET |
 | Android app fetch | Nightscout | Android app | HTTPS only, cleartext off, only the system's certificate authorities trusted; a site address only; one GET of 12 entries; token only in the `api-secret` header; 10 second connect and read timeouts and a 20 second limit on the whole fetch; 1 MB response cap; no redirect followed at all |
@@ -48,12 +48,12 @@ Assets: the glucose data, the readable token, and above all the integrity of wha
 
 | Threat | Example | Mitigation | Verified by |
 | --- | --- | --- | --- |
-| Spoofing | A fake server pretends to be Nightscout | HTTPS required, so the certificate is checked | `test_nfr001_rejects_non_https_urls` |
-| Tampering | Readings altered in transit or a malformed entry injected | TLS; strict parsing rejects anything out of range, non-finite, non-integer, non-`sgv`, or badly dated; one poisoned entry never discards its neighbors | FR-001, FR-003, HAZ-011 tests |
+| Spoofing | A fake server pretends to be Nightscout | HTTPS required, so the certificate is checked; the Android app trusts only the system's certificate authorities, with cleartext off | `test_nfr001_rejects_non_https_urls`, `tests/test_android.py` |
+| Tampering | Readings altered in transit or a malformed entry injected | TLS; strict parsing rejects anything out of range, non-finite, non-integer, non-`sgv`, or badly dated; one poisoned entry never discards its neighbors; the Android app checks a reading from Kotlin again in the firmware's parser | FR-001, FR-003, HAZ-011 tests |
 | Repudiation | Unclear what the display showed during an incident | Exit codes and flushed stdout give a live record under systemd; the SVG carries a "written" stamp; exported PNG and BMP images carry the time they were drawn; incident process in `docs/OPERATIONS.md` | Process |
-| Information disclosure | Token or readings leak through logs, errors, or the repository | Token redacted; readings never logged beyond the screen; secrets sweep; synthetic data only | NFR-001 tests, `check_secrets.sh` |
-| Denial of service | Nightscout down or slow; display freezes on an old value | 10 second timeout; failures degrade to NO DATA or age into STALE; refresh no faster than every 15 seconds | FR-005 tests |
-| Elevation of privilege | Lightkeeper used to change therapy data | Readable-role token only; GET to one endpoint; no dosing code exists (ADR-0004) | NFR-003 tests |
+| Information disclosure | Token or readings leak through logs, errors, or the repository | Token redacted; readings never logged beyond the screen; secrets sweep; synthetic data only; on Android the token is sealed by a Keystore key and never logged | NFR-001 tests, `check_secrets.sh` |
+| Denial of service | Nightscout down or slow; display freezes on an old value | 10 second timeout; failures degrade to NO DATA or age into STALE; refresh no faster than every 15 seconds; the desktop window gives up on a fetch with no answer after two intervals; the Android app limits a whole fetch to 20 seconds and runs one at a time | FR-005 tests |
+| Elevation of privilege | Lightkeeper used to change therapy data | Readable-role token only; GET to one endpoint; no dosing code exists (ADR-0004); the Android app asks only for `INTERNET` and exports only its launcher activity | NFR-003 tests |
 
 `lightkeeper` has no runtime dependencies; the desktop window uses the Tcl/Tk that comes with Python, which the repository neither ships nor pins. Development tools, system-level components (including Nightscout, Trio, the Dexcom app, and the Omnipod 5 driver), and the Android app's build components (only the Kotlin standard library and its annotations ship in the APK) are inventoried in `docs/OTS_SOFTWARE.md` with risk, verification, and update policy. Dependabot watches pip, GitHub Actions, and the constitution submodule; the Android build's Gradle pins are moved by review.
 
