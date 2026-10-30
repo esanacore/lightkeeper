@@ -220,8 +220,9 @@ final class PresentationTests: XCTestCase {
         XCTAssertEqual(p.accessibilityLabel, "In range. 112 milligrams per deciliter, steady. 3 minutes ago.")
     }
 
-    /// The panel preview draws `lines`, and the glance draws each of them once,
-    /// in order. NO DATA's "--" placeholder is the only text that is not a line.
+    /// The panel preview draws `lines` (as `panelLines`), and the glance draws
+    /// each of them once, in order. NO DATA's "--" placeholder is the only
+    /// text that is not a line.
     func testEveryVectorLineIsShownOnceInOrder() throws {
         for c in try cases() {
             let p = c.presentation
@@ -237,6 +238,32 @@ final class PresentationTests: XCTestCase {
             shown += p.context
             XCTAssertEqual(shown, c.lines, c.name)
         }
+    }
+
+    /// HAZ-008: the panel preview draws every vector line verbatim, struck
+    /// exactly where the bedside panel strikes (panel_layout's strike_box):
+    /// STALE's `last:` line and nothing else, so the old value is never shown
+    /// plain on the phone while the panel strikes it.
+    func testThePanelPreviewStrikesOnlyTheStaleLastLine() throws {
+        for c in try cases() {
+            let p = c.presentation
+            XCTAssertEqual(p.panelLines.map(\.text), c.lines, "\(c.name): the preview is the vector lines")
+            if c.status.level == .stale {
+                XCTAssertTrue(p.panelLines[1].struck, "\(c.name): the last: line is struck")
+                XCTAssertTrue(p.panelLines[1].text.hasPrefix("last: "), c.name)
+                XCTAssertEqual(p.panelLines[1], p.secondary, "\(c.name): the glance strikes the same line")
+                for (index, line) in p.panelLines.enumerated() where index != 1 {
+                    XCTAssertFalse(line.struck, "\(c.name): line \(index) is plain")
+                }
+            } else {
+                XCTAssertFalse(p.panelLines.contains(where: \.struck), "\(c.name): nothing is struck")
+            }
+        }
+        let headlineOnly = ScreenPresentation(lines: ["STALE - DO NOT TRUST"], accessibilityLabel: "")
+        XCTAssertEqual(headlineOnly.panelLines, [ScreenPresentation.Line(text: "STALE - DO NOT TRUST",
+                                                                         struck: false)])
+        let unknown = ScreenPresentation(lines: ["SOMETHING NEW", "120 mg/dL ->"], accessibilityLabel: "")
+        XCTAssertFalse(unknown.panelLines.contains(where: \.struck), "only STALE strikes")
     }
 
     func testShapesAndTokensFollowTheBrandStatusTable() throws {
@@ -368,7 +395,7 @@ final class PresentationTests: XCTestCase {
         for headline in ["", "STALE", "stale - do not trust", "IN RANGE ", "URGENT"] {
             let p = ScreenPresentation(lines: [headline, "120 mg/dL ->", "1 min ago"], accessibilityLabel: "")
             XCTAssertEqual(p.banner, .noData, "\(headline)")
-            XCTAssertEqual(p.hero, .none, "\(headline): an unplanned headline never shows a number")
+            XCTAssertEqual(p.hero, .none, "\(headline): an unplanned headline never makes a number the hero")
             XCTAssertEqual(p.placeholder, "--", "\(headline)")
             XCTAssertEqual(p.context, ["120 mg/dL ->", "1 min ago"], "\(headline)")
         }

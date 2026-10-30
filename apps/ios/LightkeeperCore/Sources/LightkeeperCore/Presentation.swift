@@ -12,12 +12,17 @@
 // The shape is keyed by the headline alone, like the panel's treatment
 // (src/lightkeeper/infrastructure/panel_layout.py) and the status table in
 // assets/brand/tokens.json, so a headline nobody planned for gets the most
-// cautious shape: the NO DATA banner, with no number.
+// cautious shape: the NO DATA banner, with no hero number: its lines are
+// shown verbatim as plain context.
 //
 // Safety rules this enforces (HAZ-001, HAZ-008):
 // - STALE has no hero: no large number, no separate arrow, no unit. Its
-//   `last:` line is shown verbatim, struck through, at body size.
-// - NO DATA and an unknown headline never show a number.
+//   `last:` line is shown verbatim, struck through, at body size, on the
+//   glance and in the panel preview alike (`panelLines`), as the panel
+//   strikes it.
+// - NO DATA and an unknown headline never show a number as the hero (no
+//   large number, arrow or unit); the lines under an unknown headline are
+//   plain context.
 // - The URGENT, STALE and NO DATA banners are the largest element on the
 //   screen. STALE and NO DATA have no hero, so their banner text is set
 //   larger than anything else; the URGENT band keeps the fresh number as
@@ -78,7 +83,7 @@ public struct ScreenPresentation: Equatable, Sendable {
         case urgent
         /// STALE: an Ink band with a hatched margin, and the `last:` line struck.
         case stale
-        /// NO DATA and any unknown headline: a dashed frame and no number.
+        /// NO DATA and any unknown headline: a dashed frame and no hero number.
         case noData
     }
 
@@ -121,8 +126,17 @@ public struct ScreenPresentation: Equatable, Sendable {
     /// What NO DATA shows where a number would be. It has no digit in it.
     public static let placeholderText = "--"
 
-    /// Exactly `renderLines(status, fetchError:)`: the panel preview draws these.
+    /// Exactly `renderLines(status, fetchError:)`.
     public let lines: [String]
+    /// What the panel preview draws: every entry of `lines`, verbatim and in
+    /// order, struck exactly where the bedside panel strikes (the `last:`
+    /// line under a STALE headline, index 1). Every other line is plain, so
+    /// the preview never shows an old value unstruck when the panel strikes it.
+    public var panelLines: [Line] {
+        lines.enumerated().map { index, text in
+            Line(text: text, struck: banner == .stale && index == 1)
+        }
+    }
     public let chip: Chip
     public let banner: Banner
     public let hero: Hero
