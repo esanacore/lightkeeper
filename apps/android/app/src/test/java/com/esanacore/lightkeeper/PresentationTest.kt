@@ -93,10 +93,13 @@ class PresentationTest {
         for (unknown in listOf("", "STALE", "in range", "LOW (<40)", "WHAT")) {
             assertEquals(unknown, Banner.NO_DATA to Tone.STALE, Presentation.shape(unknown))
         }
-        // An unknown headline never shows its lines as a number.
+        // An unknown headline never makes a number the hero; its lines are plain context.
         val odd = Presentation.of(listOf("SOMETHING NEW", "112 mg/dL ->", "3 min ago"))
+        assertEquals(Banner.NO_DATA, odd.banner)
         assertEquals(Hero.None, odd.hero)
         assertEquals("--", odd.placeholder)
+        assertNull(odd.struckLine)
+        assertNull(odd.age)
         assertEquals(listOf("112 mg/dL ->", "3 min ago"), odd.context)
         assertEquals(Banner.NO_DATA, Presentation.of(emptyList()).banner)
     }
