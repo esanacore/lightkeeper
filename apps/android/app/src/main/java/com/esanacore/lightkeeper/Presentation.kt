@@ -12,12 +12,15 @@ package com.esanacore.lightkeeper
  *
  * The shape is keyed by the headline alone, like the panel's treatment and
  * the status table in assets/brand/tokens.json, so a headline nobody planned
- * for gets the most cautious shape: the NO DATA frame, with no number.
+ * for gets the most cautious shape: the NO DATA frame, with no hero number:
+ * its lines are shown verbatim as plain context.
  *
  * Safety rules this enforces (HAZ-001, HAZ-008):
  * - STALE has no hero: no large number, no separate arrow, no unit. Its
  *   `last:` line is shown verbatim, struck through, at body size.
- * - NO DATA and an unknown headline never show a number.
+ * - NO DATA and an unknown headline never show a number as the hero (no
+ *   large number, arrow or unit); the lines under an unknown headline are
+ *   plain context.
  * - The status word comes first in reading order.
  */
 data class Presentation(
@@ -56,7 +59,7 @@ data class Presentation(
         /** STALE: an Ink band with a hatched margin, and the `last:` line struck. */
         STALE,
 
-        /** NO DATA and any unknown headline: a dashed frame and no number. */
+        /** NO DATA and any unknown headline: a dashed frame and no hero number. */
         NO_DATA,
     }
 
