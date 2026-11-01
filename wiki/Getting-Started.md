@@ -93,12 +93,12 @@ python -m lightkeeper.desktop --panel 800x480 --theme dark
 
 Keys: `r` checks Nightscout now, `t` switches between the panel's pixels and its lines as text, and `q` quits, as the close box does. The title carries the headline, the age line (for NO DATA, the guidance line) and `checked HH:MM`, for example `IN RANGE - 3 min ago - checked 07:42 - Lightkeeper`, so a screen reader or the taskbar shows them too; until Nightscout first answers it says `checking Nightscout...` instead of the time.
 
-- `--scale 2` (the default) or `3` counts 96 dpi pixels, so the panel keeps its size on a scaled display: at 200%, `--scale 2` draws each panel pixel as 4x4 device pixels. The whole window always fits the screen; when it would not, the panel is drawn at the largest whole zoom that fits, with one line on stderr saying so. Counting 96 dpi pixels here is a default pending Eric's decision.
+- `--scale 2` (the default) or `3` counts 96 dpi pixels, so the panel keeps its size on a scaled display: at 200%, `--scale 2` draws each panel pixel as 4x4 device pixels. The whole window always fits the screen; when it would not, the panel is drawn at the largest whole zoom that fits, with one line on stderr saying so. Counting 96 dpi pixels here was approved by Eric on 2026-11-01.
 - `--panel` takes the same profiles as the command-line tool (`waveshare_2in9` by default, `trmnl`, `kindle`, or a size such as `800x480`).
 - `--theme auto` (the default) follows the Windows app theme, read once at startup; on macOS and Linux it is light. `--theme dark` draws the panel in Night paper and Night ink, so the window is not the brightest thing at the bedside.
 - `--on-top` keeps the window above other windows.
 
-Installed with `pip install -e .`, the same window is also the `lightkeeper-window` launcher (D12, pending Eric's review). On Windows that launcher has no console, so a configuration error, such as `NIGHTSCOUT_URL` unset, is shown in one small plain window; closing it exits 2.
+Installed with `pip install -e .`, the same window is also the `lightkeeper-window` launcher (D12, approved 2026-11-01). On Windows that launcher has no console, so a configuration error, such as `NIGHTSCOUT_URL` unset, is shown in one small plain window; closing it exits 2.
 
 | Code | Meaning |
 | --- | --- |

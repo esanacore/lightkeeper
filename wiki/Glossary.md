@@ -14,7 +14,7 @@ Terms used across this wiki and the repository's documentation, in alphabetical 
 
 **Companion app.** A phone app that shows the same status as the other displays. The iOS app from ADR-0008 is read-only first, with a gated bolus request path later; the Android app (FR-020) is read-only and has no bolus layer. See [[Companion App]].
 
-**Desktop window.** `python -m lightkeeper.desktop`, or the installed `lightkeeper-window` (D12, pending Eric's review): the real e-paper panel's pixels in a window on a computer, re-aged on its own clock (FR-018). See [[Getting Started]].
+**Desktop window.** `python -m lightkeeper.desktop`, or the installed `lightkeeper-window` (D12): the real e-paper panel's pixels in a window on a computer, re-aged on its own clock (FR-018). See [[Getting Started]].
 
 **Dexcom G7.** The CGM in the household setup. On iPhone, Trio reads it through the Dexcom G7 app, which stays installed as the sensor's radio.
 

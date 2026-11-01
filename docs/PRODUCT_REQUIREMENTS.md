@@ -156,7 +156,7 @@ An open source stack for managing one person's type 1 diabetes (built first for 
 - Acceptance criteria:
   - `FR-008-AC-1`: With `LK_MQTT_HOST` set, Home Assistant discovers sensors for level (an enum of the seven levels), glucose in mg/dL, reading age, and the time of the last reading, under a device named "Lightkeeper" ("Lightkeeper (<node id>)" for a non-default node id, with unique ids unchanged), and receives each refresh, so an automation can trigger on `URGENT LOW` or `STALE`.
   - `FR-008-AC-2`: When the publisher stops, the entities become unavailable (MQTT Last Will, `expire_after`, and `offline` on a clean `--watch` exit); state messages are never retained (HAZ-013).
-  - `FR-008-AC-3`: The glucose number is published only for a fresh, measured reading; STALE, NO DATA, and sensor sentinels publish no number; the payload never carries a negative age (payload version 2, pending Eric's decision: `age_minutes` is null for a reading dated more than 2 minutes in the future), and the age sensor reads unknown for a negative or missing age (HAZ-013).
+  - `FR-008-AC-3`: The glucose number is published only for a fresh, measured reading; STALE, NO DATA, and sensor sentinels publish no number; the payload never carries a negative age (payload version 2, approved by Eric on 2026-11-01: `age_minutes` is null for a reading dated more than 2 minutes in the future), and the age sensor reads unknown for a negative or missing age (HAZ-013).
   - `FR-008-AC-4`: TLS is the default; plain MQTT is refused except to a broker on localhost, and a publish failure never stops the display.
   - `FR-008-AC-5`: `--json PATH` writes the same status payload atomically.
 

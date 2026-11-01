@@ -162,7 +162,7 @@ Keeper 5x8 is the name for the project's own pixel font: the glyph table in `src
 
 A stamp is the time an image was drawn, not the time of the reading:
 
-- Bitmap, PNG and BMP: `HH:MM` in local 24-hour time, in Keeper 5x8 on the age row. It is chrome: drawn at the age line's scale (the value line's when there is no age line), never larger than the headline band or the panel's ceiling `max(2, h // 240)`, and never below scale 2. Always on for exported images, the desktop window (in its text view too) and the Android app's panel image (pending Eric's decision); opt-in in the reference renderer until Eric decides whether physical panels show it.
+- Bitmap, PNG and BMP: `HH:MM` in local 24-hour time, in Keeper 5x8 on the age row. It is chrome: drawn at the age line's scale (the value line's when there is no age line), never larger than the headline band or the panel's ceiling `max(2, h // 240)`, and never below scale 2. Always on for exported images, the desktop window (in its text view too) and the Android app's panel image (D3, approved 2026-11-01); opt-in in the reference renderer, and physical panels are decided once one is on the bench.
 - SVG: `written HH:MM UTC`, unchanged until that same decision.
 - Terminal: `checked HH:MM:SS`. Desktop window: `checked HH:MM` in the window title (`checking Nightscout...` before the first answer). iOS and Android: `checked HH:MM` as an absolute time.
 - Widget timelines schedule their own STALE entry.
@@ -242,11 +242,11 @@ Each surface names the tokens its own way, and every surface's colors are tested
 
 ### Proposed, not in use
 
-Written down for a decision. No surface uses these until Eric decides.
+Written down, not adopted. On 2026-11-01 Eric kept IN RANGE green (D2) and left the night profile for later (D15); no surface uses either.
 
 #### IN RANGE neutral
 
-On glance surfaces, IN RANGE would get an Ink border and no green, so color appears only for exceptions. Until decided, IN RANGE keeps its green.
+On glance surfaces, IN RANGE would get an Ink border and no green, so color appears only for exceptions. IN RANGE keeps its green (D2).
 
 #### Night profile
 

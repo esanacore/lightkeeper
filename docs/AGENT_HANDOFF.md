@@ -8,99 +8,77 @@ Replace the entry below at the end of every push; only the latest handoff is kep
 
 ## Latest Handoff
 
-### Session: 2026-10-27 to 2026-10-29 (Keeper's Logbook batch: UX and more platforms)
-- **Goal**: Eric asked to sharpen what exists, build out more platforms, and bring the UI up to what industry leaders do, with a home-grown, lo-fi look that suits an open-source project. The result is "Keeper's Logbook, 1-bit edition", built in three waves of items (LK-01 to LK-11). Each item was built in its own worktree, reviewed by two adversarial lenses, fixed, then merged into `ux/keepers-logbook`, which is pushed to `main` here.
+### Session: 2026-10-27 to 2026-11-01 (Keeper's Logbook batch, then Eric's decisions)
+- **Goal**: Eric asked to sharpen what exists, build out more platforms, and bring the UI up to what industry leaders do, with a home-grown, lo-fi look that suits an open-source project. The result is "Keeper's Logbook, 1-bit edition", built in three waves of items (LK-01 to LK-11), each built in its own worktree, reviewed adversarially, fixed, and pushed to `main`. On 2026-11-01 Eric answered the batch's open decisions.
 - **Accomplishments**:
   - Brand tokens in `assets/brand/tokens.json` with measured contrast, pixel icons and the Keeper 5x8 font; every palette (Python, iOS, demo, terminal, Tk, Android) is held to the tokens by drift tests (NFR-005).
   - The panel layout v2 with shared pixel vectors (`spec/panel_vectors.json`, 237 cases), drawn identically by Python, the C++ `panel_bitmap` and the demo's `web/panel/panel.js` (FR-016).
   - The spoken form for screen readers (`spec/spoken_vectors.json`, FR-017) and the iOS glance timeline core for widgets (FR-019). ADR-0011 (screen text v2) is Proposed.
-  - CLI and config rework (`config.py`, `--watch` terminal frame, exit codes 2 and 130, stamped PNG and BMP), Home Assistant payload v2 with a fourth sensor (Last reading), SVG panel edge and per-image ids.
-  - iOS glance and settings rework (hierarchy, URGENT band, STALE struck `last:` line, setup card, Check connection, fetch generation guard).
-  - demo.html v2 with the real panel pixels; the ESP32 skeleton for the bench S3 and the X4 (NO DATA over serial, build only).
-  - The desktop window (`python -m lightkeeper.desktop`, installed as `lightkeeper-window`, D12 pending) and the Android companion app (`apps/android`, the firmware's C++ through JNI).
-  - Docs for waves 1 and 2 (a reviewed docs pass): SAFETY hazards HAZ-014 to HAZ-019, PRD and traceability, TEST_PLAN gaps GAP-007 to GAP-012, wiki. The roadmap gained further-out hardware ideas (a car dashboard box, big signs, a departure-board ticker).
-  - Docs for wave 3 (a second reviewed docs pass): FR-018 (desktop window) and FR-020 (Android) with acceptance criteria and traceability, both surfaces in the hazard log, security model and test plan (GAP-013 to GAP-015), OTS rows for the Android build, README, CHANGELOG and wiki.
-  - A cross-batch adversarial review: 4 finders, a skeptic per finding, then a fixer per area. 17 of 20 findings were confirmed and all 17 are fixed. The 3 refuted ones are recorded as open questions in `TODO.md`. The four major ones:
-    - The always-on stamp could push the age line down to scale 1, or outgrow the status, on unusual panel sizes. It is now chrome in Python, JS and C++, and the pinned CRCs are unchanged.
-    - The iOS panel preview did not strike STALE's `last:` line.
-    - The desktop `--demo` age line flipped back a minute every minute.
-    - The three real-Tk tests silently skipped on CI. The Test Runner now runs under `xvfb-run`, and those tests fail on CI rather than skip.
-  - Smaller fixes:
-    - the demo phone mock now matches the apps;
-    - `NIGHTSCOUT_URL` parse errors no longer echo the address;
-    - failed answers close their connection;
-    - `lightkeeper-window` shows configuration errors in a plain window;
-    - Dependabot watches Gradle, and the firmware build has a timeout;
-    - the Ctrl+C Home Assistant tests no longer race the fourth sensor's packet.
-- **Verification Run** (on the merged branch, 2026-10-29): 
-  - Python: 2,110 passed and 2 skipped, both named (the POSIX-only time-zone test and the Unix datagram test). Line and branch coverage is 100.00% (2,191 statements, 568 branches). ruff, ruff format and strict mypy are clean.
-  - Python again on CPython 3.15.2 with Tk 9.0.4, after the developer machine lost CPython 3.14 (pytest 9.2, ruff 0.17.3, mypy 2.4.1): the same 2,110 pass, the three real-Tk tests included, at 100.00% line and branch, and ruff and mypy are clean. The desktop window now has passing tests on Tk 8.6 (Windows, and Linux under Xvfb in CI) and on Tk 9.0 (Windows).
-  - Constitution checks: 0 layer violations; 20 requirements traced, 20 covered; the demo page, README, wiki links, environment variables, OTS inventory, secrets and Next Steps checks pass.
-  - Firmware in WSL, under ASan and UBSan: 294, 2,970 and 2,753 checks, with 17,600 fuzzed bodies.
-  - Swift package: 76 tests.
-  - Node: 15 of 15.
-  - PlatformIO: `bench_s3` and `x4` build.
-  - Android: the offline Gradle build passes 82 JVM tests and lint, and the debug APK is 1,060,459 bytes. The instrumented tests were not rerun locally (only comments and assertions changed in Kotlin); CI runs them.
-  - Not run anywhere yet: any physical panel, a real Home Assistant, a real phone, macOS.
-- **CI so far**:
-  - On `main` at `1c0cdb8`, every workflow passed except one Android instrumented test, which the default emulator screen was too narrow for: iOS (the reworked SwiftUI views and app tests on the simulator for the first time), Firmware device build (first run), the Constitution Test Runner and every constitution check, and Demo page.
-  - `5113fb5` moved the emulator to a Pixel 6 screen, and `android.yml` went green with all 39 instrumented tests (run 40992168914).
-  - On `main` at `cffa025` (the merged docs pass and review fixes) every workflow passed. The Test Runner ran under `xvfb-run`, Tk 8.6 opened a window, and 2,112 tests passed with none skipped (run 41001677074).
-- **Known Blockers**: Eric's decisions D1 to D17 and the open questions (listed in `TODO.md`); Kaitlin's safety review; no Nightscout instance (GAP-003); no hardware (GAP-001, GAP-005).
+  - CLI and config rework, Home Assistant payload v2 with a fourth sensor, the iOS glance and settings rework, demo.html v2 with the real panel pixels, and the ESP32 skeleton for the bench S3 and the X4.
+  - The desktop window (`python -m lightkeeper.desktop`, installed as `lightkeeper-window`) and the Android companion app (`apps/android`, the firmware's C++ through JNI).
+  - Two reviewed docs passes (FR-018 and FR-020, the hazard log, security model, test plan, OTS inventory, wiki), and a cross-batch adversarial review whose 17 confirmed findings are all fixed.
+  - Eric's decisions (2026-11-01), recorded in `TODO.md` with the date:
+    - 36 open decisions closed, among them D1, D2, D3, D8, D9, D12, D14, D15 and D17, the Android defaults, the desktop window, SVG and demo defaults, and the widget defaults.
+    - New work they created: iOS signing and TestFlight (D10), IBM Plex Mono on every screen (D13), a per-board firmware panel buffer, and an LGPL release note.
+    - The firmware panel driver will be home-grown (D11), keeping the firmware Apache-2.0.
+    - Nightscout goes on ElfHosted: ADR-0012, Accepted.
+    - 20 docs no longer call these choices pending.
+  - The leftover worktree folders are deleted, at Eric's request.
+- **Verification Run** (2026-11-01, Windows 11, CPython 3.15.2 with Tk 9.0.4): 
+  - Python: 2,110 passed and 2 skipped, both named (the POSIX-only time-zone test and the Unix datagram test), at 100.00% line and branch coverage (2,191 statements, 568 branches). The three real-Tk tests passed.
+  - Constitution checks: wiki links, README, demo page, compliance, environment variables, OTS inventory, secrets and Next Steps pass, and 20 of 20 requirements are traced.
+  - This push changes only docs, so the firmware, Swift, Node, PlatformIO and Android results from 2026-10-29 still stand.
+- **CI so far**: every workflow passed on `main` at `cffa025` (all the batch's code) and on the docs-only pushes after it, up to `4bb0b72`. The Test Runner runs under `xvfb-run`, so the three real-Tk tests run on Linux.
+- **Known Blockers**:
+  - Kaitlin's items: D4 to D7, D16, an upper bound for `LK_STALE_MINUTES`, the hazard severities and her safety review.
+  - The iOS URGENT band, decided on a device once TestFlight works.
+  - D11's CA certificate fetch and the X4's panel controller.
+  - No Nightscout instance yet (GAP-003), and no hardware (GAP-001, GAP-005).
 - **Context Hints**:
-  - Workflow notes and per-item results live in the session scratchpad and are not in the repo.
   - `core.autocrlf` is true here, so `git status` can show a file modified with no diff.
   - Worktree agents cannot run `wsl`.
-  - Leftover folders under `.claude/worktrees/` need deleting by hand (long Android build paths).
   - The demo inlines `pageBytes`, so any `demo.html` edit needs `python tools/gen_demo_panel.py`.
-  - The batch was pushed straight to `main`, so `ux/keepers-logbook` and `main` hold the same commits and there is no batch pull request; the decisions live in `TODO.md`.
+  - CPython 3.14 is gone from this machine: base local venvs on `C:\Users\esana\AppData\Local\Python\pythoncore-3.15-64\python.exe`. The session temp folder can be cleared between days, venvs included.
+  - Eric chose to protect `main`. Once he has turned it on, changes go through pull requests, not direct pushes.
 
 #### Next Steps
 
-**Human action required:** steps 4, 5, 6, 7, 8, 9, 10, 11, and 12.
+**Human action required:** steps 2, 3, 6, 9, 10, 11, and 12.
 
-1. [ ] **AUTOMATED** — CI runs on this docs-only push to `main`. Every workflow already passed on `cffa025`, which held all the code: the Test Runner under `xvfb-run` (2,112 tests, none skipped), iOS with the struck panel preview, and Android and the firmware build with the new stamp rule.
+1. [ ] **AUTOMATED** — CI runs on the push that records Eric's decisions.
    - **Done when:** every workflow is green on the pushed commit.
-2. [x] **AGENT** — Record on GAP-015 that the real-Tk tests passed on Linux under a virtual display. macOS, a real Linux display with several monitors, and a real clock change stay open.
-   - **Done when:** `docs/TEST_PLAN.md` GAP-015, its coverage row, `TODO.md`, the OTS row and the wiki say what CI showed. Done on 2026-10-29.
-3. [x] **AGENT** — Propose the session's MEMORY.md learnings to Eric: Tk DPI awareness, Tcl's wall-clock `after()` timers, real-Tk tests in a child process, offline Android instrumented tests through adb, JDK 24 locally against Temurin 21 in CI, and a broker test waiting for every packet
-   - **Done when:** Eric has said yes or no to each, and the approved ones are in `docs/MEMORY.md`. Done on 2026-10-29: Eric approved all six, and they are under Codebase Learnings & Gotchas.
-4. [ ] **HUMAN** — Eric deletes the leftover folders in `C:\Projects\lightkeeper\.claude\worktrees\`: `wf_4bb1f8cd-5c6-3`, `wf_4e278c17-9d7-6` to `-8`, and `wf_2b0dc469-d0f-9`.
-   - **Why a human:** the agent's delete was refused, and the Android build paths are too long for `git worktree remove`.
-   - **Done when:** the folder is empty.
-5. [ ] **HUMAN** — Eric reviews the batch's decisions, defaults and open questions in `TODO.md`:
-   - D1 brand tokens, D2 IN RANGE green, D3 stamps, D4 no headline wrap;
-   - D12 `lightkeeper-window`, and its new error window;
-   - D14 Home Assistant payload v2;
-   - the advice note under the terminal footer;
-   - iOS and Android refusing a sub-path;
-   - the 60,000-byte panel buffer;
-   - the Android application id and ABIs;
-   - a SIMULATED mark on the desktop `--demo`;
-   - one NO DATA frame and STALE hatch across screens;
-   - the new roadmap section.
-   - **Why a human:** product and brand choices belong to the owner.
-   - **Done when:** each is approved or changed, and the approved ones are recorded in `docs/MEMORY.md`.
-6. [ ] **HUMAN** — Eric decides whether to protect `main`, which needs pull requests and passing checks before a merge.
-   - **Why a human:** it is a GitHub repository setting on Eric's account, and the batch was pushed straight to `main` with his say-so.
-   - **Done when:** `main` is protected, or Eric has said direct pushes stay allowed.
-7. [ ] **HUMAN** — Eric and Kaitlin approve the spoken sentences and decide ADR-0011
-   - **Why a human:** the safety reviewer signs off on wording.
-   - **Done when:** the decision is in `docs/SAFETY_REVIEW.md` and ADR-0011 is Accepted or Rejected.
-8. [ ] **HUMAN** — Kaitlin reviews `docs/SAFETY.md` and the default thresholds
-   - **Why a human:** thresholds and the safety boundary are her call, with her care team.
-   - **Done when:** Kaitlin has filled in and signed `docs/SAFETY_REVIEW.md`, and the thresholds in `docs/ENV_VARS.md` are confirmed or changed to match.
-9. [ ] **HUMAN** — Choose Nightscout hosting and deploy it (Phase 1)
-   - **Why a human:** needs accounts, a domain, and a secret only Eric should hold.
-   - **Done when:** Nightscout is reachable over HTTPS and a readable-role token exists.
-10. [ ] **HUMAN** — Buy the Tier 1 hardware in `docs/HARDWARE.md`, and confirm the bench board's flash size and pins (marked VERIFY in `firmware/xteink/README.md`)
-   - **Why a human:** a purchase, physical checks, and flashing risks bricking a board.
-   - **Done when:** the bench board prints its NO DATA panel over USB with the CRC-32 the README gives.
-11. [ ] **HUMAN** — Set up the Mosquitto add-on and a broker user in Home Assistant, then point a display at it
+2. [ ] **HUMAN** — Eric protects `main` on GitHub. Under Settings, Branches, add a classic branch protection rule for `main`: require a pull request before merging, and require the checks that run on every pull request to pass (the Constitution Test Runner and the other Constitution workflows). Android, iOS and Firmware device build run only when their paths change, so a pull request that does not touch them would wait forever if they were required.
+   - **Why a human:** it is a repository setting on Eric's GitHub account.
+   - **Done when:** a direct push to `main` is refused. From then on, agents open pull requests.
+3. [ ] **HUMAN** — Eric starts the ElfHosted trial (ADR-0012) and runs the trial checks. A `readable` token in the `api-secret` header returns entries, a request with no credentials gets 401, and the site sits at a root address.
+   - **Why a human:** it needs Eric's account, payment and the `API_SECRET`, which only he should hold.
+   - **Done when:** the three checks pass and the readable token works with `python -m lightkeeper`.
+4. [ ] **AGENT** — Write the exact ElfHosted steps in `docs/SETUP.md` Phase 1, from Eric's trial notes, and record its backup retention in `docs/OPERATIONS.md`.
+   - **Done when:** `TODO.md`'s deployment-steps item is ticked.
+5. [ ] **AGENT** — Build Kaitlin's review packet: a private, shareable page with each of her questions, its default, the evidence (screens, sentences, contact sheets) and a place to answer.
+   - **Done when:** Eric has the link to send her.
+6. [ ] **HUMAN** — Kaitlin works through the packet (D4 to D7, D16, the `LK_STALE_MINUTES` bound, the hazard severities, the thresholds and `docs/SAFETY.md`) and signs `docs/SAFETY_REVIEW.md`.
+   - **Why a human:** thresholds, wording and the safety boundary are her call, with her care team.
+   - **Done when:** `docs/SAFETY_REVIEW.md` is signed and ADR-0011 is Accepted or Rejected.
+7. [ ] **AGENT** — Propose a `docs/MEMORY.md` entry for the 2026-11-01 decisions, and record it once Eric approves the text.
+   - **Done when:** the entry is under Active Project Decisions.
+8. [ ] **AGENT** — Do the work the decisions created:
+   - IBM Plex Mono on every screen, asking Eric before each download with the file's name, source and size;
+   - the per-board firmware panel buffer;
+   - the LGPL release note;
+   - the iOS signing, App Group and TestFlight setup.
+   - **Done when:** each `TODO.md` item is ticked, with tests where code changed.
+9. [ ] **HUMAN** — Eric does the Apple steps that need his login: the App ID and App Group in the developer portal, and the TestFlight upload. Then he checks the glance on his iPhone (GAP-009) and decides the iOS URGENT band.
+   - **Why a human:** it needs Eric's Apple Developer account and his phone.
+   - **Done when:** a TestFlight build runs on his iPhone and the URGENT band item is decided.
+10. [ ] **HUMAN** — Eric buys the Tier 1 hardware in `docs/HARDWARE.md` and confirms the bench board's flash size and pins (marked VERIFY in `firmware/xteink/README.md`).
+    - **Why a human:** it is a purchase, a physical check, and flashing risks bricking a board.
+    - **Done when:** the bench board prints its NO DATA panel over USB with the CRC-32 the README gives.
+11. [ ] **HUMAN** — Eric sets up the Mosquitto add-on and a broker user in Home Assistant, then points a display at it.
     - **Why a human:** it needs the household's Home Assistant and a broker password.
     - **Done when:** the four Lightkeeper sensors appear, and stopping the publisher shows `unavailable` (closes GAP-002).
-12. [ ] **HUMAN** — Try the Android debug APK and the desktop window on a real phone and a Mac
+12. [ ] **HUMAN** — Eric tries the Android debug APK on a real phone and the desktop window on a Mac.
     - **Why a human:** it needs Eric's devices.
-    - **Done when:** both show the same screen as the demo for the same reading, and a Mac window is crisp on Retina.
-13. [ ] **AUTOMATED** — `check_constitution_freshness.sh` flags when the pinned `constitution/` submodule needs re-pinning; dependabot opens the bump PR
+    - **Done when:** both show the same screen as the demo for the same reading, and the Mac window is crisp on Retina.
+13. [ ] **AUTOMATED** — `check_constitution_freshness.sh` flags when the pinned `constitution/` submodule needs re-pinning, and Dependabot opens the bump pull request.
     - **Done when:** the freshness check passes.
