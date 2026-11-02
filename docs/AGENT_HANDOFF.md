@@ -60,8 +60,8 @@ Replace the entry below at the end of every push; only the latest handoff is kep
 6. [ ] **HUMAN** — Kaitlin works through the packet (D4 to D7, D16, the `LK_STALE_MINUTES` bound, the hazard severities, the thresholds and `docs/SAFETY.md`) and signs `docs/SAFETY_REVIEW.md`.
    - **Why a human:** thresholds, wording and the safety boundary are her call, with her care team.
    - **Done when:** `docs/SAFETY_REVIEW.md` is signed and ADR-0011 is Accepted or Rejected.
-7. [ ] **AGENT** — Propose a `docs/MEMORY.md` entry for the 2026-11-01 decisions, and record it once Eric approves the text.
-   - **Done when:** the entry is under Active Project Decisions.
+7. [x] **AGENT** — Propose a `docs/MEMORY.md` entry for the 2026-11-01 decisions, and record it once Eric approves the text.
+   - **Done when:** the entry is under Active Project Decisions. Done on 2026-11-01: Eric approved it.
 8. [ ] **AGENT** — Do the work the decisions created:
    - IBM Plex Mono on every screen, asking Eric before each download with the file's name, source and size;
    - the per-board firmware panel buffer;

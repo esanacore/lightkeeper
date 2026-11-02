@@ -49,3 +49,17 @@ The six below were approved by Eric on 2026-10-29, from the Keeper's Logbook bat
 - ADR-0009 accepted (Eric, 2026-10-25): the readable Nightscout token goes in the `api-secret` request header on the v1 API, never in a URL. Every client (including future firmware) does the same; JWT bearer auth is the fallback only if Nightscout drops the header path.
 - License confirmed (Eric, 2026-10-24): Apache-2.0. Trio and Nightscout are AGPL-3.0, but this repository only reads Nightscout over HTTP and vendors none of their code.
 - gstack section in `CLAUDE.md` kept (Eric, 2026-10-24). Where gstack is missing (cloud sessions), run `bash constitution/scripts/setup-machine.sh` or work without it. 
+- Decisions of 2026-11-01 (Eric):
+  - The brand additions are approved (D1), and IN RANGE stays green (D2).
+  - Stamps stay as they are, with physical panels decided once one is on the bench (D3).
+  - No new screen text before ADR-0011 is decided (D8).
+  - Android's first slice is approved (D9): app id `com.esanacore.lightkeeper`, three ABIs, `androidx.test` as a test-only dependency, the 15-second resume rule, and the Keystore token store.
+  - iOS signing and TestFlight go ahead (D10).
+  - The firmware panel driver is home-grown, so the firmware stays Apache-2.0 (D11).
+  - `lightkeeper-window` stays (D12).
+  - IBM Plex Mono ships on every screen (D13).
+  - Status payload version 2 stays (D14).
+  - Nightscout runs on ElfHosted (ADR-0012).
+  - `main` is to be protected, so changes go through pull requests.
+
+  `TODO.md` has every smaller default, each marked with the date it was decided.
