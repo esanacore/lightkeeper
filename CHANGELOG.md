@@ -46,6 +46,7 @@ This project follows semantic versioning.
 
 ### Changed
 
+- Firmware: the panel buffer is sized for each board's own panel (5,000 bytes on the bench board, 48,000 on the X4) instead of 60,000 on both, freeing about 55 KB of RAM on the bench board.
 - The Python coverage gate is now 100% (was 90%). The docs gallery panel PNGs and the enclosure renders (including the README hero) show the new panel layout; screen text is unchanged.
 - Every configuration error exits 2 with the variable, its value and the clash named (`LK_LOW=200 must be below LK_HIGH=180 (the default)`). A bad `LK_MQTT_PORT` used to exit 1. Ctrl+C in a one-shot run exits 130 instead of a traceback; `--watch` still exits 0. `--demo-mgdl`, `--demo-minutes-ago` and `--demo-trend` without `--demo` exit 2. Write failures are in plain words, with no `.tmp` path or errno, and a write cut short by Ctrl+C leaves no temporary file.
 - The `--json` error field now names what failed (for example `Nightscout answered HTTP 401` instead of `could not reach Nightscout: HTTP Error 401: Unauthorized`). The screen is unchanged.

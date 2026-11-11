@@ -77,7 +77,7 @@ Serial is the board's native USB port (`ARDUINO_USB_CDC_ON_BOOT=1`, VERIFY on bo
 
 ## Memory
 
-Measured with `pio run` on 2026-10-28 (PlatformIO 6.2.0, espressif32 7.1.3, Arduino-ESP32 2.0.17). RAM is static data and `.bss`, before the heap and the task stacks; the panel buffer is 60,000 bytes of it, sized for the largest pinned profile (the 600x800 Kindle) so any profile fits.
+Measured with `pio run` on 2026-10-28 (PlatformIO 6.2.0, espressif32 7.1.3, Arduino-ESP32 2.0.17). RAM is static data and `.bss`, before the heap and the task stacks; the panel buffer is part of it. Since 2026-11-10 the buffer is sized for the board's own panel (5,000 bytes on `bench_s3`'s 200x200, 48,000 on the X4's 800x480) instead of 60,000 on every board; the table below is from before that change and is refreshed from the next `Firmware device build` run. The host tests still use the 60,000-byte cap, since they draw every profile.
 
 | Board | Chip | RAM used | Flash used (app partition) |
 | --- | --- | --- | --- |
@@ -85,6 +85,16 @@ Measured with `pio run` on 2026-10-28 (PlatformIO 6.2.0, espressif32 7.1.3, Ardu
 | `x4` | ESP32-C3, 4 MB flash (VERIFY) | 75,696 of 327,680 bytes (23.1%) | 273,942 of 1,310,720 bytes (20.9%) |
 
 The builds use `-std=gnu++17 -Wall -Wextra` and print no warnings. The Arduino framework adds `-Wno-format`, `-Wno-sign-compare` and `-Wno-unused-parameter` after them; the host build (`-Werror -Wconversion -Wshadow`, ASan, UBSan) is the strict one for the libraries.
+
+## Before sharing a firmware binary
+
+Nothing is distributed today. The firmware statically links the Arduino-ESP32 core, which is LGPL-2.1-or-later (OTS-124), so whoever first shares a built image (a `.bin`, a flashed device, a release asset) must first, in the same release:
+
+- include the LGPL-2.1 license text and a notice that the image contains the Arduino-ESP32 core, with its version;
+- let anyone relink the image against a modified core. This project's full source and `platformio.ini` are public under Apache-2.0, so point the release at the exact commit it was built from, and keep that commit reachable;
+- list the other licenses the image carries (ESP-IDF, Apache-2.0) from `docs/OTS_SOFTWARE.md`.
+
+This is a checklist, not legal advice; check it against the license text before the first release (decided by Eric, 2026-11-01).
 
 ## Rules for this code
 

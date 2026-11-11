@@ -33,11 +33,13 @@ namespace {
 
 static_assert(lk::is_profile_size(lk::kBoard.panel_width, lk::kBoard.panel_height),
               "the panel must be a size spec/panel_vectors.json pins");
-static_assert(lk::packed_size(lk::kBoard.panel_width, lk::kBoard.panel_height) <=
-                  lk::kMaxPanelBytes,
-              "the panel buffer holds the largest pinned profile");
+// The buffer holds exactly this board's panel, not the largest profile: about
+// 5 KB at 200x200 and 48 KB at 800x480, instead of 60 KB everywhere.
+constexpr size_t kPanelBytes = lk::packed_size(lk::kBoard.panel_width, lk::kBoard.panel_height);
+static_assert(kPanelBytes > 0 && kPanelBytes <= lk::kMaxPanelBytes,
+              "the panel buffer fits a pinned profile");
 
-uint8_t g_panel[lk::kMaxPanelBytes];
+uint8_t g_panel[kPanelBytes];
 
 void print_line(const char* line) { Serial.println(line); }
 
