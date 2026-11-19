@@ -108,7 +108,7 @@ From `docs/COMMUNITY_RESEARCH.md` (October 2026):
 - [ ] Android on Windows: shorten the CMake object paths so the checkout-path limit (about 60 characters) goes away; without copying the firmware sources this needs a `CMakeLists.txt` in `firmware/xteink/lib` (`add_subdirectory` with a short binary directory), outside the app.
 - [ ] CI: upload the Android instrumented test reports as an artifact (needs a pinned `actions/upload-artifact`).
 - [x] A Dependabot `gradle` entry for `/apps/android`: weekly, for AGP, JUnit, the AndroidX test runner and the Gradle wrapper. Each update pull request also moves the pins in `tests/test_android.py` and the rows in `docs/OTS_SOFTWARE.md`.
-- [ ] Firmware: size the panel buffer per board (about 5,000 bytes at 200x200, 48,000 at 800x480) instead of `kMaxPanelBytes` = 60,000, saving about 55 KB of static RAM on the bench board (decided 2026-11-01).
+- [x] Firmware: size the panel buffer per board (about 5,000 bytes at 200x200, 48,000 at 800x480) instead of `kMaxPanelBytes` = 60,000, saving about 55 KB of static RAM on the bench board (decided 2026-11-01). Done 2026-11-10: `src/main.cpp` sizes it from `kBoard`.
 - [ ] `tools/doctor.py`: report whether this Python has Tk (the desktop window) and whether the Android SDK, NDK 28.2.13676358 and CMake 3.22.1 are installed.
 
 ## Refactoring
@@ -141,7 +141,7 @@ From `docs/COMMUNITY_RESEARCH.md` (October 2026):
 ## Documentation
 
 - [ ] Fill in exact Nightscout deployment steps for ElfHosted (ADR-0012, decided 2026-11-01) in `docs/SETUP.md`, after the trial check: a readable token in the `api-secret` header returns entries, no credentials get 401, and the site sits at a root address.
-- [ ] A release-process note on Arduino-ESP32's LGPL-2.1-or-later relinking obligations, before any firmware binary is distributed (decided 2026-11-01).
+- [x] A release-process note on Arduino-ESP32's LGPL-2.1-or-later relinking obligations, before any firmware binary is distributed (decided 2026-11-01). Done 2026-11-10: "Before sharing a firmware binary" in `firmware/xteink/README.md`.
 - [ ] Record Trio build and settings notes from the first build.
 - [ ] Kaitlin reviews `docs/SAFETY.md` (including HAZ-014 to HAZ-016, and the desktop window and the Android app, the two display devices added on 2026-10-28, with their residual risks) and the default thresholds, signs the ADR-0011 section of `docs/SAFETY_REVIEW.md` (D6), and looks at the before/after panel contact sheets at six sizes before a bedside panel is relied on (the sheets are not in the repository; attach them to the pull request). One trade-off to look at: at 296x128 the IN RANGE screen with `Nightscout unreachable` draws the number at scale 3 instead of 4 so the age keeps scale 3.
 - [x] Publish `demo.html` on GitHub Pages and link it from the README's Demo section (2026-10-24, `pages.yml`).
